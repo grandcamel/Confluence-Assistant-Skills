@@ -1,0 +1,22 @@
+{
+  "name": "confluence-assistant-skills",
+  "version": "1.0.0",
+  "description": "14 specialized skills for Confluence Cloud automation. Natural language page management, CQL search with export, comments, attachments, labels, permissions, and JIRA integration.",
+  "author": {
+    "name": "Jason Krueger",
+    "url": "https://github.com/grandcamel"
+  },
+  "repository": "https://github.com/grandcamel/Confluence-Assistant-Skills",
+  "license": "MIT",
+  "keywords": [
+    "confluence",
+    "atlassian",
+    "cql",
+    "wiki",
+    "documentation",
+    "pages",
+    "spaces",
+    "collaboration"
+  ],
+  "skills": "./.claude/skills/"
+}
