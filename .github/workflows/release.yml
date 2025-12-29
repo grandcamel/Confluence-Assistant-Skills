@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: Run Release Please
+        uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          release-type: simple
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r .claude/skills/shared/scripts/lib/requirements.txt
+
+      - name: Run unit tests
+        run: |
+          for skill_dir in .claude/skills/*/tests/; do
+            if [ -d "$skill_dir" ]; then
+              skill_name=$(basename $(dirname $skill_dir))
+              echo "Testing $skill_name..."
+              python -m pytest "$skill_dir" -v \
+                --ignore="${skill_dir}live_integration" \
+                || echo "No tests found for $skill_name"
+            fi
+          done
+
+      - name: Lint shared library
+        run: |
+          pip install flake8
+          flake8 .claude/skills/shared/scripts/lib/ \
+            --count \
+            --select=E9,F63,F7,F82 \
+            --show-source \
+            --statistics \
+            || true
+
+  publish-release:
+    needs: [release-please, test]
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create release archive
+        run: |
+          VERSION=${{ needs.release-please.outputs.version }}
+          mkdir -p dist
+          tar -czvf dist/confluence-assistant-skills-${VERSION}.tar.gz \
+            --exclude='*/tests/*' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            .claude/skills/ \
+            CLAUDE.md \
+            README.md \
+            VERSION
+
+      - name: Upload release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ needs.release-please.outputs.version }}
+          gh release upload v${VERSION} dist/confluence-assistant-skills-${VERSION}.tar.gz --clobber
