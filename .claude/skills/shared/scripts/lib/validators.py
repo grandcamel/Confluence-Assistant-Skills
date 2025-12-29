@@ -182,6 +182,13 @@ def validate_cql(cql: str, field_name: str = "cql") -> str:
             value=cql
         )
 
+    if cql.count("'") % 2 != 0:
+        raise ValidationError(
+            f"{field_name} has unbalanced single quotes",
+            field=field_name,
+            value=cql
+        )
+
     # Known CQL fields
     cql_fields = [
         'space', 'title', 'text', 'type', 'label', 'creator', 'contributor',
