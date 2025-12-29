@@ -1,10 +1,6 @@
 # Confluence Assistant Skills
 
 <p align="center">
-  <img src=".github/assets/logo.png" alt="Confluence Assistant Skills" width="200">
-</p>
-
-<p align="center">
   <strong>Claude Code skills for automating Confluence Cloud operations via natural language</strong>
 </p>
 
@@ -17,9 +13,6 @@
   </a>
   <a href="https://www.python.org/downloads/">
     <img src="https://img.shields.io/badge/python-3.9+-blue.svg?style=flat-square" alt="Python">
-  </a>
-  <a href="https://github.com/grandcamel/Confluence-Assistant-Skills/actions">
-    <img src="https://img.shields.io/github/actions/workflow/status/grandcamel/Confluence-Assistant-Skills/ci.yml?style=flat-square" alt="CI">
   </a>
 </p>
 
@@ -382,7 +375,7 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide, including:
 
 **Error**: `Could not parse cql`
 
-1. Use the validation script: `python cql_validate.py "your query"`
+1. Use the validation script: `python .claude/skills/confluence-search/scripts/cql_validate.py "your query"`
 2. Check quotes are balanced (single or double, not mixed)
 3. Verify field names are valid (see [CQL Reference](#cql-query-reference))
 
