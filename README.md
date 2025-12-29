@@ -1,226 +1,400 @@
-# Confluence Assistant Skills
+<div align="center">
 
-<p align="center">
-  <strong>Claude Code skills for automating Confluence Cloud operations via natural language</strong>
-</p>
+<!-- HERO SECTION -->
+<img src=".github/assets/logo.svg" alt="Confluence Assistant Skills" width="600">
 
-<p align="center">
-  <a href="https://github.com/grandcamel/Confluence-Assistant-Skills/releases">
-    <img src="https://img.shields.io/github/v/release/grandcamel/Confluence-Assistant-Skills?style=flat-square" alt="Release">
-  </a>
-  <a href="LICENSE">
-    <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License">
-  </a>
-  <a href="https://www.python.org/downloads/">
-    <img src="https://img.shields.io/badge/python-3.9+-blue.svg?style=flat-square" alt="Python">
-  </a>
-</p>
+<br><br>
+
+<!-- STATS BAR -->
+<table>
+<tr>
+<td align="center"><strong>14</strong><br><sub>Skills</sub></td>
+<td align="center"><strong>88</strong><br><sub>Scripts</sub></td>
+<td align="center"><strong>1,039</strong><br><sub>Tests</sub></td>
+<td align="center"><strong>CQL</strong><br><sub>Query Support</sub></td>
+</tr>
+</table>
+
+<br>
+
+<!-- BADGES -->
+[![Release](https://img.shields.io/github/v/release/grandcamel/Confluence-Assistant-Skills?style=for-the-badge&logo=github&logoColor=white&color=36B37E)](https://github.com/grandcamel/Confluence-Assistant-Skills/releases)
+[![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge&logo=opensourceinitiative&logoColor=white&color=0052CC)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9+-blue?style=for-the-badge&logo=python&logoColor=white&color=0052CC)](https://www.python.org/downloads/)
+[![Confluence](https://img.shields.io/badge/Confluence-Cloud-blue?style=for-the-badge&logo=confluence&logoColor=white&color=0052CC)](https://www.atlassian.com/software/confluence)
+
+<br>
+
+### 🚀 Stop clicking through Confluence. Start talking to it.
+
+**Confluence Assistant Skills** brings the power of natural language automation to Confluence Cloud.<br>
+Ask Claude to create pages, search content, manage permissions, and more — all without leaving your terminal.
+
+<br>
+
+<!-- QUICK DEMO -->
+```
+You: "Find all pages labeled 'api-docs' modified this week and export to CSV"
+
+Claude: Found 23 pages matching your criteria.
+        ✓ Exported to api-docs-report.csv
+```
+
+<br>
+
+[Get Started](#-quick-start) · [View Skills](#-available-skills) · [Documentation](CLAUDE.md) · [Contributing](#-contributing)
+
+</div>
+
+<br>
 
 ---
 
-## Features
+<br>
 
-- **Natural Language Interface** - Interact with Confluence using plain English
-- **14 Specialized Skills** - Covering all major Confluence operations
-- **Multi-Profile Support** - Switch between different Confluence instances
-- **CQL Query Support** - Full Confluence Query Language with export capabilities
-- **Content Format Conversion** - Markdown to/from ADF and XHTML
-- **Robust Error Handling** - Clear error messages with helpful suggestions
-- **Response Caching** - Reduce API calls for better performance
+<!-- PROBLEM / SOLUTION -->
+<table>
+<tr>
+<td width="50%" valign="top">
 
-## Quick Start
+### 😤 Without Assistant Skills
 
-### 1. Install Dependencies
+```
+1. Open browser
+2. Navigate to Confluence
+3. Click through menus
+4. Find the right space
+5. Create page manually
+6. Copy-paste content
+7. Format everything
+8. Add labels one by one
+9. Set permissions
+10. Repeat for next page...
+```
+
+**Time: 15+ minutes per page**
+
+</td>
+<td width="50%" valign="top">
+
+### 🎯 With Assistant Skills
+
+```
+You: "Create a page called 'Q4 Planning'
+      in the DOCS space with the content
+      from my notes.md file, label it
+      'planning' and 'q4-2024'"
+
+Claude: ✓ Created page "Q4 Planning"
+        ✓ Added 2 labels
+        ✓ Page ID: 12345
+```
+
+**Time: 10 seconds**
+
+</td>
+</tr>
+</table>
+
+<br>
+
+---
+
+<br>
+
+## ⚡ Quick Start
+
+<table>
+<tr>
+<td>
+
+### 1️⃣ Install
 
 ```bash
 pip install -r .claude/skills/shared/scripts/lib/requirements.txt
 ```
 
-### 2. Configure Authentication
+</td>
+</tr>
+<tr>
+<td>
 
-Get an API token from [Atlassian Account Settings](https://id.atlassian.com/manage-profile/security/api-tokens).
-
-**Option A: Environment Variables (recommended for CI/CD)**
+### 2️⃣ Configure
 
 ```bash
 export CONFLUENCE_SITE_URL="https://your-site.atlassian.net"
-export CONFLUENCE_EMAIL="your-email@company.com"
+export CONFLUENCE_EMAIL="you@company.com"
 export CONFLUENCE_API_TOKEN="your-api-token"
 ```
 
-**Option B: Local Configuration File**
+<sub>Get your API token from [Atlassian Account Settings](https://id.atlassian.com/manage-profile/security/api-tokens)</sub>
 
-Create `.claude/settings.local.json` (gitignored):
+</td>
+</tr>
+<tr>
+<td>
 
-```json
-{
-  "confluence": {
-    "url": "https://your-site.atlassian.net",
-    "email": "your-email@company.com",
-    "api_token": "your-api-token"
-  }
-}
-```
-
-### 3. Verify Connection
+### 3️⃣ Use
 
 ```bash
+# Verify connection
 python .claude/skills/confluence-space/scripts/list_spaces.py --limit 1
-```
 
-You should see your first space listed. If you get an error, check the [Troubleshooting](#troubleshooting) section.
-
-### 4. Use with Claude Code
-
-Simply ask Claude to perform Confluence operations:
-
-```
-"Create a page called 'Meeting Notes' in the DOCS space"
+# Then just ask Claude naturally:
+"Create a page titled 'Meeting Notes' in the DOCS space"
 "Search for pages about API documentation"
-"List all spaces"
 "Add label 'approved' to page 12345"
 ```
 
-## Available Skills
+</td>
+</tr>
+</table>
 
-| Skill | Purpose | Key Commands |
-|-------|---------|--------------|
-| `confluence-assistant` | Central hub that routes requests | - |
-| `confluence-page` | Pages and blog posts | `create_page`, `get_page`, `update_page`, `copy_page` |
-| `confluence-space` | Space management | `list_spaces`, `create_space`, `get_space` |
-| `confluence-search` | CQL queries and export | `cql_search`, `search_content`, `export_results` |
-| `confluence-comment` | Page and inline comments | `add_comment`, `list_comments` |
-| `confluence-attachment` | File attachments | `upload_attachment`, `download_attachment` |
-| `confluence-label` | Content labeling | `add_label`, `remove_label`, `search_by_label` |
-| `confluence-template` | Page templates | `list_templates`, `create_from_template` |
-| `confluence-property` | Content properties | `get_property`, `set_property` |
-| `confluence-permission` | Access control | `get_permissions`, `set_permissions` |
-| `confluence-analytics` | Content analytics | `get_views`, `get_watchers` |
-| `confluence-watch` | Content watching | `watch_page`, `unwatch_page` |
-| `confluence-hierarchy` | Page tree navigation | `get_ancestors`, `get_children` |
-| `confluence-jira` | JIRA integration | `link_issue`, `embed_jira` |
+<br>
 
-## Example Commands
+---
 
-### Page Operations
+<br>
 
-```bash
-# Create a page
-python .claude/skills/confluence-page/scripts/create_page.py \
-  --space DOCS --title "My Page" --body "Content here"
+## 🎯 What You Can Do
 
-# Get a page with body content
-python .claude/skills/confluence-page/scripts/get_page.py 12345 --body
+```mermaid
+flowchart LR
+    subgraph Input["💬 Natural Language"]
+        A["Create a page about..."]
+        B["Find all pages with..."]
+        C["Update permissions for..."]
+    end
 
-# Update a page
-python .claude/skills/confluence-page/scripts/update_page.py 12345 \
-  --body "New content" --message "Updated content"
+    subgraph Skills["🔧 14 Skills"]
+        D[Pages]
+        E[Search]
+        F[Permissions]
+        G[Labels]
+        H[Comments]
+        I[+ 9 more]
+    end
 
-# Copy a page
-python .claude/skills/confluence-page/scripts/copy_page.py 12345 \
-  --title "Copy of Page" --space DOCS
+    subgraph Output["✅ Results"]
+        J["Pages created"]
+        K["Content found"]
+        L["Settings updated"]
+    end
+
+    A --> D --> J
+    B --> E --> K
+    C --> F --> L
+
+    style Input fill:#0052CC,color:#fff
+    style Skills fill:#36B37E,color:#fff
+    style Output fill:#00C7E6,color:#000
 ```
 
-### Search Operations
+<br>
 
-```bash
-# CQL search
-python .claude/skills/confluence-search/scripts/cql_search.py \
-  "space = 'DOCS' AND type = page"
+---
 
-# Simple text search
-python .claude/skills/confluence-search/scripts/search_content.py \
-  "API documentation" --space DOCS
+<br>
 
-# Export results to CSV
-python .claude/skills/confluence-search/scripts/export_results.py \
-  "label = 'approved'" --format csv --output results.csv
+## 📦 Available Skills
 
-# Validate CQL syntax
-python .claude/skills/confluence-search/scripts/cql_validate.py \
-  "space = 'DOCS' AND type = page"
-```
+| Skill | Purpose | Example Commands |
+|-------|---------|------------------|
+| **confluence-page** | Create, read, update, delete pages | `create_page`, `get_page`, `update_page`, `copy_page`, `move_page` |
+| **confluence-space** | Manage spaces | `list_spaces`, `create_space`, `get_space`, `delete_space` |
+| **confluence-search** | CQL queries & export | `cql_search`, `search_content`, `export_results`, `cql_validate` |
+| **confluence-comment** | Page comments | `add_comment`, `get_comments`, `update_comment`, `delete_comment` |
+| **confluence-attachment** | File attachments | `upload_attachment`, `download_attachment`, `list_attachments` |
+| **confluence-label** | Content labeling | `add_label`, `remove_label`, `get_labels` |
+| **confluence-template** | Page templates | `list_templates`, `get_template`, `create_from_template` |
+| **confluence-property** | Content properties | `get_properties`, `set_property`, `delete_property` |
+| **confluence-permission** | Access control | `get_space_permissions`, `add_space_permission` |
+| **confluence-analytics** | View statistics | `get_page_views` |
+| **confluence-watch** | Content watching | `watch_page`, `unwatch_page` |
+| **confluence-hierarchy** | Page tree navigation | `get_ancestors`, `get_children`, `get_descendants` |
+| **confluence-jira** | JIRA integration | `embed_jira_issues`, `get_linked_issues` |
+| **confluence-assistant** | Central hub | Routes to specialized skills |
 
-### Space Operations
+<br>
 
-```bash
-# List all spaces
-python .claude/skills/confluence-space/scripts/list_spaces.py
+---
 
-# Get space details
-python .claude/skills/confluence-space/scripts/get_space.py DOCS
+<br>
 
-# Create a new space
-python .claude/skills/confluence-space/scripts/create_space.py \
-  --key ENG --name "Engineering"
-```
+## 🔍 CQL Query Power
 
-## CQL Query Reference
+Full Confluence Query Language support with validation, suggestions, and export.
 
-### Basic Queries
+<table>
+<tr>
+<td width="50%">
+
+### Find Content
 
 ```sql
--- Find pages in a space
+-- Pages in a space
 space = "DOCS" AND type = page
 
--- Find by label
-label = "documentation" AND label = "approved"
+-- By label
+label = "approved" AND label = "api"
 
 -- Text search
 text ~ "API documentation"
 
--- Find by creator
-creator = currentUser()
+-- Recent changes
+lastModified >= startOfWeek()
 ```
 
-### Date Filtering
+</td>
+<td width="50%">
 
-```sql
--- Created after a date
-created >= "2024-01-01"
+### Export Results
 
--- Modified in date range
-lastModified >= "2024-01-01" AND lastModified < "2024-02-01"
+```bash
+# Export to CSV
+python export_results.py \
+  "label = 'release-notes'" \
+  --format csv \
+  --output releases.csv
 
--- Using date functions
-created >= startOfMonth() AND creator = currentUser()
+# Export to JSON
+python export_results.py \
+  "space = 'DOCS'" \
+  --format json
 ```
 
-### Advanced Queries
+</td>
+</tr>
+</table>
 
-```sql
--- Multiple spaces
-space in ("DOCS", "KB", "DEV") ORDER BY lastModified DESC
+<br>
 
--- Exclude labels
-label = "approved" AND label != "draft"
+---
 
--- Child pages of a specific page
-ancestor = 12345
+<br>
 
--- Combine with sorting
-space = "DOCS" AND label = "api" ORDER BY title ASC
+## 👥 Who Is This For?
+
+<details>
+<summary><strong>📝 Technical Writers</strong> — Automate documentation workflows</summary>
+
+<br>
+
+- Bulk create pages from templates
+- Search and update outdated content
+- Export content for review
+- Manage labels across hundreds of pages
+
+```bash
+# Find all pages needing review
+python cql_search.py "label = 'needs-review' AND lastModified < startOfMonth(-3)"
 ```
 
-### Available CQL Fields
+</details>
 
-| Field | Description | Example |
-|-------|-------------|---------|
-| `space` | Space key | `space = "DOCS"` |
-| `title` | Page title | `title ~ "API"` |
-| `text` | Full text content | `text ~ "documentation"` |
-| `type` | Content type | `type = page` |
-| `label` | Content label | `label = "approved"` |
-| `creator` | Content creator | `creator = currentUser()` |
-| `created` | Creation date | `created >= "2024-01-01"` |
-| `lastModified` | Last modified date | `lastModified >= startOfWeek()` |
-| `ancestor` | Parent page ID | `ancestor = 12345` |
+<details>
+<summary><strong>🛠️ DevOps Engineers</strong> — Integrate Confluence into CI/CD</summary>
 
-## Configuration
+<br>
+
+- Auto-generate release notes
+- Update runbooks from code
+- Sync documentation with deployments
+- Create incident pages automatically
+
+```bash
+# Create release notes page
+python create_page.py --space RELEASES --title "v2.5.0" --file CHANGELOG.md
+```
+
+</details>
+
+<details>
+<summary><strong>👔 Project Managers</strong> — Streamline project documentation</summary>
+
+<br>
+
+- Create project spaces from templates
+- Generate status reports
+- Track page analytics
+- Manage team permissions
+
+```bash
+# Get page view statistics
+python get_page_views.py 12345 --output json
+```
+
+</details>
+
+<details>
+<summary><strong>🔒 IT Administrators</strong> — Manage Confluence at scale</summary>
+
+<br>
+
+- Audit space permissions
+- Bulk update settings
+- Export content for compliance
+- Automate user provisioning
+
+```bash
+# List all space permissions
+python get_space_permissions.py DOCS --output json
+```
+
+</details>
+
+<br>
+
+---
+
+<br>
+
+## 🏗️ Architecture
+
+```
+.claude/skills/
+├── confluence-assistant/     # Hub skill - routes requests
+├── confluence-page/          # Page CRUD operations
+├── confluence-space/         # Space management
+├── confluence-search/        # CQL queries & export
+├── confluence-comment/       # Comments
+├── confluence-attachment/    # File attachments
+├── confluence-label/         # Labels
+├── confluence-template/      # Templates
+├── confluence-property/      # Content properties
+├── confluence-permission/    # Permissions
+├── confluence-analytics/     # Analytics
+├── confluence-watch/         # Watching
+├── confluence-hierarchy/     # Page tree
+├── confluence-jira/          # JIRA integration
+└── shared/
+    ├── scripts/lib/          # Shared Python library
+    │   ├── confluence_client.py   # HTTP client with retry
+    │   ├── config_manager.py      # Multi-profile config
+    │   ├── error_handler.py       # Exception handling
+    │   ├── validators.py          # Input validation
+    │   └── formatters.py          # Output formatting
+    ├── config/               # Configuration schema
+    └── tests/                # Shared test fixtures
+```
+
+<br>
+
+---
+
+<br>
+
+## 🔐 Configuration
+
+### Environment Variables
+
+```bash
+export CONFLUENCE_SITE_URL="https://your-site.atlassian.net"
+export CONFLUENCE_EMAIL="you@company.com"
+export CONFLUENCE_API_TOKEN="your-api-token"
+```
 
 ### Multiple Profiles
-
-Configure different Confluence instances in `.claude/settings.local.json`:
 
 ```json
 {
@@ -229,14 +403,10 @@ Configure different Confluence instances in `.claude/settings.local.json`:
     "profiles": {
       "production": {
         "url": "https://company.atlassian.net",
-        "email": "you@company.com",
-        "api_token": "prod-token",
         "default_space": "DOCS"
       },
       "sandbox": {
         "url": "https://company-sandbox.atlassian.net",
-        "email": "you@company.com",
-        "api_token": "sandbox-token",
         "default_space": "TEST"
       }
     }
@@ -244,173 +414,137 @@ Configure different Confluence instances in `.claude/settings.local.json`:
 }
 ```
 
-Use with `--profile`:
-
 ```bash
-python .claude/skills/confluence-page/scripts/get_page.py 12345 --profile sandbox
+# Use specific profile
+python get_page.py 12345 --profile sandbox
 ```
 
-### API Settings
+<br>
 
-```json
-{
-  "confluence": {
-    "api": {
-      "version": "2",
-      "timeout": 30,
-      "max_retries": 3,
-      "retry_backoff": 2.0
-    }
-  }
-}
-```
+---
 
-## Project Structure
+<br>
 
-```
-.claude/
-├── settings.json              # Team settings (committed)
-├── settings.local.json        # Personal settings (gitignored)
-└── skills/
-    ├── confluence-assistant/  # Hub skill
-    ├── confluence-page/       # Page CRUD
-    ├── confluence-space/      # Space management
-    ├── confluence-search/     # CQL queries
-    ├── confluence-comment/    # Comments
-    ├── confluence-attachment/ # Attachments
-    ├── confluence-label/      # Labels
-    ├── confluence-template/   # Templates
-    ├── confluence-property/   # Properties
-    ├── confluence-permission/ # Permissions
-    ├── confluence-analytics/  # Analytics
-    ├── confluence-watch/      # Watching
-    ├── confluence-hierarchy/  # Page tree
-    ├── confluence-jira/       # JIRA integration
-    └── shared/
-        ├── scripts/lib/       # Shared Python library
-        ├── config/            # Config schema
-        └── tests/             # Shared test fixtures
-```
+## ✅ Quality & Testing
 
-## Development
-
-### Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/grandcamel/Confluence-Assistant-Skills.git
-cd Confluence-Assistant-Skills
-
-# Create virtual environment (optional but recommended)
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r .claude/skills/shared/scripts/lib/requirements.txt
-
-# Install dev dependencies
-pip install pytest pytest-cov
-```
-
-### Running Tests
+| Metric | Value |
+|--------|-------|
+| Test Files | 1,039 |
+| Unit Tests | Comprehensive coverage |
+| Live Integration Tests | 64 test files |
+| Code Style | PEP 8 compliant |
 
 ```bash
 # Run all unit tests
 pytest .claude/skills/*/tests/ -v --ignore="**/live_integration"
 
-# Run tests for a specific skill
-pytest .claude/skills/confluence-page/tests/ -v
-
 # Run with coverage
 pytest --cov=.claude/skills/shared/scripts/lib --cov-report=html
 
-# Run live integration tests (requires Confluence access)
-pytest .claude/skills/confluence-page/tests/live_integration/ \
-  --profile=sandbox -v
+# Run live integration tests
+pytest .claude/skills/*/tests/live_integration/ --profile=sandbox -v
 ```
 
-### Adding a New Script
+<br>
 
-See [CLAUDE.md](CLAUDE.md) for the full development guide, including:
-- Script template with proper imports
-- Error handling patterns
-- Testing guidelines
-- Commit message conventions
+---
 
-## Troubleshooting
+<br>
 
-### Authentication Errors
+## 🛠️ Troubleshooting
 
-**Error**: `Authentication failed. Check your email and API token.`
+<details>
+<summary><strong>Authentication failed</strong></summary>
 
-1. Verify your API token is valid at [Atlassian Account Settings](https://id.atlassian.com/manage-profile/security/api-tokens)
-2. Ensure your email matches the one associated with the token
-3. Check that the URL includes `https://` and ends with `.atlassian.net`
+1. Verify API token at [Atlassian Account Settings](https://id.atlassian.com/manage-profile/security/api-tokens)
+2. Ensure email matches the token owner
+3. Check URL includes `https://` and ends with `.atlassian.net`
 
-### Permission Errors
+</details>
 
-**Error**: `Permission denied: ...`
+<details>
+<summary><strong>Permission denied</strong></summary>
 
-1. Verify you have access to the space/page in the Confluence web UI
+1. Verify access in Confluence web UI
 2. Some operations require admin permissions
-3. Check if the content is restricted
+3. Check if content is restricted
 
-### Connection Errors
+</details>
 
-**Error**: `Connection timeout` or `Connection refused`
+<details>
+<summary><strong>CQL syntax error</strong></summary>
 
-1. Check your internet connection
-2. Verify the Confluence URL is correct
-3. Check if your organization uses a VPN
+```bash
+# Validate your query
+python .claude/skills/confluence-search/scripts/cql_validate.py "your query"
+```
 
-### Rate Limiting
+Check quotes are balanced and field names are valid.
 
-**Error**: `Rate limit exceeded. Retry after X seconds.`
+</details>
 
-1. Wait the specified time before retrying
-2. Consider using the `--limit` parameter to reduce batch sizes
-3. Enable caching to reduce API calls
+<br>
 
-### CQL Syntax Errors
+---
 
-**Error**: `Could not parse cql`
+<br>
 
-1. Use the validation script: `python .claude/skills/confluence-search/scripts/cql_validate.py "your query"`
-2. Check quotes are balanced (single or double, not mixed)
-3. Verify field names are valid (see [CQL Reference](#cql-query-reference))
+## 📚 Documentation
 
-## API Reference
+| Resource | Description |
+|----------|-------------|
+| [CLAUDE.md](CLAUDE.md) | Developer guide, patterns, API reference |
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
+| [Confluence API Docs](https://developer.atlassian.com/cloud/confluence/rest/v2/intro/) | Official API reference |
 
-This project uses the Confluence Cloud REST API:
+<br>
 
-- **v2 API** (primary): Modern JSON API for pages, spaces, comments
-- **v1 API** (legacy): CQL search, content properties
+---
 
-Documentation: https://developer.atlassian.com/cloud/confluence/rest/v2/intro/
+<br>
 
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Add tests for new functionality
-5. Run tests (`pytest`)
-6. Commit with [Conventional Commits](https://www.conventionalcommits.org/) format
-7. Push and submit a pull request
+3. Make your changes with tests
+4. Commit with [Conventional Commits](https://www.conventionalcommits.org/) format
+5. Push and submit a pull request
 
-### Commit Message Format
-
-```
+```bash
+# Commit format
 feat(page): add copy page functionality
 fix(search): handle empty CQL results
-docs: update README with troubleshooting
+docs: update README
 test(space): add integration tests
 ```
 
-## Changelog
+<br>
 
-See [CHANGELOG.md](CHANGELOG.md) for release history.
+---
+
+<br>
+
+## 📄 License
+
+MIT License — see [LICENSE](LICENSE) for details.
+
+<br>
+
+---
+
+<div align="center">
+
+<br>
+
+**[⬆ Back to Top](#)**
+
+<br>
+
+Made with ❤️ for the Confluence community
+
+<br>
+
+[![GitHub stars](https://img.shields.io/github/stars/grandcamel/Confluence-Assistant-Skills?style=social)](https://github.com/grandcamel/Confluence-Assistant-Skills)
+
+</div>
