@@ -110,7 +110,14 @@ Claude: ✓ Created page "Q4 Planning"
 
 ### 1️⃣ Install
 
+**Option A: Claude Code Plugin** (recommended)
+```
+/plugin grandcamel/Confluence-Assistant-Skills
+```
+
+**Option B: Manual**
 ```bash
+git clone https://github.com/grandcamel/Confluence-Assistant-Skills.git
 pip install -r .claude/skills/shared/scripts/lib/requirements.txt
 ```
 
@@ -252,13 +259,13 @@ lastModified >= startOfWeek()
 
 ```bash
 # Export to CSV
-python export_results.py \
+python .claude/skills/confluence-search/scripts/export_results.py \
   "label = 'release-notes'" \
   --format csv \
   --output releases.csv
 
 # Export to JSON
-python export_results.py \
+python .claude/skills/confluence-search/scripts/export_results.py \
   "space = 'DOCS'" \
   --format json
 ```
@@ -287,7 +294,8 @@ python export_results.py \
 
 ```bash
 # Find all pages needing review
-python cql_search.py "label = 'needs-review' AND lastModified < startOfMonth(-3)"
+python .claude/skills/confluence-search/scripts/cql_search.py \
+  "label = 'needs-review' AND lastModified < startOfMonth(-3)"
 ```
 
 </details>
@@ -304,7 +312,8 @@ python cql_search.py "label = 'needs-review' AND lastModified < startOfMonth(-3)
 
 ```bash
 # Create release notes page
-python create_page.py --space RELEASES --title "v2.5.0" --file CHANGELOG.md
+python .claude/skills/confluence-page/scripts/create_page.py \
+  --space RELEASES --title "v2.5.0" --file CHANGELOG.md
 ```
 
 </details>
@@ -321,7 +330,8 @@ python create_page.py --space RELEASES --title "v2.5.0" --file CHANGELOG.md
 
 ```bash
 # Get page view statistics
-python get_page_views.py 12345 --output json
+python .claude/skills/confluence-analytics/scripts/get_page_views.py \
+  12345 --output json
 ```
 
 </details>
@@ -338,7 +348,8 @@ python get_page_views.py 12345 --output json
 
 ```bash
 # List all space permissions
-python get_space_permissions.py DOCS --output json
+python .claude/skills/confluence-permission/scripts/get_space_permissions.py \
+  DOCS --output json
 ```
 
 </details>
@@ -416,7 +427,8 @@ export CONFLUENCE_API_TOKEN="your-api-token"
 
 ```bash
 # Use specific profile
-python get_page.py 12345 --profile sandbox
+python .claude/skills/confluence-page/scripts/get_page.py \
+  12345 --profile sandbox
 ```
 
 <br>
