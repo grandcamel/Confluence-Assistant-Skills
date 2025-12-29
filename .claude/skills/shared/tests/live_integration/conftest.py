@@ -32,19 +32,33 @@ from config_manager import get_confluence_client
 
 def pytest_addoption(parser):
     """Add custom command-line options for live integration tests."""
-    # Only add options not already defined in parent
-    parser.addoption(
-        "--keep-space",
-        action="store_true",
-        default=False,
-        help="Keep the test space after tests complete (for debugging)"
-    )
-    parser.addoption(
-        "--space-key",
-        action="store",
-        default=None,
-        help="Use an existing space instead of creating a new one"
-    )
+    try:
+        parser.addoption(
+            "--profile",
+            action="store",
+            default=None,
+            help="Confluence profile for live integration tests"
+        )
+    except ValueError:
+        pass  # Option already added
+    try:
+        parser.addoption(
+            "--keep-space",
+            action="store_true",
+            default=False,
+            help="Keep the test space after tests complete (for debugging)"
+        )
+    except ValueError:
+        pass  # Option already added
+    try:
+        parser.addoption(
+            "--space-key",
+            action="store",
+            default=None,
+            help="Use an existing space instead of creating a new one"
+        )
+    except ValueError:
+        pass  # Option already added
 
 
 def pytest_configure(config):

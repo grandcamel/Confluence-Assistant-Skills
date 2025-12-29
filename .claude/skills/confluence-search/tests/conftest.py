@@ -5,28 +5,93 @@ Extends the shared fixtures with search-specific test data.
 """
 
 import pytest
+import json
 import sys
 from pathlib import Path
+from unittest.mock import Mock, MagicMock, patch
 
 # Add shared lib to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
 
-# Import shared conftest to get all its fixtures
-# This makes mock_client, sample_page, sample_search_results, etc. available
-shared_conftest_path = Path(__file__).parent.parent.parent / 'shared' / 'tests' / 'conftest.py'
-if shared_conftest_path.exists():
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("shared_conftest", shared_conftest_path)
-    shared_conftest = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(shared_conftest)
 
-    # Make shared fixtures available
-    globals().update({
-        name: getattr(shared_conftest, name)
-        for name in dir(shared_conftest)
-        if name.startswith('pytest_') or (hasattr(getattr(shared_conftest, name), '__name__') and
-           getattr(getattr(shared_conftest, name), '_pytestfixturefunction', None))
-    })
+# =============================================================================
+# Mock Fixtures (from shared conftest)
+# =============================================================================
+
+@pytest.fixture
+def mock_response():
+    """Factory for creating mock HTTP responses."""
+    def _create_response(
+        status_code: int = 200,
+        json_data=None,
+        text: str = "",
+        headers=None,
+    ):
+        response = Mock()
+        response.status_code = status_code
+        response.ok = 200 <= status_code < 300
+        response.text = text or json.dumps(json_data or {})
+        response.headers = headers or {}
+
+        if json_data is not None:
+            response.json.return_value = json_data
+        else:
+            response.json.side_effect = ValueError("No JSON")
+
+        return response
+
+    return _create_response
+
+
+@pytest.fixture
+def mock_client(mock_response):
+    """Create a mock Confluence client."""
+    from confluence_client import ConfluenceClient
+
+    with patch.object(ConfluenceClient, '_create_session'):
+        client = ConfluenceClient(
+            base_url="https://test.atlassian.net",
+            email="test@example.com",
+            api_token="test-token"
+        )
+
+        # Create a mock session
+        client.session = MagicMock()
+
+        # Helper to set up responses
+        def setup_response(method: str, response_data, status_code: int = 200):
+            response = mock_response(status_code=status_code, json_data=response_data)
+            getattr(client.session, method.lower()).return_value = response
+
+        client.setup_response = setup_response
+
+        yield client
+
+
+@pytest.fixture
+def sample_search_results():
+    """Sample search results from API."""
+    return {
+        "results": [
+            {
+                "content": {
+                    "id": "123456",
+                    "status": "current",
+                    "title": "Test Page",
+                    "spaceId": "789",
+                },
+                "excerpt": "This is a <em>test</em> page with content...",
+                "lastModified": "2024-01-15T10:30:00.000Z"
+            }
+        ],
+        "_links": {
+            "next": "/rest/api/search?cql=space=TEST&cursor=abc123"
+        },
+        "limit": 25,
+        "size": 1,
+        "start": 0,
+        "totalSize": 1
+    }
 
 
 @pytest.fixture

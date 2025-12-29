@@ -29,18 +29,24 @@ sys.path.insert(0, str(lib_path))
 
 def pytest_addoption(parser):
     """Add custom command-line options."""
-    parser.addoption(
-        "--profile",
-        action="store",
-        default=None,
-        help="Confluence profile for live integration tests"
-    )
-    parser.addoption(
-        "--live",
-        action="store_true",
-        default=False,
-        help="Run live integration tests"
-    )
+    try:
+        parser.addoption(
+            "--profile",
+            action="store",
+            default=None,
+            help="Confluence profile for live integration tests"
+        )
+    except ValueError:
+        pass  # Option already added
+    try:
+        parser.addoption(
+            "--live",
+            action="store_true",
+            default=False,
+            help="Run live integration tests"
+        )
+    except ValueError:
+        pass  # Option already added
 
 
 def pytest_configure(config):
