@@ -1,0 +1,1 @@
+"""Confluence Page Skill Scripts."""
