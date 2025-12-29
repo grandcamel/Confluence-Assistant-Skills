@@ -563,3 +563,105 @@ def validate_limit(
         )
 
     return limit_int
+
+
+def validate_issue_key(
+    issue_key: str,
+    field_name: str = "issue_key",
+) -> str:
+    """
+    Validate a JIRA issue key.
+
+    JIRA issue keys have the format: PROJECT-123
+    - Project key: 1-10 uppercase letters/underscores
+    - Hyphen separator
+    - Issue number: 1 or more digits
+
+    Args:
+        issue_key: The JIRA issue key to validate
+        field_name: Name of the field for error messages
+
+    Returns:
+        Validated issue key (uppercase)
+
+    Raises:
+        ValidationError: If the issue key is invalid
+    """
+    if issue_key is None:
+        raise ValidationError(f"{field_name} is required", field=field_name)
+
+    issue_key = str(issue_key).strip().upper()
+
+    if not issue_key:
+        raise ValidationError(f"{field_name} cannot be empty", field=field_name, value=issue_key)
+
+    # JIRA issue key pattern: PROJECT-123
+    pattern = r'^[A-Z][A-Z0-9_]{0,9}-\d+$'
+    if not re.match(pattern, issue_key):
+        raise ValidationError(
+            f"{field_name} must be in format PROJECT-123 (got: {issue_key})",
+            field=field_name,
+            value=issue_key
+        )
+
+    return issue_key
+
+
+def validate_jql_query(
+    jql: str,
+    field_name: str = "jql",
+) -> str:
+    """
+    Validate a JQL (JIRA Query Language) query.
+
+    Performs basic syntax validation:
+    - Non-empty
+    - Balanced parentheses and quotes
+
+    Args:
+        jql: The JQL query to validate
+        field_name: Name of the field for error messages
+
+    Returns:
+        Validated JQL query (stripped)
+
+    Raises:
+        ValidationError: If the JQL query is invalid
+    """
+    if jql is None:
+        raise ValidationError(f"{field_name} is required", field=field_name)
+
+    jql = str(jql).strip()
+
+    if not jql:
+        raise ValidationError(f"{field_name} cannot be empty", field=field_name, value=jql)
+
+    # Check balanced parentheses
+    paren_count = 0
+    for char in jql:
+        if char == '(':
+            paren_count += 1
+        elif char == ')':
+            paren_count -= 1
+        if paren_count < 0:
+            raise ValidationError(
+                f"{field_name} has unbalanced parentheses",
+                field=field_name,
+                value=jql
+            )
+    if paren_count != 0:
+        raise ValidationError(
+            f"{field_name} has unbalanced parentheses",
+            field=field_name,
+            value=jql
+        )
+
+    # Check balanced quotes
+    if jql.count('"') % 2 != 0:
+        raise ValidationError(
+            f"{field_name} has unbalanced double quotes",
+            field=field_name,
+            value=jql
+        )
+
+    return jql
