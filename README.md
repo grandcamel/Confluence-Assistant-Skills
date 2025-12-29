@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- HERO SECTION -->
-<img src=".github/assets/logo.svg" alt="Confluence Assistant Skills" width="400">
+<img src=".github/assets/logo.svg" alt="Confluence Assistant Skills" width="300">
 
 <br><br>
 
