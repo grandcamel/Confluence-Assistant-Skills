@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""
+Delete a Confluence comment.
+
+Examples:
+    python delete_comment.py 999
+    python delete_comment.py 999 --force
+    python delete_comment.py 999 --profile production
+"""
+
+import sys
+import argparse
+from pathlib import Path
+
+# Add shared lib to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
+
+from config_manager import get_confluence_client
+from error_handler import handle_errors, ValidationError
+from validators import validate_page_id
+from formatters import print_success, print_warning
+
+
+@handle_errors
+def main():
+    parser = argparse.ArgumentParser(
+        description='Delete a Confluence comment',
+        epilog='''
+Examples:
+  python delete_comment.py 999
+  python delete_comment.py 999 --force
+  python delete_comment.py 999 --profile production
+        ''',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument('comment_id', help='Comment ID to delete')
+    parser.add_argument('--force', '-f', action='store_true',
+                        help='Skip confirmation prompt')
+    parser.add_argument('--profile', help='Confluence profile to use')
+    args = parser.parse_args()
+
+    # Validate inputs
+    comment_id = validate_page_id(args.comment_id, "comment_id")
+
+    # Get client
+    client = get_confluence_client(profile=args.profile)
+
+    # Confirmation prompt (unless --force)
+    if not args.force:
+        print_warning(f"You are about to delete comment {comment_id}")
+        response = input("Are you sure? (yes/no): ").strip().lower()
+        if response not in ['yes', 'y']:
+            print("Delete cancelled.")
+            sys.exit(0)
+
+    # Delete the comment
+    client.delete(
+        f'/api/v2/footer-comments/{comment_id}',
+        operation='delete comment'
+    )
+
+    print_success(f"Deleted comment {comment_id}")
+
+
+if __name__ == '__main__':
+    main()
