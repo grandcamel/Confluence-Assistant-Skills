@@ -1,0 +1,120 @@
+"""
+Confluence Template Skill - Test Configuration
+"""
+
+import sys
+import json
+import pytest
+from pathlib import Path
+from unittest.mock import Mock, MagicMock, patch
+
+# Add shared lib to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
+
+
+@pytest.fixture
+def mock_response():
+    """Factory for creating mock HTTP responses."""
+    def _create_response(
+        status_code: int = 200,
+        json_data: dict = None,
+        text: str = "",
+        headers: dict = None,
+    ):
+        response = Mock()
+        response.status_code = status_code
+        response.ok = 200 <= status_code < 300
+        response.text = text or json.dumps(json_data or {})
+        response.headers = headers or {}
+
+        if json_data is not None:
+            response.json.return_value = json_data
+        else:
+            response.json.side_effect = ValueError("No JSON")
+
+        return response
+
+    return _create_response
+
+
+@pytest.fixture
+def mock_client(mock_response):
+    """Create a mock Confluence client."""
+    from confluence_client import ConfluenceClient
+
+    with patch.object(ConfluenceClient, '_create_session'):
+        client = ConfluenceClient(
+            base_url="https://test.atlassian.net",
+            email="test@example.com",
+            api_token="test-token"
+        )
+
+        client.session = MagicMock()
+
+        def setup_response(method: str, response_data: dict, status_code: int = 200):
+            response = mock_response(status_code=status_code, json_data=response_data)
+            getattr(client.session, method.lower()).return_value = response
+
+        client.setup_response = setup_response
+        yield client
+
+
+@pytest.fixture
+def sample_template():
+    """Sample template data from API."""
+    return {
+        "templateId": "tmpl-123",
+        "name": "Meeting Notes",
+        "description": "Template for meeting notes",
+        "templateType": "page",
+        "body": {
+            "storage": {
+                "value": "<h1>Meeting Notes</h1><p>Date: </p><p>Attendees: </p>",
+                "representation": "storage"
+            }
+        },
+        "labels": [{"name": "template"}],
+        "space": {"key": "DOCS"}
+    }
+
+
+@pytest.fixture
+def sample_blueprint():
+    """Sample blueprint data from API."""
+    return {
+        "blueprintId": "bp-456",
+        "name": "Project Plan",
+        "description": "Blueprint for project planning",
+        "contentBlueprintId": "com.atlassian.confluence.plugins.confluence-software-project:project-plan-blueprint",
+        "moduleCompleteKey": "com.atlassian.confluence.plugins.confluence-software-project:project-plan-blueprint"
+    }
+
+
+@pytest.fixture
+def sample_space():
+    """Sample space data from API."""
+    return {
+        "id": "789",
+        "key": "DOCS",
+        "name": "Documentation",
+        "type": "global"
+    }
+
+
+@pytest.fixture
+def sample_page():
+    """Sample page data from API."""
+    return {
+        "id": "123456",
+        "type": "page",
+        "status": "current",
+        "title": "Test Page",
+        "space": {"key": "DOCS"},
+        "version": {"number": 1},
+        "body": {
+            "storage": {
+                "value": "<p>Test content</p>",
+                "representation": "storage"
+            }
+        }
+    }
