@@ -18,14 +18,14 @@ class TestDeleteComment:
 
     def test_delete_comment_not_found(self, mock_client):
         """Test deleting non-existent comment."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         mock_client.setup_response('delete', {}, status_code=404)
         # Would verify NotFoundError is raised
 
     def test_delete_comment_no_permission(self, mock_client):
         """Test deleting comment without permission."""
-        from error_handler import PermissionError
+        from confluence_assistant_skills_lib import PermissionError
 
         mock_client.setup_response('delete', {}, status_code=403)
         # Would verify PermissionError is raised
@@ -46,14 +46,14 @@ class TestDeleteValidation:
 
     def test_comment_id_required(self):
         """Test that comment ID is required."""
-        from validators import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import validate_page_id, ValidationError
 
         with pytest.raises(ValidationError):
             validate_page_id("", "comment_id")
 
     def test_comment_id_numeric(self):
         """Test that comment ID must be numeric."""
-        from validators import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import validate_page_id, ValidationError
 
         with pytest.raises(ValidationError):
             validate_page_id("abc", "comment_id")

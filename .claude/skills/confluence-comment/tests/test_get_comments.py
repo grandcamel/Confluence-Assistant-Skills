@@ -45,7 +45,7 @@ class TestGetComments:
 
     def test_get_comments_with_limit(self, mock_client, sample_comment):
         """Test getting comments with limit parameter."""
-        from validators import validate_limit
+        from confluence_assistant_skills_lib import validate_limit
 
         limit = validate_limit(5)
         assert limit == 5
@@ -56,7 +56,7 @@ class TestGetComments:
 
     def test_get_comments_page_not_found(self, mock_client):
         """Test getting comments from non-existent page."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         mock_client.setup_response('get', {}, status_code=404)
         # Would verify NotFoundError is raised
@@ -67,14 +67,14 @@ class TestCommentListFormatting:
 
     def test_format_empty_comments(self):
         """Test formatting empty comment list."""
-        from formatters import format_comments
+        from confluence_assistant_skills_lib import format_comments
 
         result = format_comments([])
         assert "No comments" in result
 
     def test_format_multiple_comments(self, sample_comment):
         """Test formatting multiple comments."""
-        from formatters import format_comments
+        from confluence_assistant_skills_lib import format_comments
 
         comments = [
             sample_comment,
@@ -89,7 +89,7 @@ class TestCommentListFormatting:
 
     def test_format_comments_with_limit(self, sample_comment):
         """Test formatting comments with display limit."""
-        from formatters import format_comments
+        from confluence_assistant_skills_lib import format_comments
 
         comments = [sample_comment] * 10
         result = format_comments(comments, limit=3)

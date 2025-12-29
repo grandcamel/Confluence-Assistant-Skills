@@ -26,21 +26,21 @@ class TestUpdateComment:
 
     def test_update_comment_not_found(self, mock_client):
         """Test updating non-existent comment."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         mock_client.setup_response('put', {}, status_code=404)
         # Would verify NotFoundError is raised
 
     def test_update_comment_no_permission(self, mock_client):
         """Test updating comment without permission."""
-        from error_handler import PermissionError
+        from confluence_assistant_skills_lib import PermissionError
 
         mock_client.setup_response('put', {}, status_code=403)
         # Would verify PermissionError is raised
 
     def test_update_comment_conflict(self, mock_client):
         """Test updating comment with version conflict."""
-        from error_handler import ConflictError
+        from confluence_assistant_skills_lib import ConflictError
 
         mock_client.setup_response('put', {}, status_code=409)
         # Would verify ConflictError is raised for version mismatch
@@ -51,7 +51,7 @@ class TestUpdateValidation:
 
     def test_comment_id_required(self):
         """Test that comment ID is required."""
-        from validators import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import validate_page_id, ValidationError
 
         with pytest.raises(ValidationError):
             validate_page_id("", "comment_id")
@@ -61,7 +61,7 @@ class TestUpdateValidation:
         # Same validation as add_comment
         body = ""
         if not body.strip():
-            from validators import ValidationError
+            from confluence_assistant_skills_lib import ValidationError
             with pytest.raises(ValidationError):
                 raise ValidationError("Comment body cannot be empty")
 

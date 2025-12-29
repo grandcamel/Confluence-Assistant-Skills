@@ -9,15 +9,10 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_page_id
-from formatters import print_success, print_warning, format_page, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_page_id,
+    print_success, print_warning, format_page, format_json,
+)
 
 
 @handle_errors
@@ -117,7 +112,6 @@ Examples:
         f"Restored page to version {args.version} content. "
         f"New version number: {current_version + 1}"
     )
-
 
 if __name__ == '__main__':
     main()

@@ -24,7 +24,7 @@ class TestReorderChildren:
 
     def test_validate_all_numeric_ids(self):
         """Test that all IDs are numeric."""
-        from validators import validate_page_id
+        from confluence_assistant_skills_lib import validate_page_id
 
         order_str = "200,201,202"
         page_ids = [id.strip() for id in order_str.split(',')]
@@ -36,7 +36,7 @@ class TestReorderChildren:
 
     def test_reject_invalid_order_format(self):
         """Test rejection of invalid order formats."""
-        from validators import ValidationError, validate_page_id
+        from confluence_assistant_skills_lib import ValidationError, validate_page_id
 
         # Non-numeric ID
         with pytest.raises(ValidationError):

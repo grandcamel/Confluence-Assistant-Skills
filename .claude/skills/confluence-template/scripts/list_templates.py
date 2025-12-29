@@ -12,15 +12,10 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors
-from validators import validate_space_key
-from formatters import print_success, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, validate_space_key, print_success,
+    format_json,
+)
 
 
 @handle_errors
@@ -120,7 +115,6 @@ Examples:
                     print()
 
     print_success(f"Listed {len(results)} {'blueprints' if args.blueprints else 'templates'}")
-
 
 if __name__ == '__main__':
     main()

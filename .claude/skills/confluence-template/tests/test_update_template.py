@@ -78,7 +78,7 @@ class TestUpdateTemplate:
 
     def test_update_template_not_found(self, mock_client):
         """Test updating non-existent template."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         mock_client.setup_response('get',
             {"message": "Template not found"},
@@ -89,7 +89,7 @@ class TestUpdateTemplate:
 
     def test_update_template_no_changes(self, mock_client, sample_template):
         """Test update with no changes provided."""
-        from validators import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
 
         # Should require at least one field to update
 
@@ -112,7 +112,7 @@ class TestTemplateVersioning:
 
     def test_update_with_version_conflict(self, mock_client):
         """Test handling version conflicts."""
-        from error_handler import ConflictError
+        from confluence_assistant_skills_lib import ConflictError
 
         # If template was modified by another user
         # Should detect and handle conflict

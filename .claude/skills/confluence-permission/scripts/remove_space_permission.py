@@ -12,22 +12,16 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_space_key
-from formatters import print_success, print_warning
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_space_key,
+    print_success, print_warning,
+)
 
 
 VALID_OPERATIONS = [
     'read', 'write', 'create', 'delete', 'export',
     'administer', 'setpermissions', 'createattachment'
 ]
-
 
 def parse_principal(principal_str):
     """Parse principal string in format 'type:identifier'."""
@@ -48,7 +42,6 @@ def parse_principal(principal_str):
         raise ValidationError("Principal identifier cannot be empty")
 
     return principal_type, identifier
-
 
 @handle_errors
 def main():
@@ -125,7 +118,6 @@ Note: This uses the v1 API. The v2 API does not support removing space permissio
 
     print(f"\nRemoved {operation} permission from {principal_type} '{identifier}' for space {space_key}")
     print_success("Permission removed successfully")
-
 
 if __name__ == '__main__':
     main()

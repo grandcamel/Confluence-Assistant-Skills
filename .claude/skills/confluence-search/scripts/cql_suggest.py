@@ -11,14 +11,10 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from formatters import print_success, format_json, format_table
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, print_success,
+    format_json, format_table,
+)
 
 
 # CQL Field Definitions
@@ -117,7 +113,6 @@ CQL_FIELDS = [
     },
 ]
 
-
 # CQL Operators
 CQL_OPERATORS = [
     {"operator": "=", "description": "Equals", "types": ["string", "enum", "date", "number"]},
@@ -132,7 +127,6 @@ CQL_OPERATORS = [
     {"operator": "not in", "description": "Not in list", "types": ["string", "enum", "number"]},
 ]
 
-
 # CQL Functions
 CQL_FUNCTIONS = [
     {"name": "currentUser()", "description": "Current logged in user", "type": "user"},
@@ -146,7 +140,6 @@ CQL_FUNCTIONS = [
     {"name": "endOfYear()", "description": "End of this year", "type": "date"},
     {"name": "now()", "description": "Current date/time", "type": "date"},
 ]
-
 
 def get_field_values(client, field_name):
     """
@@ -205,7 +198,6 @@ def get_field_values(client, field_name):
         values = [{"value": f['name'], "label": f"{f['name']} - {f['description']}"} for f in values]
 
     return values
-
 
 @handle_errors
 def main():
@@ -326,7 +318,6 @@ Examples:
             print()
 
     print_success("Suggestions complete")
-
 
 if __name__ == '__main__':
     main()

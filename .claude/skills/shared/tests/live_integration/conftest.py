@@ -11,19 +11,12 @@ Usage:
 """
 
 import os
-import sys
 import uuid
 import pytest
-from pathlib import Path
 from typing import Any, Dict, Generator, Optional
-
-# Add shared lib to path
-lib_path = Path(__file__).parent.parent.parent / 'scripts' / 'lib'
-sys.path.insert(0, str(lib_path))
-
-from confluence_client import ConfluenceClient
-from config_manager import get_confluence_client
-
+from confluence_assistant_skills_lib import (
+    ConfluenceClient, get_confluence_client,
+)
 
 # =============================================================================
 # Pytest Configuration (extends parent conftest.py)
@@ -60,7 +53,6 @@ def pytest_addoption(parser):
     except ValueError:
         pass  # Option already added
 
-
 def pytest_configure(config):
     """Register custom markers for live integration tests."""
     config.addinivalue_line("markers", "integration: mark test as integration test")
@@ -73,7 +65,6 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "attachments: mark test as attachment-related")
     config.addinivalue_line("markers", "labels: mark test as label-related")
 
-
 # =============================================================================
 # Session-Scoped Fixtures (created once per test session)
 # =============================================================================
@@ -85,18 +76,15 @@ def confluence_profile(request) -> str:
     # Default to development if not specified
     return profile or os.environ.get("CONFLUENCE_PROFILE", "development")
 
-
 @pytest.fixture(scope="session")
 def keep_space(request) -> bool:
     """Check if we should keep the test space after tests."""
     return request.config.getoption("--keep-space")
 
-
 @pytest.fixture(scope="session")
 def existing_space_key(request) -> Optional[str]:
     """Get existing space key if provided."""
     return request.config.getoption("--space-key")
-
 
 @pytest.fixture(scope="session")
 def confluence_client(confluence_profile) -> Generator[ConfluenceClient, None, None]:
@@ -116,7 +104,6 @@ def confluence_client(confluence_profile) -> Generator[ConfluenceClient, None, N
     print(f"\nConnected to Confluence as: {test_result.get('user')}")
 
     yield client
-
 
 @pytest.fixture(scope="session")
 def test_space(
@@ -193,7 +180,6 @@ def test_space(
     else:
         print(f"\nKeeping test space: {space_key}")
 
-
 # =============================================================================
 # Function-Scoped Fixtures (created fresh for each test)
 # =============================================================================
@@ -235,7 +221,6 @@ def test_page(
         )
     except Exception:
         pass  # Ignore cleanup errors
-
 
 @pytest.fixture(scope="function")
 def test_page_with_content(
@@ -290,7 +275,6 @@ def test_page_with_content(
     except Exception:
         pass
 
-
 @pytest.fixture(scope="function")
 def test_child_page(
     confluence_client: ConfluenceClient,
@@ -331,7 +315,6 @@ def test_child_page(
     except Exception:
         pass
 
-
 @pytest.fixture(scope="function")
 def test_blogpost(
     confluence_client: ConfluenceClient,
@@ -370,12 +353,10 @@ def test_blogpost(
     except Exception:
         pass
 
-
 @pytest.fixture(scope="function")
 def test_label() -> str:
     """Generate a unique test label."""
     return f"test-label-{uuid.uuid4().hex[:8]}"
-
 
 # =============================================================================
 # Cleanup Utilities
@@ -410,7 +391,6 @@ def delete_space_by_key(client: ConfluenceClient, space_key: str) -> None:
         pass
     else:
         raise Exception(f"Failed to delete space: {response.status_code} - {response.text}")
-
 
 def cleanup_space(client: ConfluenceClient, space_id: str, space_key: str = None) -> None:
     """
@@ -467,7 +447,6 @@ def cleanup_space(client: ConfluenceClient, space_id: str, space_key: str = None
     else:
         raise Exception("Space key required for deletion")
 
-
 # =============================================================================
 # Helper Fixtures
 # =============================================================================
@@ -476,7 +455,6 @@ def cleanup_space(client: ConfluenceClient, space_id: str, space_key: str = None
 def unique_title() -> str:
     """Generate a unique page title."""
     return f"Test Page {uuid.uuid4().hex[:8]}"
-
 
 @pytest.fixture
 def unique_space_key() -> str:

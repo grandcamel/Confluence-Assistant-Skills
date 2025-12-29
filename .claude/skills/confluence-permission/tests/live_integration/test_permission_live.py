@@ -10,12 +10,9 @@ Usage:
 import pytest
 import uuid
 import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-
+from confluence_assistant_skills_lib import (
+    get_confluence_client,
+)
 
 def pytest_addoption(parser):
     try:
@@ -23,12 +20,10 @@ def pytest_addoption(parser):
     except ValueError:
         pass
 
-
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
-
 
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
@@ -36,7 +31,6 @@ def test_space(confluence_client):
     if not spaces.get('results'):
         pytest.skip("No spaces available")
     return spaces['results'][0]
-
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
@@ -55,12 +49,10 @@ def test_page(confluence_client, test_space):
     except Exception:
         pass
 
-
 @pytest.fixture
 def current_user(confluence_client):
     """Get current user info."""
     return confluence_client.get('/rest/api/user/current')
-
 
 @pytest.mark.integration
 class TestGetSpacePermissionsLive:
@@ -88,7 +80,6 @@ class TestGetSpacePermissionsLive:
         assert space['id'] == test_space['id']
         assert 'key' in space
 
-
 @pytest.mark.integration
 class TestGetPageRestrictionsLive:
     """Live tests for getting page restrictions."""
@@ -110,7 +101,6 @@ class TestGetPageRestrictionsLive:
 
         # Should return empty or default restrictions
         assert restrictions is not None
-
 
 @pytest.mark.integration
 class TestAddPageRestrictionLive:
@@ -178,7 +168,6 @@ class TestAddPageRestrictionLive:
         except Exception:
             pass
 
-
 @pytest.mark.integration
 class TestRemovePageRestrictionLive:
     """Live tests for removing page restrictions."""
@@ -211,7 +200,6 @@ class TestRemovePageRestrictionLive:
 
         # Should succeed
         assert result is None or result == {} or result is not None
-
 
 @pytest.mark.integration
 class TestCheckPermissionLive:

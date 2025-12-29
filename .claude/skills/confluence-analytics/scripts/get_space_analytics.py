@@ -13,17 +13,12 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
 from datetime import datetime, timedelta
 from collections import defaultdict
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors
-from validators import validate_space_key
-from formatters import print_success, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, validate_space_key, print_success,
+    format_json,
+)
 
 
 @handle_errors
@@ -136,7 +131,6 @@ Examples:
             print(f"  - {update['title']} ({update['type']}) - {update['modified']}")
 
     print_success(f"Retrieved analytics for space {space_key}")
-
 
 if __name__ == '__main__':
     main()

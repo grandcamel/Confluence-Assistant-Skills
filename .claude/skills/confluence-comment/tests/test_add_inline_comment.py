@@ -27,7 +27,7 @@ class TestAddInlineComment:
 
     def test_validate_inline_text_selection(self):
         """Test that text selection is validated."""
-        from validators import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
 
         selection = ""
         if not selection.strip():
@@ -36,7 +36,7 @@ class TestAddInlineComment:
 
     def test_add_inline_comment_page_not_found(self, mock_client):
         """Test adding inline comment to non-existent page."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         mock_client.setup_response('post', {}, status_code=404)
         # Would verify NotFoundError is raised
@@ -47,14 +47,14 @@ class TestInlineCommentValidation:
 
     def test_page_id_required(self):
         """Test that page ID is required."""
-        from validators import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import validate_page_id, ValidationError
 
         with pytest.raises(ValidationError):
             validate_page_id("")
 
     def test_comment_body_required(self):
         """Test that comment body is required."""
-        from validators import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
 
         body = ""
         if not body.strip():
@@ -65,6 +65,6 @@ class TestInlineCommentValidation:
         """Test that text selection is required for inline comments."""
         selection = "   "
         if not selection.strip():
-            from validators import ValidationError
+            from confluence_assistant_skills_lib import ValidationError
             with pytest.raises(ValidationError):
                 raise ValidationError("Text selection is required")

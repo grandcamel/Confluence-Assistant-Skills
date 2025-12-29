@@ -11,14 +11,14 @@ class TestGetPageRestrictions:
 
     def test_validate_page_id_valid(self):
         """Test that valid page IDs pass validation."""
-        from validators import validate_page_id
+        from confluence_assistant_skills_lib import validate_page_id
 
         assert validate_page_id("123456") == "123456"
         assert validate_page_id(123456) == "123456"
 
     def test_validate_page_id_invalid(self):
         """Test that invalid page IDs fail validation."""
-        from validators import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import validate_page_id, ValidationError
 
         with pytest.raises(ValidationError):
             validate_page_id("")

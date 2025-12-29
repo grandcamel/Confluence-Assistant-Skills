@@ -11,7 +11,7 @@ class TestGetSpaceAnalytics:
 
     def test_validate_space_key_valid(self):
         """Test that valid space keys pass validation."""
-        from validators import validate_space_key
+        from confluence_assistant_skills_lib import validate_space_key
 
         assert validate_space_key("DOCS") == "DOCS"
         assert validate_space_key("kb") == "KB"
@@ -19,7 +19,7 @@ class TestGetSpaceAnalytics:
 
     def test_validate_space_key_invalid(self):
         """Test that invalid space keys fail validation."""
-        from validators import validate_space_key, ValidationError
+        from confluence_assistant_skills_lib import validate_space_key, ValidationError
 
         with pytest.raises(ValidationError):
             validate_space_key("")

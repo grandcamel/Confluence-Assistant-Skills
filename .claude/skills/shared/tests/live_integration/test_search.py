@@ -225,7 +225,7 @@ class TestInvalidSearch:
 
     def test_invalid_cql_syntax(self, confluence_client):
         """Test that invalid CQL syntax returns an error."""
-        from error_handler import ConfluenceError
+        from confluence_assistant_skills_lib import ConfluenceError
 
         cql = "space = 'TEST' AND ("  # Unbalanced parenthesis
 

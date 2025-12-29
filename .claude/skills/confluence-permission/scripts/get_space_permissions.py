@@ -12,15 +12,10 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors
-from validators import validate_page_id  # Space IDs use same numeric format
-from formatters import print_success, format_json, format_table
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, validate_page_id  # Space IDs use same numeric format, print_success,
+    format_json, format_table,
+)
 
 
 def format_permission(permission):
@@ -39,7 +34,6 @@ def format_permission(permission):
         'Operation': operation_key,
         'Target': target
     }
-
 
 @handle_errors
 def main():
@@ -93,7 +87,6 @@ Examples:
             ))
 
     print_success(f"Retrieved {len(permissions)} permission(s) for space {space_id}")
-
 
 if __name__ == '__main__':
     main()

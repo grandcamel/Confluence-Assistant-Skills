@@ -11,7 +11,7 @@ class TestGetContentWatchers:
 
     def test_validate_page_id_valid(self):
         """Test that valid page IDs pass validation."""
-        from validators import validate_page_id
+        from confluence_assistant_skills_lib import validate_page_id
 
         assert validate_page_id("123456") == "123456"
         assert validate_page_id(123456) == "123456"
@@ -84,7 +84,7 @@ class TestWatcherOutputFormats:
 
     def test_json_output(self, sample_watchers):
         """Test JSON output formatting."""
-        from formatters import format_json
+        from confluence_assistant_skills_lib import format_json
         import json
 
         output = format_json(sample_watchers)

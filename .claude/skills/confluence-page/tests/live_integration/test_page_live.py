@@ -10,12 +10,9 @@ Usage:
 import pytest
 import uuid
 import sys
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
+from confluence_assistant_skills_lib import (
+    get_confluence_client,
+)
 
 
 def pytest_addoption(parser):
@@ -30,13 +27,11 @@ def pytest_addoption(parser):
     except ValueError:
         pass  # Option already added
 
-
 @pytest.fixture(scope="session")
 def confluence_client(request):
     """Get Confluence client using profile from command line."""
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
-
 
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
@@ -45,7 +40,6 @@ def test_space(confluence_client):
     if not spaces.get('results'):
         pytest.skip("No spaces available for testing")
     return spaces['results'][0]
-
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
@@ -67,7 +61,6 @@ def test_page(confluence_client, test_space):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
     except Exception:
         pass
-
 
 @pytest.mark.integration
 class TestCreatePageLive:
@@ -120,7 +113,6 @@ class TestCreatePageLive:
         finally:
             confluence_client.delete(f"/api/v2/pages/{child['id']}")
 
-
 @pytest.mark.integration
 class TestGetPageLive:
     """Live tests for page retrieval."""
@@ -144,11 +136,10 @@ class TestGetPageLive:
 
     def test_get_nonexistent_page(self, confluence_client):
         """Test getting a non-existent page."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         with pytest.raises(NotFoundError):
             confluence_client.get('/api/v2/pages/999999999999')
-
 
 @pytest.mark.integration
 class TestUpdatePageLive:
@@ -193,7 +184,6 @@ class TestUpdatePageLive:
 
         assert updated['version']['number'] == version + 1
 
-
 @pytest.mark.integration
 class TestDeletePageLive:
     """Live tests for page deletion."""
@@ -217,13 +207,12 @@ class TestDeletePageLive:
         confluence_client.delete(f"/api/v2/pages/{page_id}")
 
         # Verify deleted or trashed
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
         try:
             result = confluence_client.get(f"/api/v2/pages/{page_id}")
             assert result.get('status') == 'trashed'
         except NotFoundError:
             pass  # Also acceptable
-
 
 @pytest.mark.integration
 class TestListPagesLive:

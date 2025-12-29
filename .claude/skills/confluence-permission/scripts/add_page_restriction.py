@@ -12,19 +12,13 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_page_id
-from formatters import print_success
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_page_id,
+    print_success,
+)
 
 
 VALID_OPERATIONS = ['read', 'update']
-
 
 def parse_principal(principal_str):
     """Parse principal string in format 'type:identifier'."""
@@ -45,7 +39,6 @@ def parse_principal(principal_str):
         raise ValidationError("Principal identifier cannot be empty")
 
     return principal_type, identifier
-
 
 @handle_errors
 def main():
@@ -137,7 +130,6 @@ Note: This uses the v1 API as page restrictions are not available in v2.
 
     print(f"\nAdded {operation} restriction to {principal_type} '{identifier}' for page {page_id}")
     print_success("Restriction added successfully")
-
 
 if __name__ == '__main__':
     main()

@@ -10,15 +10,10 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_page_id, validate_space_key
-from formatters import print_success, format_page, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_page_id,
+    validate_space_key, print_success, format_page, format_json,
+)
 
 
 @handle_errors
@@ -129,7 +124,6 @@ Examples:
         destination.append("to space root")
 
     print_success(f"Moved page '{result['title']}' {' '.join(destination)}")
-
 
 if __name__ == '__main__':
     main()

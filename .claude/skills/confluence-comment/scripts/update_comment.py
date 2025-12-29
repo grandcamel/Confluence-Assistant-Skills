@@ -10,15 +10,10 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_page_id
-from formatters import print_success, format_comment, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_page_id,
+    print_success, format_comment, format_json,
+)
 
 
 def validate_comment_body(body: str, field_name: str = "body") -> str:
@@ -45,14 +40,12 @@ def validate_comment_body(body: str, field_name: str = "body") -> str:
 
     return body
 
-
 def read_body_from_file(file_path: Path) -> str:
     """Read comment body from a file."""
     if not file_path.exists():
         raise ValidationError(f"File not found: {file_path}")
 
     return file_path.read_text(encoding='utf-8')
-
 
 @handle_errors
 def main():
@@ -122,7 +115,6 @@ Examples:
         print(format_comment(result))
 
     print_success(f"Updated comment {comment_id}")
-
 
 if __name__ == '__main__':
     main()

@@ -52,7 +52,7 @@ class TestStreamingExport:
         ]
 
         # Write CSV
-        from formatters import export_csv
+        from confluence_assistant_skills_lib import export_csv
         export_csv(data, output_file, columns=['id', 'title', 'space'])
 
         # Verify
@@ -250,7 +250,7 @@ class TestErrorHandling:
 
     def test_handle_invalid_cql_error(self):
         """Test handling invalid CQL query."""
-        from validators import validate_cql, ValidationError
+        from confluence_assistant_skills_lib import validate_cql, ValidationError
 
         invalid_cql = "invalid query (("
 
@@ -269,7 +269,7 @@ class TestColumnSelection:
 
         output_file = tmp_path / "results.csv"
 
-        from formatters import export_csv
+        from confluence_assistant_skills_lib import export_csv
         export_csv(data, output_file)
 
         # Should include all columns
@@ -291,7 +291,7 @@ class TestColumnSelection:
         output_file = tmp_path / "results.csv"
         columns = ['id', 'title']
 
-        from formatters import export_csv
+        from confluence_assistant_skills_lib import export_csv
         export_csv(data, output_file, columns=columns)
 
         # Should only include selected columns

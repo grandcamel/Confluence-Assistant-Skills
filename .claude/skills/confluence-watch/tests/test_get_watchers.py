@@ -66,7 +66,7 @@ class TestGetWatchers:
 
     def test_get_watchers_not_found(self, mock_client, mock_response):
         """Test getting watchers for non-existent content."""
-        from error_handler import handle_confluence_error
+        from confluence_assistant_skills_lib import handle_confluence_error
 
         error_response = mock_response(
             status_code=404,
@@ -78,7 +78,7 @@ class TestGetWatchers:
 
     def test_get_watchers_output_json(self):
         """Test JSON output format."""
-        from formatters import format_json
+        from confluence_assistant_skills_lib import format_json
 
         data = {
             "results": [

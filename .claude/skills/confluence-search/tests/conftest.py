@@ -10,8 +10,6 @@ import sys
 from pathlib import Path
 from unittest.mock import Mock, MagicMock, patch
 
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
 
 
 # =============================================================================
@@ -46,7 +44,7 @@ def mock_response():
 @pytest.fixture
 def mock_client(mock_response):
     """Create a mock Confluence client."""
-    from confluence_client import ConfluenceClient
+    from confluence_assistant_skills_lib import ConfluenceClient
 
     with patch.object(ConfluenceClient, '_create_session'):
         client = ConfluenceClient(

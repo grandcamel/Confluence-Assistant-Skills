@@ -10,12 +10,9 @@ Usage:
 import pytest
 import uuid
 import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-
+from confluence_assistant_skills_lib import (
+    get_confluence_client,
+)
 
 def pytest_addoption(parser):
     try:
@@ -23,12 +20,10 @@ def pytest_addoption(parser):
     except ValueError:
         pass
 
-
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
-
 
 @pytest.mark.integration
 class TestListSpacesLive:
@@ -66,7 +61,6 @@ class TestListSpacesLive:
         assert 'results' in spaces
         for space in spaces['results']:
             assert space.get('type') == 'global'
-
 
 @pytest.mark.integration
 class TestGetSpaceLive:
@@ -119,7 +113,6 @@ class TestGetSpaceLive:
             homepage = confluence_client.get(f'/api/v2/pages/{homepage_id}')
             assert homepage['id'] == homepage_id
 
-
 @pytest.mark.integration
 class TestCreateSpaceLive:
     """Live tests for creating spaces."""
@@ -152,7 +145,6 @@ class TestCreateSpaceLive:
             )
             # 202 = async delete started, 204 = deleted, 404 = already gone
             assert response.status_code in [200, 202, 204, 404]
-
 
 @pytest.mark.integration
 class TestUpdateSpaceLive:
@@ -190,7 +182,6 @@ class TestUpdateSpaceLive:
             confluence_client.session.delete(
                 f"{confluence_client.base_url}/wiki/rest/api/space/{space_key}"
             )
-
 
 @pytest.mark.integration
 class TestSpaceContentLive:

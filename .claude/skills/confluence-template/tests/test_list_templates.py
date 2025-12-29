@@ -104,7 +104,7 @@ class TestListTemplates:
 
     def test_validate_template_type_invalid(self):
         """Test that invalid template types fail validation."""
-        from validators import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
 
         # Custom validator for template type
         # Should only accept 'page' or 'blogpost'
@@ -120,7 +120,7 @@ class TestTemplateValidators:
 
     def test_validate_template_id_invalid(self):
         """Test invalid template ID validation."""
-        from validators import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
 
         # Empty template ID should fail
         # None should fail

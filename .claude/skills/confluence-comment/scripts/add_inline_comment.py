@@ -12,15 +12,10 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_page_id
-from formatters import print_success, format_comment, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_page_id,
+    print_success, format_comment, format_json,
+)
 
 
 def validate_text_selection(selection: str, field_name: str = "selection") -> str:
@@ -51,7 +46,6 @@ def validate_text_selection(selection: str, field_name: str = "selection") -> st
 
     return selection
 
-
 def validate_comment_body(body: str, field_name: str = "body") -> str:
     """
     Validate comment body.
@@ -75,7 +69,6 @@ def validate_comment_body(body: str, field_name: str = "body") -> str:
         raise ValidationError(f"{field_name} cannot be empty", field=field_name, value=body)
 
     return body
-
 
 @handle_errors
 def main():
@@ -133,7 +126,6 @@ Note: Inline comments are attached to specific text in the page. The text select
         print(format_comment(result))
 
     print_success(f"Added inline comment {result['id']} to page {page_id}")
-
 
 if __name__ == '__main__':
     main()

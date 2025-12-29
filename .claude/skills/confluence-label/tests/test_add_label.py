@@ -11,7 +11,7 @@ class TestAddLabel:
 
     def test_validate_label_valid(self):
         """Test that valid labels pass validation."""
-        from validators import validate_label
+        from confluence_assistant_skills_lib import validate_label
 
         assert validate_label("documentation") == "documentation"
         assert validate_label("APPROVED") == "approved"
@@ -20,7 +20,7 @@ class TestAddLabel:
 
     def test_validate_label_invalid(self):
         """Test that invalid labels fail validation."""
-        from validators import validate_label, ValidationError
+        from confluence_assistant_skills_lib import validate_label, ValidationError
 
         # Empty label
         with pytest.raises(ValidationError):

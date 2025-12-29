@@ -12,16 +12,11 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
 from typing import Optional, Dict, Any
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_page_id
-from formatters import print_success, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_page_id,
+    print_success, format_json,
+)
 
 
 def validate_jira_project_key(project_key: str) -> str:
@@ -46,7 +41,6 @@ def validate_jira_project_key(project_key: str) -> str:
         raise ValidationError("Project key must be 2-10 characters")
 
     return project_key
-
 
 def validate_issue_type(issue_type: str) -> str:
     """
@@ -76,7 +70,6 @@ def validate_issue_type(issue_type: str) -> str:
     raise ValidationError(
         f"Issue type must be one of: {', '.join(valid_types)}"
     )
-
 
 def create_jira_issue_data(
     project_key: str,
@@ -119,7 +112,6 @@ def create_jira_issue_data(
 
     return {"fields": fields}
 
-
 def extract_plain_text_from_xhtml(xhtml: str) -> str:
     """
     Extract plain text from XHTML storage format.
@@ -130,9 +122,8 @@ def extract_plain_text_from_xhtml(xhtml: str) -> str:
     Returns:
         Plain text
     """
-    from xhtml_helper import extract_text_from_xhtml
+    from confluence_assistant_skills_lib import extract_text_from_xhtml
     return extract_text_from_xhtml(xhtml)
-
 
 @handle_errors
 def main():
@@ -252,7 +243,6 @@ Note: This script requires JIRA API access. Set JIRA credentials:
         print(f"\nView issue: {jira_url}/browse/{issue_key}")
 
     print_success(f"Created JIRA issue {issue_key} from page {page_id}")
-
 
 if __name__ == '__main__':
     main()

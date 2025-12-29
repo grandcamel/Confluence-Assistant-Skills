@@ -16,20 +16,15 @@ import sys
 import argparse
 import re
 import json
-from pathlib import Path
 from typing import List, Set
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, validate_page_id, print_success,
+    format_json,
+)
 
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors
-from validators import validate_page_id
-from formatters import print_success, format_json
 
 # JIRA issue key pattern: PROJECT-123
 JIRA_KEY_PATTERN = r'\b([A-Z][A-Z0-9_]{0,9}-\d+)\b'
-
 
 def extract_jira_keys(content: str) -> List[str]:
     """
@@ -51,7 +46,6 @@ def extract_jira_keys(content: str) -> List[str]:
             keys.append(key)
     return keys
 
-
 def extract_jira_keys_from_macros(content: str) -> List[str]:
     """
     Extract JIRA issue keys specifically from JIRA macros.
@@ -69,7 +63,6 @@ def extract_jira_keys_from_macros(content: str) -> List[str]:
     keys.extend(re.findall(single_issue_pattern, content))
 
     return keys
-
 
 def extract_jql_from_macros(content: str) -> List[str]:
     """
@@ -98,7 +91,6 @@ def extract_jql_from_macros(content: str) -> List[str]:
 
     return queries
 
-
 def format_linked_issues_json(issues: List[str]) -> str:
     """
     Format issue keys as JSON.
@@ -113,7 +105,6 @@ def format_linked_issues_json(issues: List[str]) -> str:
         "count": len(issues),
         "issues": issues
     }, indent=2)
-
 
 def format_linked_issues_text(issues: List[str]) -> str:
     """
@@ -134,7 +125,6 @@ def format_linked_issues_text(issues: List[str]) -> str:
         lines.append(f"  - {issue}")
 
     return "\n".join(lines)
-
 
 @handle_errors
 def main():
@@ -203,7 +193,6 @@ Examples:
                 print(f"  - {jql}")
 
     print_success(f"Analyzed page {page_id}")
-
 
 if __name__ == '__main__':
     main()

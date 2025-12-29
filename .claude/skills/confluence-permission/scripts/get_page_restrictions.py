@@ -12,15 +12,10 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors
-from validators import validate_page_id
-from formatters import print_success, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, validate_page_id, print_success,
+    format_json,
+)
 
 
 def format_restrictions_text(restrictions):
@@ -58,7 +53,6 @@ def format_restrictions_text(restrictions):
             lines.append("  Groups: (none)")
 
     return '\n'.join(lines)
-
 
 @handle_errors
 def main():
@@ -118,7 +112,6 @@ Note: This uses the v1 API as v2 does not yet support page restrictions.
             print(format_restrictions_text(result))
 
     print_success(f"Retrieved restrictions for page {page_id}")
-
 
 if __name__ == '__main__':
     main()

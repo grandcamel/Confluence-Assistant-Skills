@@ -9,15 +9,10 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, NotFoundError
-from validators import validate_space_key
-from formatters import print_success, print_warning
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, NotFoundError, validate_space_key,
+    print_success, print_warning,
+)
 
 
 def confirm_delete(space_name: str, space_key: str) -> bool:
@@ -28,7 +23,6 @@ def confirm_delete(space_name: str, space_key: str) -> bool:
 
     response = input("\nAre you sure? Type the space key to confirm: ").strip().upper()
     return response == space_key.upper()
-
 
 @handle_errors
 def main():
@@ -80,7 +74,6 @@ Examples:
     )
 
     print_success(f"Deleted space '{space_name}' ({space_key})")
-
 
 if __name__ == '__main__':
     main()

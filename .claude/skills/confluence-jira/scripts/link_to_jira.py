@@ -11,16 +11,11 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
 from typing import List, Dict, Any, Optional
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_page_id, validate_issue_key
-from formatters import print_success, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_page_id,
+    validate_issue_key, print_success, format_json,
+)
 
 
 def validate_relationship(relationship: str) -> str:
@@ -52,7 +47,6 @@ def validate_relationship(relationship: str) -> str:
         )
 
     return relationship
-
 
 def create_remote_link_data(
     page_id: str,
@@ -88,7 +82,6 @@ def create_remote_link_data(
         }
     }
 
-
 def link_exists(existing_links: List[Dict[str, Any]], issue_key: str) -> bool:
     """
     Check if a link to the issue already exists.
@@ -110,7 +103,6 @@ def link_exists(existing_links: List[Dict[str, Any]], issue_key: str) -> bool:
 
     return False
 
-
 def add_jira_link_to_content(
     content: str,
     issue_key: str,
@@ -129,7 +121,6 @@ def add_jira_link_to_content(
     """
     link_html = f'<p>Related JIRA issue: <a href="{jira_url}">{issue_key}</a></p>'
     return content + "\n" + link_html
-
 
 @handle_errors
 def main():
@@ -217,7 +208,6 @@ Examples:
         print(f"  URL: {issue_url}")
 
     print_success(f"Linked page {page_id} to JIRA issue {issue_key}")
-
 
 if __name__ == '__main__':
     main()

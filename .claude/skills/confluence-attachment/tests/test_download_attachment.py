@@ -7,8 +7,6 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
 
 
 class TestDownloadAttachment:
@@ -112,7 +110,7 @@ class TestDownloadAttachment:
 
     def test_download_with_invalid_attachment_id(self, mock_client):
         """Test download with non-existent attachment ID."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         mock_response = Mock()
         mock_response.status_code = 404
@@ -152,7 +150,7 @@ class TestDownloadValidation:
 
     def test_validate_output_path(self, tmp_path):
         """Test output path validation."""
-        from validators import validate_file_path
+        from confluence_assistant_skills_lib import validate_file_path
 
         # Valid output path (doesn't need to exist)
         output = tmp_path / "output.pdf"
@@ -161,7 +159,7 @@ class TestDownloadValidation:
 
     def test_validate_attachment_id(self):
         """Test attachment ID validation."""
-        from validators import validate_page_id
+        from confluence_assistant_skills_lib import validate_page_id
 
         # Attachment IDs are numeric strings like page IDs
         assert validate_page_id("123456") == "123456"

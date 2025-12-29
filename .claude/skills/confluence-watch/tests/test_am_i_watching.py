@@ -117,7 +117,7 @@ class TestAmIWatching:
 
     def test_am_i_watching_validation(self):
         """Test page ID validation."""
-        from validators import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import validate_page_id, ValidationError
 
         assert validate_page_id("123456") == "123456"
 

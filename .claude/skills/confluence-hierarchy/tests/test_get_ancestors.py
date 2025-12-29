@@ -15,7 +15,7 @@ class TestGetAncestors:
 
     def test_validate_page_id_valid(self):
         """Test that valid page IDs pass validation."""
-        from validators import validate_page_id
+        from confluence_assistant_skills_lib import validate_page_id
 
         assert validate_page_id("123456") == "123456"
         assert validate_page_id(123456) == "123456"
@@ -23,7 +23,7 @@ class TestGetAncestors:
 
     def test_validate_page_id_invalid(self):
         """Test that invalid page IDs fail validation."""
-        from validators import ValidationError, validate_page_id
+        from confluence_assistant_skills_lib import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("")
@@ -66,7 +66,7 @@ class TestGetAncestors:
 
     def test_get_ancestors_page_not_found(self, mock_client, mock_response):
         """Test handling of non-existent page."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         # Mock 404 response
         error_response = mock_response(

@@ -11,14 +11,14 @@ class TestGetProperties:
 
     def test_validate_content_id_valid(self):
         """Test that valid content IDs pass validation."""
-        from validators import validate_page_id
+        from confluence_assistant_skills_lib import validate_page_id
 
         assert validate_page_id("12345") == "12345"
         assert validate_page_id(67890) == "67890"
 
     def test_validate_content_id_invalid(self):
         """Test that invalid content IDs fail validation."""
-        from validators import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import validate_page_id, ValidationError
 
         with pytest.raises(ValidationError):
             validate_page_id("")
@@ -58,7 +58,7 @@ class TestGetProperties:
 
     def test_get_all_properties_not_found(self, mock_client):
         """Test retrieval with non-existent content."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         mock_client.setup_response('get', {'message': 'Content not found'}, status_code=404)
 
@@ -93,7 +93,7 @@ class TestGetSingleProperty:
 
     def test_validate_property_key_invalid(self):
         """Test that invalid property keys fail validation."""
-        from validators import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
 
         # Empty key should fail
         with pytest.raises(ValidationError):

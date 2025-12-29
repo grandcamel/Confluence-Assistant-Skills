@@ -10,12 +10,9 @@ Usage:
 import pytest
 import uuid
 import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-
+from confluence_assistant_skills_lib import (
+    get_confluence_client,
+)
 
 def pytest_addoption(parser):
     try:
@@ -23,12 +20,10 @@ def pytest_addoption(parser):
     except ValueError:
         pass
 
-
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
-
 
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
@@ -36,7 +31,6 @@ def test_space(confluence_client):
     if not spaces.get('results'):
         pytest.skip("No spaces available")
     return spaces['results'][0]
-
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
@@ -55,11 +49,9 @@ def test_page(confluence_client, test_space):
     except Exception:
         pass
 
-
 @pytest.fixture
 def test_label():
     return f"test-label-{uuid.uuid4().hex[:8]}"
-
 
 @pytest.mark.integration
 class TestAddLabelLive:
@@ -108,7 +100,6 @@ class TestAddLabelLive:
         )
         assert result is not None
 
-
 @pytest.mark.integration
 class TestGetLabelsLive:
     """Live tests for retrieving labels."""
@@ -147,7 +138,6 @@ class TestGetLabelsLive:
         finally:
             confluence_client.delete(f"/api/v2/pages/{page['id']}")
 
-
 @pytest.mark.integration
 class TestRemoveLabelLive:
     """Live tests for removing labels."""
@@ -179,7 +169,6 @@ class TestRemoveLabelLive:
         labels_after = confluence_client.get(f"/api/v2/pages/{test_page['id']}/labels")
         label_names = [l['name'] for l in labels_after.get('results', [])]
         assert test_label not in label_names
-
 
 @pytest.mark.integration
 class TestSearchByLabelLive:

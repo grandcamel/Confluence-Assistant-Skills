@@ -37,7 +37,7 @@ class TestCreateFromTemplate:
 
     def test_create_from_template_not_found(self, mock_client):
         """Test creating from non-existent template."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         mock_client.setup_response('get', {"message": "Template not found"}, status_code=404)
 
@@ -45,7 +45,7 @@ class TestCreateFromTemplate:
 
     def test_create_from_template_invalid_space(self, mock_client, sample_template):
         """Test creating in non-existent space."""
-        from error_handler import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
 
         mock_client.setup_response('get', sample_template)
 
@@ -69,7 +69,7 @@ class TestCreateFromTemplate:
 
     def test_validate_required_fields(self):
         """Test that required fields are validated."""
-        from validators import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
 
         # Should require: template ID, space, title
 

@@ -25,15 +25,10 @@ Examples:
 import sys
 import re
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors
-from validators import validate_page_id
-from formatters import print_success, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, validate_page_id, print_success,
+    format_json,
+)
 
 
 @handle_errors
@@ -102,7 +97,7 @@ Examples:
             pattern = re.compile(args.pattern)
             properties = [p for p in properties if pattern.match(p.get('key', ''))]
         except re.error as e:
-            from error_handler import ValidationError
+            from confluence_assistant_skills_lib import ValidationError
             raise ValidationError(f"Invalid regex pattern: {e}")
 
     # Sort properties
@@ -164,7 +159,6 @@ Examples:
                     print(f"  {key:<30} v{version_num:<5} {value_str}")
 
     print_success(f"Listed {len(properties)} properties from content {content_id}")
-
 
 if __name__ == '__main__':
     main()

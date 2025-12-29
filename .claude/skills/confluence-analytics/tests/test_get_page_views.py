@@ -11,14 +11,14 @@ class TestGetPageViews:
 
     def test_validate_page_id_valid(self):
         """Test that valid page IDs pass validation."""
-        from validators import validate_page_id
+        from confluence_assistant_skills_lib import validate_page_id
 
         assert validate_page_id("123456") == "123456"
         assert validate_page_id(123456) == "123456"
 
     def test_validate_page_id_invalid(self):
         """Test that invalid page IDs fail validation."""
-        from validators import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import validate_page_id, ValidationError
 
         with pytest.raises(ValidationError):
             validate_page_id("")
@@ -71,7 +71,7 @@ class TestGetPageViews:
 
     def test_page_not_found(self, mock_client):
         """Test handling page not found error."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         # Mock 404 response
         mock_client.setup_response('get', {"message": "Page not found"}, status_code=404)
@@ -85,7 +85,7 @@ class TestOutputFormats:
 
     def test_json_output_format(self, sample_page_history):
         """Test JSON output formatting."""
-        from formatters import format_json
+        from confluence_assistant_skills_lib import format_json
         import json
 
         output = format_json(sample_page_history)

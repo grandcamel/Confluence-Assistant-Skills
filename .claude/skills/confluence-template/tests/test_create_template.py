@@ -53,13 +53,13 @@ class TestCreateTemplate:
 
     def test_create_template_invalid_space(self, mock_client):
         """Test creating template in non-existent space."""
-        from error_handler import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
 
         # Invalid space should fail validation
 
     def test_create_template_duplicate_name(self, mock_client):
         """Test creating template with duplicate name."""
-        from error_handler import ConflictError
+        from confluence_assistant_skills_lib import ConflictError
 
         mock_client.setup_response('post',
             {"message": "Template already exists"},
@@ -70,7 +70,7 @@ class TestCreateTemplate:
 
     def test_validate_template_name(self):
         """Test template name validation."""
-        from validators import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
 
         # Empty name should fail
         # Very long name should fail

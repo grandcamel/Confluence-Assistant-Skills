@@ -12,15 +12,10 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_page_id
-from formatters import print_success, print_warning
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_page_id,
+    print_success, print_warning,
+)
 
 
 def confirm_delete(page_title: str, permanent: bool) -> bool:
@@ -33,7 +28,6 @@ def confirm_delete(page_title: str, permanent: bool) -> bool:
 
     response = input("\nAre you sure? [y/N]: ").strip().lower()
     return response in ('y', 'yes')
-
 
 @handle_errors
 def main():
@@ -89,7 +83,6 @@ Examples:
         print_success(f"Permanently deleted page '{page_title}' (ID: {page_id})")
     else:
         print_success(f"Moved page '{page_title}' to trash (ID: {page_id})")
-
 
 if __name__ == '__main__':
     main()

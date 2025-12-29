@@ -11,7 +11,7 @@ class TestAddComment:
 
     def test_validate_comment_id_valid(self):
         """Test that valid comment IDs pass validation."""
-        from validators import validate_page_id
+        from confluence_assistant_skills_lib import validate_page_id
 
         # Comment IDs use the same validation as page IDs
         assert validate_page_id("12345", "comment_id") == "12345"
@@ -19,7 +19,7 @@ class TestAddComment:
 
     def test_validate_comment_id_invalid(self):
         """Test that invalid comment IDs fail validation."""
-        from validators import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import validate_page_id, ValidationError
 
         with pytest.raises(ValidationError):
             validate_page_id("", "comment_id")
@@ -29,7 +29,7 @@ class TestAddComment:
 
     def test_validate_comment_body_required(self):
         """Test that comment body is required."""
-        from validators import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
 
         # Simulating the validation that should happen
         body = ""
@@ -56,7 +56,7 @@ class TestAddComment:
 
     def test_add_comment_page_not_found(self, mock_client):
         """Test adding comment to non-existent page."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         mock_client.setup_response('post', {}, status_code=404)
 
@@ -64,7 +64,7 @@ class TestAddComment:
 
     def test_add_comment_no_permission(self, mock_client):
         """Test adding comment without permission."""
-        from error_handler import PermissionError
+        from confluence_assistant_skills_lib import PermissionError
 
         mock_client.setup_response('post', {}, status_code=403)
 
@@ -76,7 +76,7 @@ class TestCommentBodyValidation:
 
     def test_empty_body_rejected(self):
         """Test that empty comment body is rejected."""
-        from validators import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
 
         body = ""
         if not body.strip():
@@ -85,7 +85,7 @@ class TestCommentBodyValidation:
 
     def test_whitespace_only_rejected(self):
         """Test that whitespace-only body is rejected."""
-        from validators import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
 
         body = "   \n\t   "
         if not body.strip():
@@ -103,7 +103,7 @@ class TestCommentFormatting:
 
     def test_format_comment_basic(self, sample_comment):
         """Test basic comment formatting."""
-        from formatters import format_comment
+        from confluence_assistant_skills_lib import format_comment
 
         result = format_comment(sample_comment)
 
@@ -113,7 +113,7 @@ class TestCommentFormatting:
 
     def test_format_comment_without_body(self, sample_comment):
         """Test comment formatting without showing body."""
-        from formatters import format_comment
+        from confluence_assistant_skills_lib import format_comment
 
         result = format_comment(sample_comment, show_body=False)
 
@@ -122,7 +122,7 @@ class TestCommentFormatting:
 
     def test_format_comments_list(self, sample_comment):
         """Test formatting multiple comments."""
-        from formatters import format_comments
+        from confluence_assistant_skills_lib import format_comments
 
         comments = [sample_comment, sample_comment.copy()]
         result = format_comments(comments)

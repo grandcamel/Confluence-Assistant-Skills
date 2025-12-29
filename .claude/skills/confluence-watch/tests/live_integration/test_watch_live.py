@@ -10,12 +10,9 @@ Usage:
 
 import pytest
 import sys
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
+from confluence_assistant_skills_lib import (
+    get_confluence_client,
+)
 
 
 @pytest.fixture(scope="session")
@@ -23,7 +20,6 @@ def confluence_client(request):
     """Get Confluence client using profile from command line."""
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
-
 
 @pytest.fixture(scope="session")
 def test_page(confluence_client):
@@ -58,7 +54,6 @@ def test_page(confluence_client):
     except Exception:
         pass  # Already deleted or not found
 
-
 class TestWatchPageLive:
     """Live integration tests for watch_page.py"""
 
@@ -85,7 +80,7 @@ class TestWatchPageLive:
 
     def test_watch_invalid_page(self, confluence_client):
         """Test watching a non-existent page."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         with pytest.raises(Exception):
             # Using an obviously invalid page ID
@@ -93,7 +88,6 @@ class TestWatchPageLive:
                 '/rest/api/user/watch/content/999999999',
                 operation='watch page'
             )
-
 
 class TestUnwatchPageLive:
     """Live integration tests for unwatch_page.py"""
@@ -119,7 +113,6 @@ class TestUnwatchPageLive:
             operation='unwatch page'
         )
         assert result is not None or result == {}
-
 
 class TestGetWatchersLive:
     """Live integration tests for get_watchers.py"""
@@ -156,7 +149,6 @@ class TestGetWatchersLive:
 
         assert 'results' in result
         assert isinstance(result['results'], list)
-
 
 class TestAmIWatchingLive:
     """Live integration tests for am_i_watching.py"""
@@ -218,7 +210,6 @@ class TestAmIWatchingLive:
         assert 'displayName' in user or 'username' in user
         assert user['accountId'] is not None
 
-
 class TestWatchSpaceLive:
     """Live integration tests for watch_space.py"""
 
@@ -245,7 +236,6 @@ class TestWatchSpaceLive:
             confluence_client.delete(f'/rest/api/user/watch/space/{space_key}')
         except Exception:
             pass
-
 
 def pytest_addoption(parser):
     """Add custom command line option for profile."""

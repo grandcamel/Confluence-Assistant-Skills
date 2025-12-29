@@ -17,17 +17,14 @@ import json
 import csv
 from pathlib import Path
 from datetime import datetime, timedelta
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from error_handler import handle_errors, ValidationError
-from formatters import print_success, print_info, print_warning, format_timestamp
+from confluence_assistant_skills_lib import (
+    handle_errors, ValidationError, print_success, print_info,
+    print_warning, format_timestamp,
+)
 
 
 HISTORY_FILE = Path.home() / '.confluence_cql_history.json'
 MAX_HISTORY_ENTRIES = 100
-
 
 def load_history():
     """
@@ -46,7 +43,6 @@ def load_history():
         print_warning("Starting with empty history.")
         return []
 
-
 def save_history(history):
     """
     Save query history to file.
@@ -58,7 +54,6 @@ def save_history(history):
     history = history[-MAX_HISTORY_ENTRIES:]
 
     HISTORY_FILE.write_text(json.dumps(history, indent=2))
-
 
 def add_entry(query, results_count=None, execution_time=None):
     """
@@ -89,7 +84,6 @@ def add_entry(query, results_count=None, execution_time=None):
     history.append(entry)
     save_history(history)
 
-
 def list_entries(limit=None):
     """
     List history entries.
@@ -110,7 +104,6 @@ def list_entries(limit=None):
 
     return history
 
-
 def search_entries(keyword):
     """
     Search history for queries containing keyword.
@@ -128,7 +121,6 @@ def search_entries(keyword):
 
     # Return most recent first
     return list(reversed(matches))
-
 
 def get_entry(index):
     """
@@ -150,7 +142,6 @@ def get_entry(index):
 
     return history[index - 1]
 
-
 def clear_history(confirm=True):
     """
     Clear all history.
@@ -166,7 +157,6 @@ def clear_history(confirm=True):
 
     save_history([])
     print_success("History cleared")
-
 
 def cleanup_old_entries(days=90):
     """
@@ -188,7 +178,6 @@ def cleanup_old_entries(days=90):
         print_success(f"Removed {removed} old entries (older than {days} days)")
     else:
         print_info("No old entries to remove")
-
 
 def export_history(output_file, format='csv'):
     """
@@ -222,7 +211,6 @@ def export_history(output_file, format='csv'):
                 writer.writerow(entry)
 
     print_success(f"Exported {len(history)} entries to {output_path}")
-
 
 @handle_errors
 def main():
@@ -368,7 +356,6 @@ Examples:
     # Cleanup old entries
     elif args.command == 'cleanup':
         cleanup_old_entries(days=args.days)
-
 
 if __name__ == '__main__':
     main()

@@ -32,7 +32,7 @@ class TestGetTemplate:
 
     def test_get_template_not_found(self, mock_client):
         """Test handling of non-existent template."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         mock_client.setup_response('get', {"message": "Template not found"}, status_code=404)
 
@@ -48,7 +48,7 @@ class TestGetTemplate:
 
     def test_validate_template_id(self):
         """Test template ID validation."""
-        from validators import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
 
         # Template IDs can be various formats
         # Should validate non-empty string

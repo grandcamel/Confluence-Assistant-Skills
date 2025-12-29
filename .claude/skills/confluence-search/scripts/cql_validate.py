@@ -9,15 +9,10 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors
-from validators import validate_cql
-from formatters import print_success, print_warning
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, validate_cql, print_success,
+    print_warning,
+)
 
 
 @handle_errors
@@ -100,7 +95,6 @@ Examples:
         print("- Simple query")
 
     print()
-
 
 if __name__ == '__main__':
     main()

@@ -10,15 +10,10 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_page_id, validate_file_path
-from formatters import print_success, format_attachment, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_page_id,
+    validate_file_path, print_success, format_attachment, format_json,
+)
 
 
 @handle_errors
@@ -77,7 +72,6 @@ Examples:
         print(format_attachment(attachment))
 
     print_success(f"Uploaded '{file_path.name}' to page {page_id} (Attachment ID: {attachment['id']})")
-
 
 if __name__ == '__main__':
     main()

@@ -10,21 +10,15 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_page_id, validate_label
-from formatters import print_success, format_label, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_page_id,
+    validate_label, print_success, format_label, format_json,
+)
 
 
 def parse_labels(labels_str: str) -> list:
     """Parse comma-separated label string into list."""
     return [l.strip() for l in labels_str.split(',') if l.strip()]
-
 
 @handle_errors
 def main():
@@ -92,7 +86,6 @@ Examples:
             print_success(f"Added label '{validated_labels[0]}' to page {page_id}")
         else:
             print_success(f"Added {len(validated_labels)} labels to page {page_id}")
-
 
 if __name__ == '__main__':
     main()

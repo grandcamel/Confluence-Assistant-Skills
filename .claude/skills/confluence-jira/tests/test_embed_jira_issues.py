@@ -16,7 +16,7 @@ class TestEmbedJiraIssues:
 
     def test_validate_jql_query(self):
         """Test JQL query validation."""
-        from validators import validate_jql_query
+        from confluence_assistant_skills_lib import validate_jql_query
 
         # Valid queries
         assert validate_jql_query("project = PROJ")
@@ -24,7 +24,7 @@ class TestEmbedJiraIssues:
 
     def test_validate_issue_keys(self):
         """Test JIRA issue key validation."""
-        from validators import validate_issue_key
+        from confluence_assistant_skills_lib import validate_issue_key
 
         # Valid issue keys
         assert validate_issue_key("PROJ-123") == "PROJ-123"
@@ -33,7 +33,7 @@ class TestEmbedJiraIssues:
 
     def test_validate_issue_keys_invalid(self):
         """Test invalid issue keys."""
-        from validators import validate_issue_key, ValidationError
+        from confluence_assistant_skills_lib import validate_issue_key, ValidationError
 
         with pytest.raises(ValidationError):
             validate_issue_key("")

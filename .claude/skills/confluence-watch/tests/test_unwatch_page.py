@@ -35,7 +35,7 @@ class TestUnwatchPage:
 
     def test_unwatch_page_not_found(self, mock_client, mock_response):
         """Test unwatching a non-existent page."""
-        from error_handler import handle_confluence_error
+        from confluence_assistant_skills_lib import handle_confluence_error
 
         error_response = mock_response(
             status_code=404,
@@ -47,7 +47,7 @@ class TestUnwatchPage:
 
     def test_unwatch_page_validation(self):
         """Test page ID validation."""
-        from validators import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import validate_page_id, ValidationError
 
         with pytest.raises(ValidationError):
             validate_page_id("")

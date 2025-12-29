@@ -15,7 +15,7 @@ class TestCQLFieldSuggestions:
     def test_get_all_fields(self, sample_cql_fields):
         """Test getting all available CQL fields."""
         # Import the module we'll create
-        from validators import validate_cql
+        from confluence_assistant_skills_lib import validate_cql
 
         # Test that we can list common CQL fields
         common_fields = [

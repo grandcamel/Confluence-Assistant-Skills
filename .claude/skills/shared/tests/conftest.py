@@ -22,7 +22,6 @@ from pathlib import Path
 from unittest.mock import Mock, MagicMock, patch
 from typing import Dict, Any, Optional
 
-# Add shared lib to path
 lib_path = Path(__file__).parent.parent / 'scripts' / 'lib'
 sys.path.insert(0, str(lib_path))
 
@@ -100,7 +99,7 @@ def mock_response():
 @pytest.fixture
 def mock_client(mock_response):
     """Create a mock Confluence client."""
-    from confluence_client import ConfluenceClient
+    from confluence_assistant_skills_lib import ConfluenceClient
 
     with patch.object(ConfluenceClient, '_create_session'):
         client = ConfluenceClient(
@@ -335,7 +334,7 @@ def live_profile(request):
 @pytest.fixture(scope="session")
 def live_client(live_profile):
     """Create a real Confluence client for live tests."""
-    from config_manager import get_confluence_client
+    from confluence_assistant_skills_lib import get_confluence_client
     return get_confluence_client(profile=live_profile)
 
 

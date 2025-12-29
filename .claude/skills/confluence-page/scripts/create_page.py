@@ -10,16 +10,11 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_space_key, validate_page_id, validate_title
-from formatters import print_success, format_page, format_json
-from adf_helper import markdown_to_adf, text_to_adf
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_space_key,
+    validate_page_id, validate_title, print_success, format_page,
+    format_json, markdown_to_adf, text_to_adf,
+)
 
 
 def read_body_from_file(file_path: Path) -> str:
@@ -29,11 +24,9 @@ def read_body_from_file(file_path: Path) -> str:
 
     return file_path.read_text(encoding='utf-8')
 
-
 def is_markdown_file(file_path: Path) -> bool:
     """Check if file is a Markdown file."""
     return file_path.suffix.lower() in ('.md', '.markdown')
-
 
 @handle_errors
 def main():
@@ -106,7 +99,7 @@ Examples:
 
     # Convert Markdown to storage format if needed
     if is_markdown:
-        from xhtml_helper import markdown_to_xhtml
+        from confluence_assistant_skills_lib import markdown_to_xhtml
         page_data['body']['value'] = markdown_to_xhtml(body_content)
 
     # Add parent if specified
@@ -127,7 +120,6 @@ Examples:
         print(format_page(result))
 
     print_success(f"Created page '{title}' with ID {result['id']}")
-
 
 if __name__ == '__main__':
     main()

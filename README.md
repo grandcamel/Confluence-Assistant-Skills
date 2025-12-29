@@ -19,6 +19,7 @@
 
 <!-- BADGES -->
 [![Release](https://img.shields.io/github/v/release/grandcamel/Confluence-Assistant-Skills?style=for-the-badge&logo=github&logoColor=white&color=36B37E)](https://github.com/grandcamel/Confluence-Assistant-Skills/releases)
+[![PyPI](https://img.shields.io/pypi/v/confluence-assistant-skills-lib?style=for-the-badge&logo=pypi&logoColor=white&color=36B37E)](https://pypi.org/project/confluence-assistant-skills-lib/)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge&logo=opensourceinitiative&logoColor=white&color=0052CC)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-blue?style=for-the-badge&logo=python&logoColor=white&color=0052CC)](https://www.python.org/downloads/)
 [![Confluence](https://img.shields.io/badge/Confluence-Cloud-blue?style=for-the-badge&logo=confluence&logoColor=white&color=0052CC)](https://www.atlassian.com/software/confluence)
@@ -118,7 +119,7 @@ Claude: ✓ Created page "Q4 Planning"
 **Option B: Manual**
 ```bash
 git clone https://github.com/grandcamel/Confluence-Assistant-Skills.git
-pip install -r .claude/skills/shared/scripts/lib/requirements.txt
+pip install -r requirements.txt
 ```
 
 </td>

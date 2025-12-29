@@ -7,8 +7,6 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
 
 
 class TestDeleteAttachment:
@@ -31,7 +29,7 @@ class TestDeleteAttachment:
 
     def test_delete_attachment_not_found(self, mock_client):
         """Test deleting non-existent attachment."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         attachment_id = "nonexistent"
 
@@ -47,7 +45,7 @@ class TestDeleteAttachment:
 
     def test_delete_attachment_no_permission(self, mock_client):
         """Test deleting attachment without permission."""
-        from error_handler import PermissionError
+        from confluence_assistant_skills_lib import PermissionError
 
         attachment_id = "att123456"
 
@@ -74,14 +72,14 @@ class TestDeleteAttachment:
 
     def test_validate_attachment_id_for_delete(self):
         """Test attachment ID validation for deletion."""
-        from validators import validate_page_id
+        from confluence_assistant_skills_lib import validate_page_id
 
         # Attachment IDs use same validation as page IDs (numeric)
         assert validate_page_id("123456") == "123456"
         assert validate_page_id("789012") == "789012"
 
         # Invalid IDs should fail
-        from validators import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
         with pytest.raises(ValidationError):
             validate_page_id("")
 

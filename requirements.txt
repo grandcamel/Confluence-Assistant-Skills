@@ -1,0 +1,2 @@
+# Confluence Assistant Skills Dependencies
+confluence-assistant-skills-lib>=0.1.0

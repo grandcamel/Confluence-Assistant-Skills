@@ -10,12 +10,9 @@ Usage:
 import pytest
 import uuid
 import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-
+from confluence_assistant_skills_lib import (
+    get_confluence_client,
+)
 
 def pytest_addoption(parser):
     try:
@@ -23,12 +20,10 @@ def pytest_addoption(parser):
     except ValueError:
         pass
 
-
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
-
 
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
@@ -36,7 +31,6 @@ def test_space(confluence_client):
     if not spaces.get('results'):
         pytest.skip("No spaces available")
     return spaces['results'][0]
-
 
 @pytest.fixture
 def parent_page(confluence_client, test_space):
@@ -55,7 +49,6 @@ def parent_page(confluence_client, test_space):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
     except Exception:
         pass
-
 
 @pytest.fixture
 def child_page(confluence_client, test_space, parent_page):
@@ -76,7 +69,6 @@ def child_page(confluence_client, test_space, parent_page):
     except Exception:
         pass
 
-
 @pytest.fixture
 def grandchild_page(confluence_client, test_space, child_page):
     """Create a grandchild page."""
@@ -95,7 +87,6 @@ def grandchild_page(confluence_client, test_space, child_page):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
     except Exception:
         pass
-
 
 @pytest.mark.integration
 class TestGetChildrenLive:
@@ -162,7 +153,6 @@ class TestGetChildrenLive:
                 except Exception:
                     pass
 
-
 @pytest.mark.integration
 class TestGetAncestorsLive:
     """Live tests for getting ancestors."""
@@ -189,7 +179,6 @@ class TestGetAncestorsLive:
         ancestor_ids = [a['id'] for a in ancestors['results']]
         assert parent_page['id'] not in ancestor_ids
 
-
 @pytest.mark.integration
 class TestGetDescendantsLive:
     """Live tests for getting descendants."""
@@ -205,7 +194,6 @@ class TestGetDescendantsLive:
         descendant_ids = [d['id'] for d in descendants['results']]
         assert child_page['id'] in descendant_ids
         assert grandchild_page['id'] in descendant_ids
-
 
 @pytest.mark.integration
 class TestMovePageLive:

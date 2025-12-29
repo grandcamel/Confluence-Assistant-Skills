@@ -9,22 +9,16 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors
-from validators import validate_page_id
-from formatters import print_success, print_warning
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, validate_page_id, print_success,
+    print_warning,
+)
 
 
 def confirm_deletion(attachment_title: str, attachment_id: str) -> bool:
     """Prompt user to confirm deletion."""
     response = input(f"Delete attachment '{attachment_title}' (ID: {attachment_id})? [y/N]: ")
     return response.lower() in ('y', 'yes')
-
 
 @handle_errors
 def main():
@@ -78,7 +72,6 @@ Examples:
     )
 
     print_success(f"Deleted attachment {attachment_id}")
-
 
 if __name__ == '__main__':
     main()

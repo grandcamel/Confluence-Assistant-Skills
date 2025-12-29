@@ -29,14 +29,14 @@ class TestResolveComment:
 
     def test_resolve_comment_not_found(self, mock_client):
         """Test resolving non-existent comment."""
-        from error_handler import NotFoundError
+        from confluence_assistant_skills_lib import NotFoundError
 
         mock_client.setup_response('put', {}, status_code=404)
         # Would verify NotFoundError is raised
 
     def test_resolve_comment_no_permission(self, mock_client):
         """Test resolving comment without permission."""
-        from error_handler import PermissionError
+        from confluence_assistant_skills_lib import PermissionError
 
         mock_client.setup_response('put', {}, status_code=403)
         # Would verify PermissionError is raised
@@ -47,7 +47,7 @@ class TestResolveValidation:
 
     def test_comment_id_required(self):
         """Test that comment ID is required."""
-        from validators import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import validate_page_id, ValidationError
 
         with pytest.raises(ValidationError):
             validate_page_id("", "comment_id")
@@ -61,7 +61,7 @@ class TestResolveValidation:
 
     def test_invalid_resolution_status(self):
         """Test that invalid status is rejected."""
-        from validators import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
 
         status = "invalid"
         if status not in ['resolved', 'open']:

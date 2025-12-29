@@ -13,16 +13,11 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
 from typing import List, Dict, Any, Set
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors
-from validators import validate_page_id
-from formatters import print_success, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, validate_page_id, print_success,
+    format_json,
+)
 
 
 def get_descendants_recursive(
@@ -96,7 +91,6 @@ def get_descendants_recursive(
 
     return descendants
 
-
 @handle_errors
 def main():
     parser = argparse.ArgumentParser(
@@ -154,7 +148,6 @@ Examples:
                 print(f"{indent}- {title} (ID: {desc_id})")
 
     print_success(f"Retrieved {len(descendants)} descendant(s)")
-
 
 if __name__ == '__main__':
     main()

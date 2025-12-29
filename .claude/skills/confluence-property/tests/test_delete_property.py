@@ -26,7 +26,7 @@ class TestDeleteProperty:
 
     def test_delete_property_invalid_content_id(self):
         """Test deletion with invalid content ID."""
-        from validators import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import validate_page_id, ValidationError
 
         with pytest.raises(ValidationError):
             validate_page_id("")

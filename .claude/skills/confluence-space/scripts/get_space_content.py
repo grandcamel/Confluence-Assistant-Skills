@@ -10,15 +10,11 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, NotFoundError
-from validators import validate_space_key, validate_limit
-from formatters import print_success, format_page, format_json, format_table
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, NotFoundError, validate_space_key,
+    validate_limit, print_success, format_page, format_json,
+    format_table,
+)
 
 
 @handle_errors
@@ -113,7 +109,6 @@ Examples:
             ))
 
     print_success(f"Listed {len(pages)} page(s) in space {space_key}")
-
 
 if __name__ == '__main__':
     main()

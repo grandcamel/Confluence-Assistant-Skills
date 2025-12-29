@@ -7,13 +7,10 @@ Usage:
 
 import pytest
 import sys
-from pathlib import Path
 from datetime import datetime, timedelta
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-
+from confluence_assistant_skills_lib import (
+    get_confluence_client,
+)
 
 def pytest_addoption(parser):
     try:
@@ -21,12 +18,10 @@ def pytest_addoption(parser):
     except ValueError:
         pass
 
-
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
-
 
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
@@ -34,7 +29,6 @@ def test_space(confluence_client):
     if not spaces.get('results'):
         pytest.skip("No spaces available")
     return spaces['results'][0]
-
 
 @pytest.mark.integration
 class TestCQLAdvancedLive:

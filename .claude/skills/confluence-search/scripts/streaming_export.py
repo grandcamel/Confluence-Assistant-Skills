@@ -17,20 +17,15 @@ import csv
 import time
 from pathlib import Path
 from datetime import datetime
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_cql, validate_file_path
-from formatters import print_success, print_info, print_warning
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_cql,
+    validate_file_path, print_success, print_info, print_warning,
+)
 
 
 def get_checkpoint_path(output_file):
     """Get path to checkpoint file for given output file."""
     return Path(str(output_file) + '.checkpoint')
-
 
 def load_checkpoint(output_file):
     """
@@ -52,7 +47,6 @@ def load_checkpoint(output_file):
     except Exception as e:
         print_warning(f"Could not load checkpoint: {e}")
         return None
-
 
 def save_checkpoint(output_file, cql, last_start, total_exported, batch_size, export_format):
     """
@@ -80,14 +74,12 @@ def save_checkpoint(output_file, cql, last_start, total_exported, batch_size, ex
 
     checkpoint_file.write_text(json.dumps(checkpoint, indent=2))
 
-
 def delete_checkpoint(output_file):
     """Delete checkpoint file."""
     checkpoint_file = get_checkpoint_path(output_file)
 
     if checkpoint_file.exists():
         checkpoint_file.unlink()
-
 
 def extract_record(result):
     """
@@ -128,7 +120,6 @@ def extract_record(result):
 
     return record
 
-
 def export_batch_csv(records, output_file, columns, is_first_batch):
     """
     Export a batch of records to CSV.
@@ -149,7 +140,6 @@ def export_batch_csv(records, output_file, columns, is_first_batch):
 
         for record in records:
             writer.writerow(record)
-
 
 def export_batch_json(records, output_file, is_first_batch, is_last_batch):
     """
@@ -177,7 +167,6 @@ def export_batch_json(records, output_file, is_first_batch, is_last_batch):
 
         if is_last_batch:
             f.write('\n]\n')
-
 
 @handle_errors
 def main():
@@ -363,7 +352,6 @@ Examples:
     print_info(f"Time: {elapsed:.1f} seconds")
     print_info(f"Rate: {total_exported/elapsed:.1f} records/second")
     print("="*60)
-
 
 if __name__ == '__main__':
     main()

@@ -14,16 +14,11 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
 from typing import List
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_page_id
-from formatters import print_success, print_warning, print_info
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_page_id,
+    print_success, print_warning, print_info,
+)
 
 
 def parse_order(order_str: str) -> List[str]:
@@ -51,7 +46,6 @@ def parse_order(order_str: str) -> List[str]:
         validated_ids.append(validated)
 
     return validated_ids
-
 
 def validate_order(
     proposed_order: List[str],
@@ -90,7 +84,6 @@ def validate_order(
         raise ValidationError(
             f"Order contains {len(extra)} invalid page ID(s): {', '.join(extra)}"
         )
-
 
 @handle_errors
 def main():
@@ -184,7 +177,6 @@ API supports it. Check the Confluence API documentation for current capabilities
     # with body: {"order": new_order}
 
     print_success(f"Validated order for {len(new_order)} children")
-
 
 if __name__ == '__main__':
     main()

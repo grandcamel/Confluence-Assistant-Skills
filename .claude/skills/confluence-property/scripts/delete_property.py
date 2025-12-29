@@ -18,15 +18,10 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_page_id
-from formatters import print_success
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_page_id,
+    print_success,
+)
 
 
 @handle_errors
@@ -96,7 +91,6 @@ Examples:
     )
 
     print_success(f"Deleted property '{args.key}' from content {content_id}")
-
 
 if __name__ == '__main__':
     main()

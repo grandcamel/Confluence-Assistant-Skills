@@ -83,7 +83,7 @@ class TestSpaceCreate:
 
     def test_create_duplicate_space_fails(self, confluence_client, test_space):
         """Test that creating a space with duplicate key fails."""
-        from error_handler import ConfluenceError
+        from confluence_assistant_skills_lib import ConfluenceError
 
         with pytest.raises(ConfluenceError):
             confluence_client.post(

@@ -7,8 +7,6 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
 
 
 class TestUpdateAttachment:
@@ -93,7 +91,7 @@ class TestUpdateAttachment:
 
     def test_validate_file_for_update(self, test_file):
         """Test file validation for update."""
-        from validators import validate_file_path
+        from confluence_assistant_skills_lib import validate_file_path
 
         # File must exist
         result = validate_file_path(test_file)
@@ -101,7 +99,7 @@ class TestUpdateAttachment:
         assert result.is_file()
 
         # Non-existent file should fail
-        from validators import ValidationError
+        from confluence_assistant_skills_lib import ValidationError
         with pytest.raises(ValidationError):
             validate_file_path("/nonexistent/file.txt")
 

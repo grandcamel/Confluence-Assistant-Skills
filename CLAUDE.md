@@ -25,22 +25,24 @@ This project provides Claude Code skills for automating Confluence Cloud operati
 
 ## Architecture
 
-### Shared Library Pattern
+### Shared Library (PyPI Package)
 
-All skills share a common library located at:
-```
-.claude/skills/shared/scripts/lib/
+All skills use the [`confluence-assistant-skills-lib`](https://pypi.org/project/confluence-assistant-skills-lib/) package from PyPI.
+
+**Installation:**
+```bash
+pip install confluence-assistant-skills-lib
 ```
 
 **Key Components:**
-- `confluence_client.py` - HTTP client with retry logic
-- `config_manager.py` - Multi-source configuration
-- `error_handler.py` - Exception hierarchy and decorators
-- `validators.py` - Input validation utilities
-- `formatters.py` - Output formatting
-- `adf_helper.py` - Atlassian Document Format utilities
-- `xhtml_helper.py` - Legacy storage format utilities
-- `cache.py` - Response caching
+- `ConfluenceClient` - HTTP client with retry logic
+- `ConfigManager` - Multi-source configuration
+- `handle_errors` - Exception handling decorator
+- `validators` - Input validation utilities
+- `formatters` - Output formatting
+- `adf_helper` - Atlassian Document Format utilities
+- `xhtml_helper` - Legacy storage format utilities
+- `Cache` - Response caching
 
 ### Import Pattern
 
@@ -48,16 +50,15 @@ Every script should import shared utilities like this:
 
 ```python
 #!/usr/bin/env python3
-import sys
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, print_error
-from validators import validate_page_id, validate_space_key
-from formatters import print_success, format_page
+import argparse
+from confluence_assistant_skills_lib import (
+    get_confluence_client,
+    handle_errors,
+    validate_page_id,
+    validate_space_key,
+    print_success,
+    format_page,
+)
 ```
 
 ## Configuration System
@@ -130,7 +131,9 @@ ConfluenceError (base)
 ### Using the Error Handler
 
 ```python
-from error_handler import handle_errors, print_error, ValidationError
+from confluence_assistant_skills_lib import (
+    handle_errors, ValidationError, get_confluence_client, print_success,
+)
 
 @handle_errors
 def main():
@@ -155,7 +158,7 @@ if __name__ == '__main__':
 The v2 API uses JSON-based ADF for content:
 
 ```python
-from adf_helper import markdown_to_adf, adf_to_markdown
+from confluence_assistant_skills_lib import markdown_to_adf, adf_to_markdown
 
 # Convert Markdown to ADF for API
 adf = markdown_to_adf("# Heading\n\nParagraph with **bold** text.")
@@ -169,7 +172,7 @@ markdown = adf_to_markdown(page['body']['atlas_doc_format']['value'])
 The v1 API uses XHTML storage format:
 
 ```python
-from xhtml_helper import markdown_to_xhtml, xhtml_to_markdown
+from confluence_assistant_skills_lib import markdown_to_xhtml, xhtml_to_markdown
 
 # Convert Markdown to XHTML for v1 API
 xhtml = markdown_to_xhtml("# Heading\n\nParagraph")
@@ -184,13 +187,13 @@ markdown = xhtml_to_markdown(page['body']['storage']['value'])
 
 ```bash
 # Run all unit tests
-pytest .claude/skills/*/tests/ -v --ignore="**/live_integration"
+pytest .claude/skills/confluence-*/tests/test_*.py -v
 
 # Run tests for a specific skill
-pytest .claude/skills/confluence-page/tests/ -v
+pytest .claude/skills/confluence-page/tests/test_*.py -v
 
 # Run with coverage
-pytest --cov=.claude/skills/shared/scripts/lib --cov-report=html
+pytest --cov=confluence_assistant_skills_lib --cov-report=html
 ```
 
 ### Live Integration Tests
@@ -222,16 +225,14 @@ Examples:
     python script_name.py SPACE-KEY --option value
 """
 
-import sys
 import argparse
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors
-from validators import validate_space_key
-from formatters import print_success, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client,
+    handle_errors,
+    validate_space_key,
+    print_success,
+    format_json,
+)
 
 
 @handle_errors
@@ -325,9 +326,10 @@ Natural language examples that trigger this skill.
 ### Modifying the Schema
 
 1. Edit `.claude/skills/shared/config/config.schema.json`
-2. Update `config_manager.py` if new fields need special handling
-3. Update `config.example.json` with examples
-4. Document in this file
+2. Update `config.example.json` with examples
+3. Document in this file
+
+Note: Configuration handling is provided by the `confluence-assistant-skills-lib` package.
 
 ### Validation
 

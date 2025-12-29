@@ -11,7 +11,7 @@ class TestCreatePage:
 
     def test_validate_space_key_valid(self):
         """Test that valid space keys pass validation."""
-        from validators import validate_space_key
+        from confluence_assistant_skills_lib import validate_space_key
 
         assert validate_space_key("DOCS") == "DOCS"
         assert validate_space_key("kb") == "KB"
@@ -19,7 +19,7 @@ class TestCreatePage:
 
     def test_validate_space_key_invalid(self):
         """Test that invalid space keys fail validation."""
-        from validators import validate_space_key, ValidationError
+        from confluence_assistant_skills_lib import validate_space_key, ValidationError
 
         with pytest.raises(ValidationError):
             validate_space_key("")
@@ -32,14 +32,14 @@ class TestCreatePage:
 
     def test_validate_title_valid(self):
         """Test that valid titles pass validation."""
-        from validators import validate_title
+        from confluence_assistant_skills_lib import validate_title
 
         assert validate_title("My Page") == "My Page"
         assert validate_title("  Trimmed  ") == "Trimmed"
 
     def test_validate_title_invalid(self):
         """Test that invalid titles fail validation."""
-        from validators import validate_title, ValidationError
+        from confluence_assistant_skills_lib import validate_title, ValidationError
 
         with pytest.raises(ValidationError):
             validate_title("")
@@ -82,14 +82,14 @@ class TestMarkdownConversion:
 
     def test_xhtml_basic_paragraph(self):
         """Test basic paragraph conversion."""
-        from xhtml_helper import markdown_to_xhtml
+        from confluence_assistant_skills_lib import markdown_to_xhtml
 
         result = markdown_to_xhtml("Hello world")
         assert "<p>Hello world</p>" in result
 
     def test_xhtml_heading(self):
         """Test heading conversion."""
-        from xhtml_helper import markdown_to_xhtml
+        from confluence_assistant_skills_lib import markdown_to_xhtml
 
         result = markdown_to_xhtml("# Heading 1")
         assert "<h1>Heading 1</h1>" in result
@@ -99,7 +99,7 @@ class TestMarkdownConversion:
 
     def test_xhtml_bold_italic(self):
         """Test bold and italic conversion."""
-        from xhtml_helper import markdown_to_xhtml
+        from confluence_assistant_skills_lib import markdown_to_xhtml
 
         result = markdown_to_xhtml("**bold** and *italic*")
         assert "<strong>bold</strong>" in result
@@ -107,7 +107,7 @@ class TestMarkdownConversion:
 
     def test_xhtml_code_block(self):
         """Test code block conversion."""
-        from xhtml_helper import markdown_to_xhtml
+        from confluence_assistant_skills_lib import markdown_to_xhtml
 
         result = markdown_to_xhtml("```python\nprint('hello')\n```")
         assert "code" in result.lower()
@@ -118,7 +118,7 @@ class TestADFConversion:
 
     def test_text_to_adf(self):
         """Test plain text to ADF conversion."""
-        from adf_helper import text_to_adf
+        from confluence_assistant_skills_lib import text_to_adf
 
         result = text_to_adf("Hello world")
         assert result["type"] == "doc"
@@ -127,7 +127,7 @@ class TestADFConversion:
 
     def test_markdown_to_adf_heading(self):
         """Test Markdown heading to ADF."""
-        from adf_helper import markdown_to_adf
+        from confluence_assistant_skills_lib import markdown_to_adf
 
         result = markdown_to_adf("# Heading")
         assert result["type"] == "doc"
@@ -144,7 +144,7 @@ class TestADFConversion:
 
     def test_adf_to_markdown(self):
         """Test ADF to Markdown conversion."""
-        from adf_helper import markdown_to_adf, adf_to_markdown
+        from confluence_assistant_skills_lib import markdown_to_adf, adf_to_markdown
 
         original = "# Test Heading\n\nA paragraph."
         adf = markdown_to_adf(original)

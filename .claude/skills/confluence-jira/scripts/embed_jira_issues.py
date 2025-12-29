@@ -15,16 +15,11 @@ Examples:
 import sys
 import argparse
 import html
-from pathlib import Path
 from typing import List, Optional
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_page_id, validate_issue_key, validate_jql_query
-from formatters import print_success, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_page_id,
+    validate_issue_key, validate_jql_query, print_success, format_json,
+)
 
 
 def create_jira_macro(issue_key: str, server_id: Optional[str] = None) -> str:
@@ -46,7 +41,6 @@ def create_jira_macro(issue_key: str, server_id: Optional[str] = None) -> str:
     {server_param}
     <ac:parameter ac:name="key">{html.escape(issue_key)}</ac:parameter>
 </ac:structured-macro>'''
-
 
 def create_jira_issues_macro(
     jql: Optional[str] = None,
@@ -96,7 +90,6 @@ def create_jira_issues_macro(
     {count_param}
 </ac:structured-macro>'''
 
-
 def build_jql_from_keys(keys: List[str]) -> str:
     """
     Build a JQL query from a list of issue keys.
@@ -114,7 +107,6 @@ def build_jql_from_keys(keys: List[str]) -> str:
         keys_str = ", ".join(keys)
         return f"key in ({keys_str})"
 
-
 def append_jira_macro(content: str, macro: str) -> str:
     """
     Append JIRA macro to existing page content.
@@ -128,7 +120,6 @@ def append_jira_macro(content: str, macro: str) -> str:
     """
     return content + "\n" + macro
 
-
 def replace_with_jira_macro(content: str, macro: str) -> str:
     """
     Replace page content with JIRA macro.
@@ -141,7 +132,6 @@ def replace_with_jira_macro(content: str, macro: str) -> str:
         New content (just the macro)
     """
     return macro
-
 
 @handle_errors
 def main():
@@ -266,7 +256,6 @@ Examples:
             print(f"JQL query: {jql}")
 
     print_success(f"Embedded JIRA issues in page {page_id}")
-
 
 if __name__ == '__main__':
     main()

@@ -13,16 +13,11 @@ Examples:
 import sys
 import argparse
 import re
-from pathlib import Path
 from typing import Optional
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_page_id, validate_jql_query
-from formatters import print_success, format_json
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_page_id,
+    validate_jql_query, print_success, format_json,
+)
 
 
 def find_jira_macros(content: str) -> list:
@@ -47,7 +42,6 @@ def find_jira_macros(content: str) -> list:
         })
 
     return matches
-
 
 def update_jql_in_macro(macro_content: str, new_jql: str) -> str:
     """
@@ -82,7 +76,6 @@ def update_jql_in_macro(macro_content: str, new_jql: str) -> str:
 
     return updated
 
-
 def touch_page(content: str) -> str:
     """
     Make a minor change to content to trigger update.
@@ -95,7 +88,6 @@ def touch_page(content: str) -> str:
     """
     # Add and remove a comment to trigger update
     return content
-
 
 @handle_errors
 def main():
@@ -235,7 +227,6 @@ Examples:
             print(f"Macros updated: {updated_count}")
 
     print_success(f"Synced JIRA macros in page {page_id}")
-
 
 if __name__ == '__main__':
     main()

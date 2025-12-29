@@ -12,18 +12,13 @@ import argparse
 import json
 import csv
 from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_cql, validate_limit
-from formatters import print_success, print_info
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_cql,
+    validate_limit, print_success, print_info,
+)
 
 
 DEFAULT_COLUMNS = ['id', 'title', 'type', 'space', 'created', 'lastModified', 'url']
-
 
 def extract_field(result: dict, field: str) -> str:
     """Extract a field value from a search result."""
@@ -57,7 +52,6 @@ def extract_field(result: dict, field: str) -> str:
         return content.get('status', '')
     else:
         return str(content.get(field, ''))
-
 
 @handle_errors
 def main():
@@ -152,7 +146,6 @@ Examples:
                 writer.writerow(row)
 
     print_success(f"Exported {len(results)} results to {output_path}")
-
 
 if __name__ == '__main__':
     main()

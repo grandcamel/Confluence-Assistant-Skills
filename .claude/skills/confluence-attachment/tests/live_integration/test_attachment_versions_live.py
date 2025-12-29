@@ -10,11 +10,9 @@ import uuid
 import tempfile
 import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-
+from confluence_assistant_skills_lib import (
+    get_confluence_client,
+)
 
 def pytest_addoption(parser):
     try:
@@ -22,12 +20,10 @@ def pytest_addoption(parser):
     except ValueError:
         pass
 
-
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
-
 
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
@@ -35,7 +31,6 @@ def test_space(confluence_client):
     if not spaces.get('results'):
         pytest.skip("No spaces available")
     return spaces['results'][0]
-
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
@@ -54,7 +49,6 @@ def test_page(confluence_client, test_space):
     except Exception:
         pass
 
-
 @pytest.fixture
 def test_file():
     with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
@@ -65,7 +59,6 @@ def test_file():
         temp_path.unlink()
     except Exception:
         pass
-
 
 @pytest.mark.integration
 class TestAttachmentVersionsLive:

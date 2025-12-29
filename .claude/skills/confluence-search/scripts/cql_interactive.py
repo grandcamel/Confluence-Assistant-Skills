@@ -12,15 +12,10 @@ Examples:
 
 import sys
 import argparse
-from pathlib import Path
-
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
-
-from config_manager import get_confluence_client
-from error_handler import handle_errors, ValidationError
-from validators import validate_cql, validate_space_key
-from formatters import print_success, print_info, format_search_results
+from confluence_assistant_skills_lib import (
+    get_confluence_client, handle_errors, ValidationError, validate_cql,
+    validate_space_key, print_success, print_info, format_search_results,
+)
 
 
 # Import field/operator definitions from cql_suggest
@@ -37,7 +32,6 @@ except ImportError:
 
     def get_field_values(client, field_name):
         return []
-
 
 def prompt_choice(prompt, choices, allow_custom=False):
     """
@@ -93,7 +87,6 @@ def prompt_choice(prompt, choices, allow_custom=False):
         except (ValueError, KeyError):
             print("Invalid input. Enter a number.")
 
-
 def quote_value(value, field_type):
     """
     Quote a value appropriately based on field type.
@@ -123,7 +116,6 @@ def quote_value(value, field_type):
 
     # Quote strings
     return f"'{value}'"
-
 
 def build_condition(client):
     """
@@ -182,7 +174,6 @@ def build_condition(client):
     # Build condition
     return f"{field} {operator} {value}"
 
-
 def build_query_interactive(client, initial_parts=None):
     """
     Build a complete CQL query interactively.
@@ -238,7 +229,6 @@ def build_query_interactive(client, initial_parts=None):
             break
 
     return " ".join(parts)
-
 
 @handle_errors
 def main():
@@ -385,7 +375,6 @@ Examples:
 
         except Exception as e:
             print(f"Warning: Could not save to history: {e}")
-
 
 if __name__ == '__main__':
     main()

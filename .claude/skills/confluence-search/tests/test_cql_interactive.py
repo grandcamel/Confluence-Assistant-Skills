@@ -73,7 +73,7 @@ class TestQueryValidation:
 
     def test_validate_complete_query(self):
         """Test validating a complete query."""
-        from validators import validate_cql
+        from confluence_assistant_skills_lib import validate_cql
 
         query = "space = 'DOCS' AND type = page"
         result = validate_cql(query)
@@ -91,7 +91,7 @@ class TestQueryValidation:
 
     def test_validate_unbalanced_quotes(self):
         """Test handling unbalanced quotes."""
-        from validators import validate_cql, ValidationError
+        from confluence_assistant_skills_lib import validate_cql, ValidationError
 
         query = "space = 'DOCS"  # Missing closing quote
 
@@ -100,7 +100,7 @@ class TestQueryValidation:
 
     def test_validate_unbalanced_parens(self):
         """Test handling unbalanced parentheses."""
-        from validators import validate_cql, ValidationError
+        from confluence_assistant_skills_lib import validate_cql, ValidationError
 
         query = "(space = 'DOCS' AND type = page"
 

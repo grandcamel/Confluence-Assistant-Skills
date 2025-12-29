@@ -7,8 +7,6 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
-# Add shared lib to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared' / 'scripts' / 'lib'))
 
 
 class TestListAttachments:
@@ -133,7 +131,7 @@ class TestAttachmentFormatting:
 
     def test_format_attachment_basic(self, sample_attachment):
         """Test basic attachment formatting."""
-        from formatters import format_json
+        from confluence_assistant_skills_lib import format_json
 
         # Test JSON formatting
         json_output = format_json(sample_attachment)
