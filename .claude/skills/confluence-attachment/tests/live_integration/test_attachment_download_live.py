@@ -10,6 +10,7 @@ import uuid
 import sys
 import tempfile
 import os
+from pathlib import Path
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
@@ -49,14 +50,14 @@ def test_page_with_attachment(confluence_client, test_space):
     content = 'Test content for download verification.'
     with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
         f.write(content)
-        temp_path = f.name
+        temp_path = Path(f.name)
 
     try:
-        attachment = confluence_client.upload_attachment(
-            page_id=page['id'],
-            file_path=temp_path,
-            file_name=f'download-test-{uuid.uuid4().hex[:8]}.txt'
+        result = confluence_client.upload_file(
+            f"/rest/api/content/{page['id']}/child/attachment",
+            temp_path
         )
+        attachment = result['results'][0]
         yield {'page': page, 'attachment': attachment, 'content': content}
     finally:
         os.unlink(temp_path)
@@ -73,7 +74,7 @@ class TestAttachmentDownloadLive:
         """Test getting attachment download link."""
         attachment = test_page_with_attachment['attachment']
 
-        # Get attachment details
+        # Get attachment details using v2 API
         details = confluence_client.get(
             f"/api/v2/attachments/{attachment['id']}"
         )

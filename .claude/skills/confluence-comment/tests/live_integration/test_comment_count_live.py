@@ -64,14 +64,18 @@ class TestCommentCountLive:
         """Test counting after adding comments."""
         comment_ids = []
 
-        # Add 3 comments
+        # Add 3 comments using v1 API
         for i in range(3):
             comment = confluence_client.post(
-                f"/api/v2/pages/{test_page['id']}/footer-comments",
+                '/rest/api/content',
                 json_data={
+                    'type': 'comment',
+                    'container': {'id': test_page['id'], 'type': 'page'},
                     'body': {
-                        'representation': 'storage',
-                        'value': f'<p>Comment {i}.</p>'
+                        'storage': {
+                            'representation': 'storage',
+                            'value': f'<p>Comment {i}.</p>'
+                        }
                     }
                 }
             )
@@ -86,19 +90,23 @@ class TestCommentCountLive:
         finally:
             for cid in comment_ids:
                 try:
-                    confluence_client.delete(f"/api/v2/footer-comments/{cid}")
+                    confluence_client.delete(f"/rest/api/content/{cid}")
                 except Exception:
                     pass
 
     def test_count_after_deleting_comment(self, confluence_client, test_page):
         """Test count updates after deleting a comment."""
-        # Add a comment
+        # Add a comment using v1 API
         comment = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/footer-comments",
+            '/rest/api/content',
             json_data={
+                'type': 'comment',
+                'container': {'id': test_page['id'], 'type': 'page'},
                 'body': {
-                    'representation': 'storage',
-                    'value': '<p>To delete.</p>'
+                    'storage': {
+                        'representation': 'storage',
+                        'value': '<p>To delete.</p>'
+                    }
                 }
             }
         )
@@ -109,8 +117,8 @@ class TestCommentCountLive:
         )
         initial_count = len(comments.get('results', []))
 
-        # Delete
-        confluence_client.delete(f"/api/v2/footer-comments/{comment['id']}")
+        # Delete using v1 API
+        confluence_client.delete(f"/rest/api/content/{comment['id']}")
 
         # Verify count decreased
         comments = confluence_client.get(

@@ -62,9 +62,10 @@ class TestLabelSuggestionsLive:
 
         try:
             label = f"suggest-{uuid.uuid4().hex[:8]}"
+            # Use v1 API for adding labels
             confluence_client.post(
-                f"/api/v2/pages/{page['id']}/labels",
-                json_data={'name': label}
+                f"/rest/api/content/{page['id']}/label",
+                json_data=[{'prefix': 'global', 'name': label}]
             )
 
             # Get page labels

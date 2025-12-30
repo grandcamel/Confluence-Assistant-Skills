@@ -55,9 +55,10 @@ class TestLabelPrefixLive:
         """Test adding a global label (default prefix)."""
         label = f"global-{uuid.uuid4().hex[:8]}"
 
+        # Use v1 API for adding labels
         confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/labels",
-            json_data={'name': label}
+            f"/rest/api/content/{test_page['id']}/label",
+            json_data=[{'prefix': 'global', 'name': label}]
         )
 
         labels = confluence_client.get(f"/api/v2/pages/{test_page['id']}/labels")
@@ -81,9 +82,10 @@ class TestLabelPrefixLive:
         """Test labels with hyphens and underscores."""
         label = f"test-label-{uuid.uuid4().hex[:4]}_underscore"
 
+        # Use v1 API for adding labels
         confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/labels",
-            json_data={'name': label}
+            f"/rest/api/content/{test_page['id']}/label",
+            json_data=[{'prefix': 'global', 'name': label}]
         )
 
         labels = confluence_client.get(f"/api/v2/pages/{test_page['id']}/labels")
@@ -94,9 +96,10 @@ class TestLabelPrefixLive:
         """Test that labels are lowercased."""
         label_input = f"UPPERCASE-{uuid.uuid4().hex[:8]}"
 
+        # Use v1 API for adding labels
         confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/labels",
-            json_data={'name': label_input}
+            f"/rest/api/content/{test_page['id']}/label",
+            json_data=[{'prefix': 'global', 'name': label_input}]
         )
 
         labels = confluence_client.get(f"/api/v2/pages/{test_page['id']}/labels")

@@ -86,31 +86,38 @@ class TestCommentResolveLive:
 
     def test_footer_comment_lifecycle(self, confluence_client, test_page):
         """Test full comment lifecycle."""
-        # Create
+        # Create using v1 API
         comment = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/footer-comments",
+            '/rest/api/content',
             json_data={
+                'type': 'comment',
+                'container': {'id': test_page['id'], 'type': 'page'},
                 'body': {
-                    'representation': 'storage',
-                    'value': '<p>Lifecycle test.</p>'
+                    'storage': {
+                        'representation': 'storage',
+                        'value': '<p>Lifecycle test.</p>'
+                    }
                 }
             }
         )
 
         try:
-            # Read
+            # Read using v1 API
             fetched = confluence_client.get(
-                f"/api/v2/footer-comments/{comment['id']}"
+                f"/rest/api/content/{comment['id']}"
             )
             assert fetched['id'] == comment['id']
 
-            # Update
+            # Update using v1 API
             updated = confluence_client.put(
-                f"/api/v2/footer-comments/{comment['id']}",
+                f"/rest/api/content/{comment['id']}",
                 json_data={
+                    'type': 'comment',
                     'body': {
-                        'representation': 'storage',
-                        'value': '<p>Updated lifecycle.</p>'
+                        'storage': {
+                            'representation': 'storage',
+                            'value': '<p>Updated lifecycle.</p>'
+                        }
                     },
                     'version': {'number': comment['version']['number'] + 1}
                 }
@@ -118,5 +125,5 @@ class TestCommentResolveLive:
             assert updated['version']['number'] > comment['version']['number']
 
         finally:
-            # Delete
-            confluence_client.delete(f"/api/v2/footer-comments/{comment['id']}")
+            # Delete using v1 API
+            confluence_client.delete(f"/rest/api/content/{comment['id']}")

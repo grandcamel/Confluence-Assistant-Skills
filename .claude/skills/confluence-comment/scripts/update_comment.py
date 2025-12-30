@@ -10,6 +10,7 @@ Examples:
 
 import sys
 import argparse
+from pathlib import Path
 from confluence_assistant_skills_lib import (
     get_confluence_client, handle_errors, ValidationError, validate_page_id,
     print_success, format_comment, format_json,
@@ -84,26 +85,29 @@ Examples:
     # Get client
     client = get_confluence_client(profile=args.profile)
 
-    # First, get the current comment to get the version
+    # First, get the current comment to get the version (using v1 API)
     current_comment = client.get(
-        f'/api/v2/footer-comments/{comment_id}',
+        f'/rest/api/content/{comment_id}',
         operation='get current comment'
     )
 
-    # Prepare updated comment data
+    # Prepare updated comment data using v1 API format
     comment_data = {
+        'type': 'comment',
         'version': {
             'number': current_comment['version']['number'] + 1
         },
         'body': {
-            'representation': 'storage',
-            'value': f'<p>{body_content}</p>'  # Simple HTML wrapper
+            'storage': {
+                'value': f'<p>{body_content}</p>',
+                'representation': 'storage'
+            }
         }
     }
 
-    # Update the comment
+    # Update the comment using v1 API
     result = client.put(
-        f'/api/v2/footer-comments/{comment_id}',
+        f'/rest/api/content/{comment_id}',
         json_data=comment_data,
         operation='update comment'
     )

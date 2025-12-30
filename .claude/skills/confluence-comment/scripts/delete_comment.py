@@ -48,9 +48,9 @@ Examples:
             print("Delete cancelled.")
             sys.exit(0)
 
-    # Delete the comment
+    # Delete the comment using v1 API
     client.delete(
-        f'/api/v2/footer-comments/{comment_id}',
+        f'/rest/api/content/{comment_id}',
         operation='delete comment'
     )
 

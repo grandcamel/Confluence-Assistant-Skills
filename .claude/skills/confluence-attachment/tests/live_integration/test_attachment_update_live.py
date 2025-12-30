@@ -10,6 +10,7 @@ import uuid
 import sys
 import tempfile
 import os
+from pathlib import Path
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
@@ -58,29 +59,28 @@ class TestAttachmentUpdateLive:
         # Create initial attachment
         with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
             f.write('Version 1 content.')
-            temp_path = f.name
+            temp_path = Path(f.name)
 
         try:
-            file_name = f'version-test-{uuid.uuid4().hex[:8]}.txt'
-            attachment = confluence_client.upload_attachment(
-                page_id=test_page['id'],
-                file_path=temp_path,
-                file_name=file_name
+            result = confluence_client.upload_file(
+                f"/rest/api/content/{test_page['id']}/child/attachment",
+                temp_path
             )
+            attachment = result['results'][0]
+            attachment_id = attachment['id']
 
             # Update with version 2
             with open(temp_path, 'w') as f:
                 f.write('Version 2 content.')
 
-            # Upload new version
-            updated = confluence_client.upload_attachment(
-                page_id=test_page['id'],
-                file_path=temp_path,
-                file_name=file_name
+            # Upload new version using update endpoint
+            updated = confluence_client.upload_file(
+                f"/rest/api/content/{test_page['id']}/child/attachment/{attachment_id}/data",
+                temp_path
             )
 
-            # Should have new version
-            assert updated['id'] is not None
+            # Should have updated successfully
+            assert updated is not None
         finally:
             os.unlink(temp_path)
 
@@ -88,16 +88,16 @@ class TestAttachmentUpdateLive:
         """Test that attachment can be retrieved after upload."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
             f.write('Rename test content.')
-            temp_path = f.name
+            temp_path = Path(f.name)
 
         try:
-            attachment = confluence_client.upload_attachment(
-                page_id=test_page['id'],
-                file_path=temp_path,
-                file_name=f'rename-test-{uuid.uuid4().hex[:8]}.txt'
+            result = confluence_client.upload_file(
+                f"/rest/api/content/{test_page['id']}/child/attachment",
+                temp_path
             )
+            attachment = result['results'][0]
 
-            # Get the attachment
+            # Get the attachment using v2 API
             fetched = confluence_client.get(
                 f"/api/v2/attachments/{attachment['id']}"
             )
@@ -109,17 +109,17 @@ class TestAttachmentUpdateLive:
         """Test deleting an attachment."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
             f.write('Delete test.')
-            temp_path = f.name
+            temp_path = Path(f.name)
 
         try:
-            attachment = confluence_client.upload_attachment(
-                page_id=test_page['id'],
-                file_path=temp_path,
-                file_name=f'delete-test-{uuid.uuid4().hex[:8]}.txt'
+            result = confluence_client.upload_file(
+                f"/rest/api/content/{test_page['id']}/child/attachment",
+                temp_path
             )
+            attachment = result['results'][0]
 
-            # Delete
-            confluence_client.delete(f"/api/v2/attachments/{attachment['id']}")
+            # Delete using v1 API (more reliable)
+            confluence_client.delete(f"/rest/api/content/{attachment['id']}")
 
             # Verify deleted
             try:

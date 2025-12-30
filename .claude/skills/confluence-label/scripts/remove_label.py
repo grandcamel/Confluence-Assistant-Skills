@@ -40,27 +40,20 @@ Examples:
     # Get client
     client = get_confluence_client(profile=args.profile)
 
-    # First, get all labels on the page to find the label ID
+    # First, verify the label exists on the page
     labels_response = client.get(
         f'/api/v2/pages/{page_id}/labels',
         operation='get labels'
     )
 
-    # Find the label by name
-    label_to_remove = None
-    for label in labels_response.get('results', []):
-        if label.get('name') == label_name:
-            label_to_remove = label
-            break
-
-    if not label_to_remove:
+    # Check if label exists
+    label_names = [l.get('name') for l in labels_response.get('results', [])]
+    if label_name not in label_names:
         raise NotFoundError(f"Label '{label_name}' not found on page {page_id}")
 
-    label_id = label_to_remove.get('id')
-
-    # Remove the label
+    # Remove the label using v1 API (v2 API delete doesn't work reliably)
     client.delete(
-        f'/api/v2/pages/{page_id}/labels/{label_id}',
+        f'/rest/api/content/{page_id}/label/{label_name}',
         operation=f'remove label {label_name}'
     )
 

@@ -53,25 +53,32 @@ class TestCommentEditLive:
 
     def test_update_comment(self, confluence_client, test_page):
         """Test updating a comment."""
-        # Create comment
+        # Create comment using v1 API
         comment = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/footer-comments",
+            '/rest/api/content',
             json_data={
+                'type': 'comment',
+                'container': {'id': test_page['id'], 'type': 'page'},
                 'body': {
-                    'representation': 'storage',
-                    'value': '<p>Original comment.</p>'
+                    'storage': {
+                        'representation': 'storage',
+                        'value': '<p>Original comment.</p>'
+                    }
                 }
             }
         )
 
         try:
-            # Update comment
+            # Update comment using v1 API
             updated = confluence_client.put(
-                f"/api/v2/footer-comments/{comment['id']}",
+                f"/rest/api/content/{comment['id']}",
                 json_data={
+                    'type': 'comment',
                     'body': {
-                        'representation': 'storage',
-                        'value': '<p>Updated comment.</p>'
+                        'storage': {
+                            'representation': 'storage',
+                            'value': '<p>Updated comment.</p>'
+                        }
                     },
                     'version': {'number': comment['version']['number'] + 1}
                 }
@@ -80,45 +87,53 @@ class TestCommentEditLive:
             assert updated['id'] == comment['id']
         finally:
             try:
-                confluence_client.delete(f"/api/v2/footer-comments/{comment['id']}")
+                confluence_client.delete(f"/rest/api/content/{comment['id']}")
             except Exception:
                 pass
 
     def test_get_comment_by_id(self, confluence_client, test_page):
         """Test getting a specific comment by ID."""
-        # Create comment
+        # Create comment using v1 API
         comment = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/footer-comments",
+            '/rest/api/content',
             json_data={
+                'type': 'comment',
+                'container': {'id': test_page['id'], 'type': 'page'},
                 'body': {
-                    'representation': 'storage',
-                    'value': '<p>Test comment.</p>'
+                    'storage': {
+                        'representation': 'storage',
+                        'value': '<p>Test comment.</p>'
+                    }
                 }
             }
         )
 
         try:
-            # Get by ID
+            # Get by ID using v1 API
             fetched = confluence_client.get(
-                f"/api/v2/footer-comments/{comment['id']}"
+                f"/rest/api/content/{comment['id']}"
             )
 
             assert fetched['id'] == comment['id']
         finally:
             try:
-                confluence_client.delete(f"/api/v2/footer-comments/{comment['id']}")
+                confluence_client.delete(f"/rest/api/content/{comment['id']}")
             except Exception:
                 pass
 
     def test_comment_version_increment(self, confluence_client, test_page):
         """Test that comment version increments on update."""
-        # Create comment
+        # Create comment using v1 API
         comment = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/footer-comments",
+            '/rest/api/content',
             json_data={
+                'type': 'comment',
+                'container': {'id': test_page['id'], 'type': 'page'},
                 'body': {
-                    'representation': 'storage',
-                    'value': '<p>Version test.</p>'
+                    'storage': {
+                        'representation': 'storage',
+                        'value': '<p>Version test.</p>'
+                    }
                 }
             }
         )
@@ -126,13 +141,16 @@ class TestCommentEditLive:
         initial_version = comment['version']['number']
 
         try:
-            # Update
+            # Update using v1 API
             updated = confluence_client.put(
-                f"/api/v2/footer-comments/{comment['id']}",
+                f"/rest/api/content/{comment['id']}",
                 json_data={
+                    'type': 'comment',
                     'body': {
-                        'representation': 'storage',
-                        'value': '<p>Version 2.</p>'
+                        'storage': {
+                            'representation': 'storage',
+                            'value': '<p>Version 2.</p>'
+                        }
                     },
                     'version': {'number': initial_version + 1}
                 }
@@ -141,6 +159,6 @@ class TestCommentEditLive:
             assert updated['version']['number'] == initial_version + 1
         finally:
             try:
-                confluence_client.delete(f"/api/v2/footer-comments/{comment['id']}")
+                confluence_client.delete(f"/rest/api/content/{comment['id']}")
             except Exception:
                 pass

@@ -65,11 +65,11 @@ Examples:
     current_space = spaces[0]
     space_id = current_space['id']
 
-    # Build update data
-    update_data = {}
-
-    if args.name:
-        update_data['name'] = args.name.strip()
+    # Build update data using v1 API format (v2 API doesn't support PUT)
+    update_data = {
+        'key': space_key,
+        'name': args.name.strip() if args.name else current_space.get('name')
+    }
 
     if args.description:
         update_data['description'] = {
@@ -80,11 +80,11 @@ Examples:
         }
 
     if homepage_id:
-        update_data['homepageId'] = homepage_id
+        update_data['homepage'] = {'id': homepage_id}
 
-    # Update the space
+    # Update the space using v1 API
     result = client.put(
-        f'/api/v2/spaces/{space_id}',
+        f'/rest/api/space/{space_key}',
         json_data=update_data,
         operation='update space'
     )

@@ -53,13 +53,17 @@ class TestCommentThreadsLive:
 
     def test_create_comment_with_reply(self, confluence_client, test_page):
         """Test creating a comment and adding a reply."""
-        # Create parent comment
+        # Create parent comment using v1 API
         parent = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/footer-comments",
+            '/rest/api/content',
             json_data={
+                'type': 'comment',
+                'container': {'id': test_page['id'], 'type': 'page'},
                 'body': {
-                    'representation': 'storage',
-                    'value': '<p>Parent comment.</p>'
+                    'storage': {
+                        'representation': 'storage',
+                        'value': '<p>Parent comment.</p>'
+                    }
                 }
             }
         )
@@ -67,7 +71,7 @@ class TestCommentThreadsLive:
         try:
             # Create reply using v1 API
             reply = confluence_client.post(
-                f"/rest/api/content/{test_page['id']}/child/comment",
+                '/rest/api/content',
                 json_data={
                     'type': 'comment',
                     'container': {'id': test_page['id'], 'type': 'page'},
@@ -83,21 +87,25 @@ class TestCommentThreadsLive:
 
             assert reply['id'] is not None
         finally:
-            # Cleanup
+            # Cleanup using v1 API
             try:
-                confluence_client.delete(f"/api/v2/footer-comments/{parent['id']}")
+                confluence_client.delete(f"/rest/api/content/{parent['id']}")
             except Exception:
                 pass
 
     def test_get_all_comments_in_thread(self, confluence_client, test_page):
         """Test getting all comments including replies."""
-        # Create a comment
+        # Create a comment using v1 API
         comment = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/footer-comments",
+            '/rest/api/content',
             json_data={
+                'type': 'comment',
+                'container': {'id': test_page['id'], 'type': 'page'},
                 'body': {
-                    'representation': 'storage',
-                    'value': '<p>Thread test comment.</p>'
+                    'storage': {
+                        'representation': 'storage',
+                        'value': '<p>Thread test comment.</p>'
+                    }
                 }
             }
         )
@@ -113,25 +121,29 @@ class TestCommentThreadsLive:
             assert comment['id'] in comment_ids
         finally:
             try:
-                confluence_client.delete(f"/api/v2/footer-comments/{comment['id']}")
+                confluence_client.delete(f"/rest/api/content/{comment['id']}")
             except Exception:
                 pass
 
     def test_delete_comment_with_replies(self, confluence_client, test_page):
         """Test deleting a comment that may have replies."""
-        # Create comment
+        # Create comment using v1 API
         comment = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/footer-comments",
+            '/rest/api/content',
             json_data={
+                'type': 'comment',
+                'container': {'id': test_page['id'], 'type': 'page'},
                 'body': {
-                    'representation': 'storage',
-                    'value': '<p>Will be deleted.</p>'
+                    'storage': {
+                        'representation': 'storage',
+                        'value': '<p>Will be deleted.</p>'
+                    }
                 }
             }
         )
 
-        # Delete it
-        confluence_client.delete(f"/api/v2/footer-comments/{comment['id']}")
+        # Delete it using v1 API
+        confluence_client.delete(f"/rest/api/content/{comment['id']}")
 
         # Verify deletion
         comments = confluence_client.get(

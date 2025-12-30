@@ -166,10 +166,11 @@ class TestUpdateSpaceLive:
         try:
             new_name = f"Updated Name {space_key}"
 
-            # Update using v2 API
+            # Update using v1 API (v2 API doesn't support PUT for spaces)
             updated = confluence_client.put(
-                f"/api/v2/spaces/{space['id']}",
+                f"/rest/api/space/{space_key}",
                 json_data={
+                    'key': space_key,
                     'name': new_name
                 }
             )

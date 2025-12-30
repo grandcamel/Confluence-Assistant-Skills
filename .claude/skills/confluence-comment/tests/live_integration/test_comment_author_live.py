@@ -57,12 +57,17 @@ class TestCommentAuthorLive:
 
     def test_comment_has_author(self, confluence_client, test_page, current_user):
         """Test that comments have author information."""
+        # Create comment using v1 API
         comment = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/footer-comments",
+            '/rest/api/content',
             json_data={
+                'type': 'comment',
+                'container': {'id': test_page['id'], 'type': 'page'},
                 'body': {
-                    'representation': 'storage',
-                    'value': '<p>Author test.</p>'
+                    'storage': {
+                        'representation': 'storage',
+                        'value': '<p>Author test.</p>'
+                    }
                 }
             }
         )
@@ -76,7 +81,7 @@ class TestCommentAuthorLive:
 
             assert 'history' in detailed or 'version' in detailed
         finally:
-            confluence_client.delete(f"/api/v2/footer-comments/{comment['id']}")
+            confluence_client.delete(f"/rest/api/content/{comment['id']}")
 
     def test_find_user_comments(self, confluence_client, test_space, current_user):
         """Test finding comments by current user."""

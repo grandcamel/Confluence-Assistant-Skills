@@ -10,6 +10,7 @@ Examples:
 
 import sys
 import argparse
+from pathlib import Path
 from confluence_assistant_skills_lib import (
     get_confluence_client, handle_errors, ValidationError, validate_page_id,
     validate_file_path, print_success, format_attachment, format_json,
@@ -48,8 +49,8 @@ Examples:
     if args.comment:
         additional_data['comment'] = args.comment
 
-    # Upload the file
-    endpoint = f"/api/v2/pages/{page_id}/attachments"
+    # Upload the file using v1 API (v2 API doesn't support POST for attachments)
+    endpoint = f"/rest/api/content/{page_id}/child/attachment"
     result = client.upload_file(
         endpoint,
         file_path,
@@ -58,7 +59,7 @@ Examples:
     )
 
     # Extract attachment from response
-    # v2 API returns {"results": [attachment]}
+    # v1 API returns {"results": [attachment]}
     attachments = result.get('results', [])
     if not attachments:
         raise ValidationError("No attachment returned from API")

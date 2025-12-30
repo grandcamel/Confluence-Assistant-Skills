@@ -59,26 +59,25 @@ Examples:
     # Get client
     client = get_confluence_client(profile=args.profile)
 
-    # Add each label
-    results = []
-    for label_name in validated_labels:
-        # Add label to page
-        label_data = {
-            'prefix': 'global',
-            'name': label_name
-        }
+    # Add labels using v1 API (v2 API doesn't support POST for labels)
+    # v1 API accepts an array of labels in a single request
+    label_data = [
+        {'prefix': 'global', 'name': label_name}
+        for label_name in validated_labels
+    ]
 
-        result = client.post(
-            f'/api/v2/pages/{page_id}/labels',
-            json_data=label_data,
-            operation=f'add label {label_name}'
-        )
-        results.append(result)
+    results = client.post(
+        f'/rest/api/content/{page_id}/label',
+        json_data=label_data,
+        operation=f'add labels'
+    )
 
-        if args.output == 'text':
-            print(format_label(result))
+    # v1 API returns the list of labels
+    if args.output == 'text':
+        for label in results.get('results', results if isinstance(results, list) else []):
+            print(format_label(label))
 
-    # Output
+    # Output summary
     if args.output == 'json':
         print(format_json(results))
     else:

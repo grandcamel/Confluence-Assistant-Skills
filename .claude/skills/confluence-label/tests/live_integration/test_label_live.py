@@ -59,9 +59,10 @@ class TestAddLabelLive:
 
     def test_add_label_to_page(self, confluence_client, test_page, test_label):
         """Test adding a label to a page."""
+        # Use v1 API for adding labels (v2 doesn't support POST)
         result = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/labels",
-            json_data={'name': test_label}
+            f"/rest/api/content/{test_page['id']}/label",
+            json_data=[{'prefix': 'global', 'name': test_label}]
         )
 
         assert result is not None
@@ -70,11 +71,12 @@ class TestAddLabelLive:
         """Test adding multiple labels."""
         labels = [f"label-{i}-{uuid.uuid4().hex[:4]}" for i in range(3)]
 
-        for label in labels:
-            confluence_client.post(
-                f"/api/v2/pages/{test_page['id']}/labels",
-                json_data={'name': label}
-            )
+        # Use v1 API - can add all labels in one request
+        label_data = [{'prefix': 'global', 'name': label} for label in labels]
+        confluence_client.post(
+            f"/rest/api/content/{test_page['id']}/label",
+            json_data=label_data
+        )
 
         # Verify all labels
         page_labels = confluence_client.get(
@@ -87,16 +89,16 @@ class TestAddLabelLive:
 
     def test_add_duplicate_label(self, confluence_client, test_page, test_label):
         """Test adding the same label twice."""
-        # Add first time
+        # Add first time using v1 API
         confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/labels",
-            json_data={'name': test_label}
+            f"/rest/api/content/{test_page['id']}/label",
+            json_data=[{'prefix': 'global', 'name': test_label}]
         )
 
         # Add second time - should not error
         result = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/labels",
-            json_data={'name': test_label}
+            f"/rest/api/content/{test_page['id']}/label",
+            json_data=[{'prefix': 'global', 'name': test_label}]
         )
         assert result is not None
 
@@ -106,10 +108,10 @@ class TestGetLabelsLive:
 
     def test_get_page_labels(self, confluence_client, test_page, test_label):
         """Test getting labels from a page."""
-        # Add a label first
+        # Add a label first using v1 API
         confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/labels",
-            json_data={'name': test_label}
+            f"/rest/api/content/{test_page['id']}/label",
+            json_data=[{'prefix': 'global', 'name': test_label}]
         )
 
         labels = confluence_client.get(
@@ -144,25 +146,20 @@ class TestRemoveLabelLive:
 
     def test_remove_label(self, confluence_client, test_page, test_label):
         """Test removing a label from a page."""
-        # Add label
+        # Add label using v1 API
         confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/labels",
-            json_data={'name': test_label}
+            f"/rest/api/content/{test_page['id']}/label",
+            json_data=[{'prefix': 'global', 'name': test_label}]
         )
 
-        # Get label ID
+        # Verify label was added
         labels = confluence_client.get(f"/api/v2/pages/{test_page['id']}/labels")
-        label_id = None
-        for l in labels['results']:
-            if l['name'] == test_label:
-                label_id = l['id']
-                break
+        label_names = [l['name'] for l in labels.get('results', [])]
+        assert test_label in label_names
 
-        assert label_id is not None
-
-        # Remove label
+        # Remove label using v1 API (v2 API delete can be problematic)
         confluence_client.delete(
-            f"/api/v2/pages/{test_page['id']}/labels/{label_id}"
+            f"/rest/api/content/{test_page['id']}/label/{test_label}"
         )
 
         # Verify removed
@@ -176,10 +173,10 @@ class TestSearchByLabelLive:
 
     def test_search_content_by_label(self, confluence_client, test_page, test_label):
         """Test searching for content by label."""
-        # Add label
+        # Add label using v1 API
         confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/labels",
-            json_data={'name': test_label}
+            f"/rest/api/content/{test_page['id']}/label",
+            json_data=[{'prefix': 'global', 'name': test_label}]
         )
 
         # Search using CQL

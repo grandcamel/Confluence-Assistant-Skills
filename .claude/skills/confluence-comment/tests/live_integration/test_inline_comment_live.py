@@ -68,12 +68,17 @@ class TestInlineCommentsLive:
         """Test adding an inline comment."""
         # Note: Inline comments require specific text selection context
         # This test creates a footer comment as inline requires browser context
+        # Use v1 API for creating comments
         comment = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/footer-comments",
+            '/rest/api/content',
             json_data={
+                'type': 'comment',
+                'container': {'id': test_page['id'], 'type': 'page'},
                 'body': {
-                    'representation': 'storage',
-                    'value': '<p>This simulates inline feedback.</p>'
+                    'storage': {
+                        'representation': 'storage',
+                        'value': '<p>This simulates inline feedback.</p>'
+                    }
                 }
             }
         )
@@ -82,11 +87,18 @@ class TestInlineCommentsLive:
 
     def test_resolve_comment(self, confluence_client, test_page):
         """Test resolving a comment (marking as resolved)."""
-        # Create comment
+        # Create comment using v1 API
         comment = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/footer-comments",
+            '/rest/api/content',
             json_data={
-                'body': {'representation': 'storage', 'value': '<p>To resolve.</p>'}
+                'type': 'comment',
+                'container': {'id': test_page['id'], 'type': 'page'},
+                'body': {
+                    'storage': {
+                        'representation': 'storage',
+                        'value': '<p>To resolve.</p>'
+                    }
+                }
             }
         )
 

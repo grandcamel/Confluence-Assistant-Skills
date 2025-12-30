@@ -48,11 +48,12 @@ class TestLabelCopyLive:
         )
 
         labels = [f'copy-{i}-{uuid.uuid4().hex[:4]}' for i in range(3)]
-        for label in labels:
-            confluence_client.post(
-                f"/api/v2/pages/{source['id']}/labels",
-                json_data={'name': label}
-            )
+        # Use v1 API - add all labels in one request
+        label_data = [{'prefix': 'global', 'name': label} for label in labels]
+        confluence_client.post(
+            f"/rest/api/content/{source['id']}/label",
+            json_data=label_data
+        )
 
         # Create target page
         target = confluence_client.post(
@@ -71,11 +72,12 @@ class TestLabelCopyLive:
                 f"/api/v2/pages/{source['id']}/labels"
             )
 
-            # Copy to target
-            for l in source_labels.get('results', []):
+            # Copy to target using v1 API
+            label_data = [{'prefix': 'global', 'name': l['name']} for l in source_labels.get('results', [])]
+            if label_data:
                 confluence_client.post(
-                    f"/api/v2/pages/{target['id']}/labels",
-                    json_data={'name': l['name']}
+                    f"/rest/api/content/{target['id']}/label",
+                    json_data=label_data
                 )
 
             # Verify

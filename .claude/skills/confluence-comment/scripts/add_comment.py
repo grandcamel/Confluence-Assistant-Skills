@@ -10,6 +10,7 @@ Examples:
 
 import sys
 import argparse
+from pathlib import Path
 from confluence_assistant_skills_lib import (
     get_confluence_client, handle_errors, ValidationError, validate_page_id,
     print_success, format_comment, format_json,
@@ -84,17 +85,24 @@ Examples:
     # Get client
     client = get_confluence_client(profile=args.profile)
 
-    # Prepare comment data
+    # Prepare comment data using v1 API (v2 API doesn't support POST for comments)
     comment_data = {
+        'type': 'comment',
+        'container': {
+            'id': page_id,
+            'type': 'page'
+        },
         'body': {
-            'representation': 'storage',
-            'value': f'<p>{body_content}</p>'  # Simple HTML wrapper
+            'storage': {
+                'value': f'<p>{body_content}</p>',
+                'representation': 'storage'
+            }
         }
     }
 
-    # Create the comment
+    # Create the comment using v1 API
     result = client.post(
-        f'/api/v2/pages/{page_id}/footer-comments',
+        '/rest/api/content',
         json_data=comment_data,
         operation='add comment'
     )

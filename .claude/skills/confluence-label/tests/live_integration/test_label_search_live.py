@@ -45,10 +45,10 @@ def labeled_page(confluence_client, test_space):
         }
     )
 
-    # Add the label
+    # Add the label using v1 API
     confluence_client.post(
-        f"/api/v2/pages/{page['id']}/labels",
-        json_data={'name': label}
+        f"/rest/api/content/{page['id']}/label",
+        json_data=[{'prefix': 'global', 'name': label}]
     )
 
     yield {'page': page, 'label': label}
@@ -86,11 +86,11 @@ class TestLabelSearchLive:
         """Test searching with multiple label conditions."""
         label = labeled_page['label']
 
-        # Add another label
+        # Add another label using v1 API
         second_label = f"second-{uuid.uuid4().hex[:8]}"
         confluence_client.post(
-            f"/api/v2/pages/{labeled_page['page']['id']}/labels",
-            json_data={'name': second_label}
+            f"/rest/api/content/{labeled_page['page']['id']}/label",
+            json_data=[{'prefix': 'global', 'name': second_label}]
         )
 
         # Search for pages with both labels

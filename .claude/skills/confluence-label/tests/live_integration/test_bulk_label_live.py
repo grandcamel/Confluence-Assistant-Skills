@@ -62,10 +62,11 @@ class TestBulkLabelLive:
         """Test adding the same label to multiple pages."""
         label = f"bulk-test-{uuid.uuid4().hex[:8]}"
 
+        # Use v1 API for adding labels
         for page in test_pages:
             confluence_client.post(
-                f"/api/v2/pages/{page['id']}/labels",
-                json_data={'name': label}
+                f"/rest/api/content/{page['id']}/label",
+                json_data=[{'prefix': 'global', 'name': label}]
             )
 
         # Verify all pages have the label
@@ -79,11 +80,12 @@ class TestBulkLabelLive:
         page = test_pages[0]
         labels = [f"multi-{i}-{uuid.uuid4().hex[:4]}" for i in range(5)]
 
-        for label in labels:
-            confluence_client.post(
-                f"/api/v2/pages/{page['id']}/labels",
-                json_data={'name': label}
-            )
+        # Use v1 API - can add all labels in one request
+        label_data = [{'prefix': 'global', 'name': label} for label in labels]
+        confluence_client.post(
+            f"/rest/api/content/{page['id']}/label",
+            json_data=label_data
+        )
 
         # Verify all labels exist
         page_labels = confluence_client.get(f"/api/v2/pages/{page['id']}/labels")
@@ -96,22 +98,18 @@ class TestBulkLabelLive:
         """Test removing labels from multiple pages."""
         label = f"remove-test-{uuid.uuid4().hex[:8]}"
 
-        # Add to all pages
+        # Add to all pages using v1 API
         for page in test_pages:
             confluence_client.post(
-                f"/api/v2/pages/{page['id']}/labels",
-                json_data={'name': label}
+                f"/rest/api/content/{page['id']}/label",
+                json_data=[{'prefix': 'global', 'name': label}]
             )
 
-        # Remove from all pages
+        # Remove from all pages using v1 API
         for page in test_pages:
-            labels = confluence_client.get(f"/api/v2/pages/{page['id']}/labels")
-            for l in labels.get('results', []):
-                if l['name'] == label:
-                    confluence_client.delete(
-                        f"/api/v2/pages/{page['id']}/labels/{l['id']}"
-                    )
-                    break
+            confluence_client.delete(
+                f"/rest/api/content/{page['id']}/label/{label}"
+            )
 
         # Verify removal
         for page in test_pages:

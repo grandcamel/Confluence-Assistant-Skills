@@ -10,6 +10,7 @@ import uuid
 import sys
 import tempfile
 import os
+from pathlib import Path
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
@@ -57,14 +58,14 @@ class TestAttachmentTypesLive:
         """Test uploading a text file."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
             f.write('Text file content.')
-            temp_path = f.name
+            temp_path = Path(f.name)
 
         try:
-            attachment = confluence_client.upload_attachment(
-                page_id=test_page['id'],
-                file_path=temp_path,
-                file_name=f'text-{uuid.uuid4().hex[:8]}.txt'
+            result = confluence_client.upload_file(
+                f"/rest/api/content/{test_page['id']}/child/attachment",
+                temp_path
             )
+            attachment = result['results'][0]
             assert attachment['id'] is not None
         finally:
             os.unlink(temp_path)
@@ -75,16 +76,15 @@ class TestAttachmentTypesLive:
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             json.dump({'key': 'value'}, f)
-            temp_path = f.name
+            temp_path = Path(f.name)
 
         try:
-            attachment = confluence_client.upload_attachment(
-                page_id=test_page['id'],
-                file_path=temp_path,
-                file_name=f'data-{uuid.uuid4().hex[:8]}.json'
+            result = confluence_client.upload_file(
+                f"/rest/api/content/{test_page['id']}/child/attachment",
+                temp_path
             )
+            attachment = result['results'][0]
             assert attachment['id'] is not None
-            assert 'json' in attachment.get('mediaType', '').lower() or attachment['id']
         finally:
             os.unlink(temp_path)
 
@@ -92,14 +92,14 @@ class TestAttachmentTypesLive:
         """Test uploading a CSV file."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
             f.write('col1,col2,col3\n1,2,3\n4,5,6')
-            temp_path = f.name
+            temp_path = Path(f.name)
 
         try:
-            attachment = confluence_client.upload_attachment(
-                page_id=test_page['id'],
-                file_path=temp_path,
-                file_name=f'data-{uuid.uuid4().hex[:8]}.csv'
+            result = confluence_client.upload_file(
+                f"/rest/api/content/{test_page['id']}/child/attachment",
+                temp_path
             )
+            attachment = result['results'][0]
             assert attachment['id'] is not None
         finally:
             os.unlink(temp_path)
@@ -108,14 +108,14 @@ class TestAttachmentTypesLive:
         """Test uploading a Markdown file."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
             f.write('# Heading\n\nSome **bold** text.')
-            temp_path = f.name
+            temp_path = Path(f.name)
 
         try:
-            attachment = confluence_client.upload_attachment(
-                page_id=test_page['id'],
-                file_path=temp_path,
-                file_name=f'doc-{uuid.uuid4().hex[:8]}.md'
+            result = confluence_client.upload_file(
+                f"/rest/api/content/{test_page['id']}/child/attachment",
+                temp_path
             )
+            attachment = result['results'][0]
             assert attachment['id'] is not None
         finally:
             os.unlink(temp_path)

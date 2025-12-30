@@ -66,57 +66,45 @@ class TestAttachmentVersionsLive:
 
     def test_upload_new_version(self, confluence_client, test_page, test_file):
         """Test uploading a new version of an attachment."""
-        filename = f"versioned-{uuid.uuid4().hex[:8]}.txt"
-
         # Upload v1
-        with open(test_file, 'rb') as f:
-            response = confluence_client.session.post(
-                f"{confluence_client.base_url}/wiki/rest/api/content/{test_page['id']}/child/attachment",
-                headers={'X-Atlassian-Token': 'nocheck'},
-                files={'file': (filename, f, 'text/plain')},
-                data={'comment': 'Version 1'}
-            )
+        result = confluence_client.upload_file(
+            f"/rest/api/content/{test_page['id']}/child/attachment",
+            test_file,
+            additional_data={'comment': 'Version 1'}
+        )
+        attachment = result['results'][0]
+        attachment_id = attachment['id']
 
-        result = response.json()
-        attachment_id = result['results'][0]['id']
-
-        # Upload v2 - same filename
+        # Upload v2 - use update endpoint for existing attachment
         with open(test_file, 'w') as f:
             f.write('Version 2 content - updated.')
 
-        with open(test_file, 'rb') as f:
-            response = confluence_client.session.post(
-                f"{confluence_client.base_url}/wiki/rest/api/content/{test_page['id']}/child/attachment",
-                headers={'X-Atlassian-Token': 'nocheck'},
-                files={'file': (filename, f, 'text/plain')},
-                data={'comment': 'Version 2'}
-            )
+        updated = confluence_client.upload_file(
+            f"/rest/api/content/{test_page['id']}/child/attachment/{attachment_id}/data",
+            test_file,
+            additional_data={'comment': 'Version 2'}
+        )
 
         # Should update existing attachment
-        assert response.status_code in [200, 201]
+        assert updated is not None
 
-        # Clean up
-        confluence_client.delete(f"/api/v2/attachments/{attachment_id}")
+        # Clean up using v1 API
+        confluence_client.delete(f"/rest/api/content/{attachment_id}")
 
     def test_get_attachment_metadata(self, confluence_client, test_page, test_file):
         """Test getting attachment metadata."""
-        filename = f"meta-{uuid.uuid4().hex[:8]}.txt"
-
-        with open(test_file, 'rb') as f:
-            response = confluence_client.session.post(
-                f"{confluence_client.base_url}/wiki/rest/api/content/{test_page['id']}/child/attachment",
-                headers={'X-Atlassian-Token': 'nocheck'},
-                files={'file': (filename, f, 'text/plain')}
-            )
-
-        result = response.json()
-        attachment_id = result['results'][0]['id']
+        result = confluence_client.upload_file(
+            f"/rest/api/content/{test_page['id']}/child/attachment",
+            test_file
+        )
+        attachment = result['results'][0]
+        attachment_id = attachment['id']
 
         # Get metadata using v2 API
-        attachment = confluence_client.get(f"/api/v2/attachments/{attachment_id}")
+        fetched = confluence_client.get(f"/api/v2/attachments/{attachment_id}")
 
-        assert 'title' in attachment
-        assert 'mediaType' in attachment
+        assert 'title' in fetched
+        assert 'mediaType' in fetched
 
-        # Clean up
-        confluence_client.delete(f"/api/v2/attachments/{attachment_id}")
+        # Clean up using v1 API
+        confluence_client.delete(f"/rest/api/content/{attachment_id}")

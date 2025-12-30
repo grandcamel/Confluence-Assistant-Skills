@@ -55,9 +55,10 @@ class TestPageLabelsLive:
         """Test adding a label to a page."""
         label = f"test-{uuid.uuid4().hex[:8]}"
 
+        # Use v1 API for adding labels
         confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/labels",
-            json_data={'name': label}
+            f"/rest/api/content/{test_page['id']}/label",
+            json_data=[{'prefix': 'global', 'name': label}]
         )
 
         labels = confluence_client.get(f"/api/v2/pages/{test_page['id']}/labels")
@@ -68,25 +69,21 @@ class TestPageLabelsLive:
         """Test removing a label from a page."""
         label = f"remove-{uuid.uuid4().hex[:8]}"
 
-        # Add
+        # Add using v1 API
         confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/labels",
-            json_data={'name': label}
+            f"/rest/api/content/{test_page['id']}/label",
+            json_data=[{'prefix': 'global', 'name': label}]
         )
 
-        # Get label ID
+        # Verify label was added
         labels = confluence_client.get(f"/api/v2/pages/{test_page['id']}/labels")
-        label_id = None
-        for l in labels.get('results', []):
-            if l['name'] == label:
-                label_id = l['id']
-                break
+        label_names = [l['name'] for l in labels.get('results', [])]
+        assert label in label_names
 
-        # Remove
-        if label_id:
-            confluence_client.delete(
-                f"/api/v2/pages/{test_page['id']}/labels/{label_id}"
-            )
+        # Remove using v1 API
+        confluence_client.delete(
+            f"/rest/api/content/{test_page['id']}/label/{label}"
+        )
 
         # Verify
         labels = confluence_client.get(f"/api/v2/pages/{test_page['id']}/labels")
@@ -95,13 +92,14 @@ class TestPageLabelsLive:
 
     def test_list_page_labels(self, confluence_client, test_page):
         """Test listing all labels on a page."""
-        labels = ['label-a', 'label-b', 'label-c']
+        labels = [f"label-{c}-{uuid.uuid4().hex[:4]}" for c in ['a', 'b', 'c']]
 
-        for label in labels:
-            confluence_client.post(
-                f"/api/v2/pages/{test_page['id']}/labels",
-                json_data={'name': f"{label}-{uuid.uuid4().hex[:4]}"}
-            )
+        # Add all labels at once using v1 API
+        label_data = [{'prefix': 'global', 'name': label} for label in labels]
+        confluence_client.post(
+            f"/rest/api/content/{test_page['id']}/label",
+            json_data=label_data
+        )
 
         page_labels = confluence_client.get(
             f"/api/v2/pages/{test_page['id']}/labels"

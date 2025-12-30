@@ -69,30 +69,21 @@ class TestUploadAttachmentLive:
 
     def test_upload_text_file(self, confluence_client, test_page, test_file):
         """Test uploading a text file attachment."""
-        # Use v1 API for attachment upload
-        with open(test_file, 'rb') as f:
-            response = confluence_client.session.post(
-                f"{confluence_client.base_url}/wiki/rest/api/content/{test_page['id']}/child/attachment",
-                headers={'X-Atlassian-Token': 'nocheck'},
-                files={'file': (test_file.name, f, 'text/plain')}
-            )
-
-        assert response.status_code in [200, 201]
-        result = response.json()
+        result = confluence_client.upload_file(
+            f"/rest/api/content/{test_page['id']}/child/attachment",
+            test_file
+        )
         assert 'results' in result
         assert len(result['results']) >= 1
 
     def test_upload_with_comment(self, confluence_client, test_page, test_file):
         """Test uploading with a version comment."""
-        with open(test_file, 'rb') as f:
-            response = confluence_client.session.post(
-                f"{confluence_client.base_url}/wiki/rest/api/content/{test_page['id']}/child/attachment",
-                headers={'X-Atlassian-Token': 'nocheck'},
-                files={'file': (test_file.name, f, 'text/plain')},
-                data={'comment': 'Test upload comment'}
-            )
-
-        assert response.status_code in [200, 201]
+        result = confluence_client.upload_file(
+            f"/rest/api/content/{test_page['id']}/child/attachment",
+            test_file,
+            additional_data={'comment': 'Test upload comment'}
+        )
+        assert 'results' in result
 
 @pytest.mark.integration
 class TestListAttachmentsLive:
@@ -100,13 +91,11 @@ class TestListAttachmentsLive:
 
     def test_list_page_attachments(self, confluence_client, test_page, test_file):
         """Test listing attachments on a page."""
-        # Upload first
-        with open(test_file, 'rb') as f:
-            confluence_client.session.post(
-                f"{confluence_client.base_url}/wiki/rest/api/content/{test_page['id']}/child/attachment",
-                headers={'X-Atlassian-Token': 'nocheck'},
-                files={'file': (test_file.name, f, 'text/plain')}
-            )
+        # Upload first using v1 API
+        confluence_client.upload_file(
+            f"/rest/api/content/{test_page['id']}/child/attachment",
+            test_file
+        )
 
         # List attachments
         attachments = confluence_client.get(
@@ -143,19 +132,16 @@ class TestDeleteAttachmentLive:
 
     def test_delete_attachment(self, confluence_client, test_page, test_file):
         """Test deleting an attachment."""
-        # Upload
-        with open(test_file, 'rb') as f:
-            response = confluence_client.session.post(
-                f"{confluence_client.base_url}/wiki/rest/api/content/{test_page['id']}/child/attachment",
-                headers={'X-Atlassian-Token': 'nocheck'},
-                files={'file': (f'delete-me-{uuid.uuid4().hex[:8]}.txt', f, 'text/plain')}
-            )
+        # Upload using v1 API
+        result = confluence_client.upload_file(
+            f"/rest/api/content/{test_page['id']}/child/attachment",
+            test_file
+        )
 
-        result = response.json()
         attachment_id = result['results'][0]['id']
 
-        # Delete using v2 API
-        confluence_client.delete(f"/api/v2/attachments/{attachment_id}")
+        # Delete using v1 API (more reliable)
+        confluence_client.delete(f"/rest/api/content/{attachment_id}")
 
         # Verify deleted
         attachments = confluence_client.get(

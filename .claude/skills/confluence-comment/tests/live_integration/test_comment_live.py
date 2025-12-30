@@ -55,12 +55,17 @@ class TestAddCommentLive:
 
     def test_add_footer_comment(self, confluence_client, test_page):
         """Test adding a footer comment to a page."""
+        # Use v1 API (v2 doesn't support POST for comments)
         comment = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/footer-comments",
+            '/rest/api/content',
             json_data={
+                'type': 'comment',
+                'container': {'id': test_page['id'], 'type': 'page'},
                 'body': {
-                    'representation': 'storage',
-                    'value': '<p>Test comment from live test.</p>'
+                    'storage': {
+                        'representation': 'storage',
+                        'value': '<p>Test comment from live test.</p>'
+                    }
                 }
             }
         )
@@ -70,14 +75,19 @@ class TestAddCommentLive:
 
     def test_add_multiple_comments(self, confluence_client, test_page):
         """Test adding multiple comments."""
+        # Use v1 API (v2 doesn't support POST for comments)
         comments = []
         for i in range(3):
             comment = confluence_client.post(
-                f"/api/v2/pages/{test_page['id']}/footer-comments",
+                '/rest/api/content',
                 json_data={
+                    'type': 'comment',
+                    'container': {'id': test_page['id'], 'type': 'page'},
                     'body': {
-                        'representation': 'storage',
-                        'value': f'<p>Comment {i + 1}</p>'
+                        'storage': {
+                            'representation': 'storage',
+                            'value': f'<p>Comment {i + 1}</p>'
+                        }
                     }
                 }
             )
@@ -92,11 +102,13 @@ class TestGetCommentsLive:
 
     def test_get_page_comments(self, confluence_client, test_page):
         """Test getting comments from a page."""
-        # Add a comment first
+        # Add a comment first using v1 API
         confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/footer-comments",
+            '/rest/api/content',
             json_data={
-                'body': {'representation': 'storage', 'value': '<p>Test</p>'}
+                'type': 'comment',
+                'container': {'id': test_page['id'], 'type': 'page'},
+                'body': {'storage': {'representation': 'storage', 'value': '<p>Test</p>'}}
             }
         )
 
@@ -136,20 +148,23 @@ class TestUpdateCommentLive:
 
     def test_update_comment_body(self, confluence_client, test_page):
         """Test updating a comment's body."""
-        # Create comment
+        # Create comment using v1 API
         comment = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/footer-comments",
+            '/rest/api/content',
             json_data={
-                'body': {'representation': 'storage', 'value': '<p>Original</p>'}
+                'type': 'comment',
+                'container': {'id': test_page['id'], 'type': 'page'},
+                'body': {'storage': {'representation': 'storage', 'value': '<p>Original</p>'}}
             }
         )
 
-        # Update it
+        # Update it using v1 API
         updated = confluence_client.put(
-            f"/api/v2/footer-comments/{comment['id']}",
+            f"/rest/api/content/{comment['id']}",
             json_data={
+                'type': 'comment',
                 'version': {'number': comment['version']['number'] + 1},
-                'body': {'representation': 'storage', 'value': '<p>Updated</p>'}
+                'body': {'storage': {'representation': 'storage', 'value': '<p>Updated</p>'}}
             }
         )
 
@@ -161,18 +176,20 @@ class TestDeleteCommentLive:
 
     def test_delete_comment(self, confluence_client, test_page):
         """Test deleting a comment."""
-        # Create comment
+        # Create comment using v1 API
         comment = confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/footer-comments",
+            '/rest/api/content',
             json_data={
-                'body': {'representation': 'storage', 'value': '<p>Delete me</p>'}
+                'type': 'comment',
+                'container': {'id': test_page['id'], 'type': 'page'},
+                'body': {'storage': {'representation': 'storage', 'value': '<p>Delete me</p>'}}
             }
         )
 
         comment_id = comment['id']
 
-        # Delete it
-        confluence_client.delete(f"/api/v2/footer-comments/{comment_id}")
+        # Delete it using v1 API
+        confluence_client.delete(f"/rest/api/content/{comment_id}")
 
         # Verify deleted
         comments = confluence_client.get(
