@@ -1,0 +1,362 @@
+metadata:
+  name: confluence-assistant-skills-e2e
+  description: E2E tests for Confluence Assistant Skills plugin
+  version: 1.0.0
+  generated_from: Confluence-Assistant-Skills
+
+settings:
+  default_timeout: 120
+  default_model: claude-sonnet-4-20250514
+  retry_on_timeout: 1
+
+suites:
+  plugin_installation:
+    description: Plugin installation and verification
+    tests:
+      - id: install_plugin
+        name: Install plugin from local source
+        prompt: /plugin .
+        expect:
+          success: true
+          no_errors: true
+
+      - id: verify_all_skills
+        name: Verify all skills are loaded
+        prompt: List all skills available from the confluence-assistant-skills plugin
+        expect:
+          success: true
+          output_contains_any:
+            - confluence-assistant
+            - confluence-page
+            - confluence-search
+          no_errors: true
+
+      - id: plugin_description
+        name: Verify plugin description is accurate
+        prompt: What does the confluence-assistant-skills plugin do?
+        expect:
+          success: true
+          output_contains_any:
+            - confluence
+            - page
+            - space
+          no_errors: true
+
+  confluence_assistant:
+    description: Central hub skill tests
+    tests:
+      - id: discover_assistant
+        name: Verify confluence-assistant skill is discoverable
+        prompt: What Confluence skills are available?
+        expect:
+          output_contains_any:
+            - confluence
+            - page
+            - search
+            - space
+          no_errors: true
+
+      - id: routing_test
+        name: Test routing to specialized skills
+        prompt: How do I create a Confluence page?
+        expect:
+          output_contains_any:
+            - create_page
+            - confluence-page
+            - page
+          no_errors: true
+
+  confluence_page:
+    description: Page and blog post management tests
+    tests:
+      - id: discover_page_skill
+        name: Verify confluence-page skill is discoverable
+        prompt: What can I do with Confluence pages?
+        expect:
+          output_contains_any:
+            - create
+            - update
+            - delete
+            - page
+          no_errors: true
+
+      - id: page_operations
+        name: Test page operations discovery
+        prompt: How do I copy a Confluence page to another space?
+        expect:
+          output_contains_any:
+            - copy_page
+            - copy
+            - space
+          no_errors: true
+
+      - id: blogpost_operations
+        name: Test blog post operations
+        prompt: How do I create a blog post in Confluence?
+        expect:
+          output_contains_any:
+            - blog
+            - create_blogpost
+            - post
+          no_errors: true
+
+  confluence_space:
+    description: Space management tests
+    tests:
+      - id: discover_space_skill
+        name: Verify confluence-space skill is discoverable
+        prompt: How do I manage Confluence spaces?
+        expect:
+          output_contains_any:
+            - space
+            - create
+            - list
+          no_errors: true
+
+      - id: list_spaces
+        name: Test listing spaces
+        prompt: How do I list all Confluence spaces?
+        expect:
+          output_contains_any:
+            - list
+            - space
+          no_errors: true
+
+  confluence_search:
+    description: CQL search and export tests
+    tests:
+      - id: discover_search_skill
+        name: Verify confluence-search skill is discoverable
+        prompt: How do I search in Confluence?
+        expect:
+          output_contains_any:
+            - search
+            - CQL
+            - query
+            - find
+          no_errors: true
+
+      - id: cql_syntax
+        name: Test CQL syntax help
+        prompt: How do I write a CQL query for Confluence?
+        expect:
+          output_contains_any:
+            - CQL
+            - space
+            - label
+            - query
+          no_errors: true
+
+      - id: export_results
+        name: Test search export
+        prompt: How do I export Confluence search results to CSV?
+        expect:
+          output_contains_any:
+            - export
+            - csv
+            - results
+          no_errors: true
+
+  confluence_comment:
+    description: Comments management tests
+    tests:
+      - id: discover_comment_skill
+        name: Verify confluence-comment skill is discoverable
+        prompt: How do I manage comments on Confluence pages?
+        expect:
+          output_contains_any:
+            - comment
+            - add
+            - reply
+          no_errors: true
+
+      - id: inline_comments
+        name: Test inline comment operations
+        prompt: How do I add an inline comment to a specific section of a page?
+        expect:
+          output_contains_any:
+            - inline
+            - comment
+          no_errors: true
+
+  confluence_attachment:
+    description: File attachment tests
+    tests:
+      - id: discover_attachment_skill
+        name: Verify confluence-attachment skill is discoverable
+        prompt: How do I upload files to Confluence?
+        expect:
+          output_contains_any:
+            - upload
+            - attach
+            - file
+          no_errors: true
+
+      - id: download_attachments
+        name: Test download operations
+        prompt: How do I download attachments from a Confluence page?
+        expect:
+          output_contains_any:
+            - download
+            - attachment
+          no_errors: true
+
+  confluence_label:
+    description: Content labeling tests
+    tests:
+      - id: discover_label_skill
+        name: Verify confluence-label skill is discoverable
+        prompt: How do I add labels to Confluence pages?
+        expect:
+          output_contains_any:
+            - label
+            - add
+            - tag
+          no_errors: true
+
+      - id: search_by_label
+        name: Test search by label
+        prompt: How do I find all pages with a specific label?
+        expect:
+          output_contains_any:
+            - label
+            - search
+            - find
+          no_errors: true
+
+  confluence_template:
+    description: Template operations tests
+    tests:
+      - id: discover_template_skill
+        name: Verify confluence-template skill is discoverable
+        prompt: How do I create a page from a template in Confluence?
+        expect:
+          output_contains_any:
+            - template
+            - blueprint
+            - create
+          no_errors: true
+
+  confluence_property:
+    description: Content properties tests
+    tests:
+      - id: discover_property_skill
+        name: Verify confluence-property skill is discoverable
+        prompt: How do I manage custom metadata on Confluence pages?
+        expect:
+          output_contains_any:
+            - property
+            - metadata
+            - custom
+          no_errors: true
+
+  confluence_permission:
+    description: Access control tests
+    tests:
+      - id: discover_permission_skill
+        name: Verify confluence-permission skill is discoverable
+        prompt: How do I manage page permissions in Confluence?
+        expect:
+          output_contains_any:
+            - permission
+            - access
+            - restrict
+          no_errors: true
+
+      - id: space_permissions
+        name: Test space permission operations
+        prompt: How do I set space-level permissions?
+        expect:
+          output_contains_any:
+            - space
+            - permission
+          no_errors: true
+
+  confluence_analytics:
+    description: Content analytics tests
+    tests:
+      - id: discover_analytics_skill
+        name: Verify confluence-analytics skill is discoverable
+        prompt: How do I view page analytics in Confluence?
+        expect:
+          output_contains_any:
+            - analytics
+            - views
+            - statistics
+          no_errors: true
+
+  confluence_watch:
+    description: Watch and notification tests
+    tests:
+      - id: discover_watch_skill
+        name: Verify confluence-watch skill is discoverable
+        prompt: How do I watch a Confluence page for changes?
+        expect:
+          output_contains_any:
+            - watch
+            - notify
+            - follow
+          no_errors: true
+
+  confluence_hierarchy:
+    description: Page hierarchy and tree tests
+    tests:
+      - id: discover_hierarchy_skill
+        name: Verify confluence-hierarchy skill is discoverable
+        prompt: How do I view the page tree in Confluence?
+        expect:
+          output_contains_any:
+            - tree
+            - child
+            - parent
+            - hierarchy
+          no_errors: true
+
+      - id: get_children
+        name: Test getting child pages
+        prompt: How do I get all child pages of a Confluence page?
+        expect:
+          output_contains_any:
+            - child
+            - children
+            - descendant
+          no_errors: true
+
+  confluence_jira:
+    description: JIRA integration tests
+    tests:
+      - id: discover_jira_skill
+        name: Verify confluence-jira skill is discoverable
+        prompt: How do I embed JIRA issues in Confluence?
+        expect:
+          output_contains_any:
+            - jira
+            - issue
+            - embed
+          no_errors: true
+
+  error_handling:
+    description: Error handling and edge cases
+    tests:
+      - id: invalid_page_id
+        name: Handle invalid page ID gracefully
+        prompt: Get the Confluence page with ID invalid-not-a-number
+        expect:
+          no_crashes: true
+
+      - id: missing_credentials
+        name: Helpful message for missing credentials
+        prompt: What happens if Confluence credentials are not configured?
+        expect:
+          output_contains_any:
+            - api_token
+            - CONFLUENCE_API_TOKEN
+            - credentials
+            - authentication
+          no_crashes: true
+
+      - id: empty_input
+        name: Handle empty input gracefully
+        prompt: Use the confluence plugin with no specific request
+        expect:
+          no_crashes: true
