@@ -49,6 +49,7 @@ coverage.xml
 *.cover
 *.coverage
 .hypothesis/
+tests/e2e/responses/
 
 # IDE and editors
 .idea/

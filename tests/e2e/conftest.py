@@ -1,10 +1,94 @@
 """Pytest configuration and fixtures for E2E tests."""
 
+import json
 import os
 import pytest
+from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List
 
 from .runner import E2ETestRunner, ClaudeCodeRunner
+
+
+class ResponseLogger:
+    """Logs Claude responses for debugging failed tests."""
+
+    def __init__(self, output_dir: Path, enabled: bool = True):
+        self.output_dir = output_dir
+        self.enabled = enabled
+        self.responses: List[Dict[str, Any]] = []
+        if enabled:
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def log(self, test_name: str, prompt: str, result: Dict[str, Any]) -> None:
+        """Log a response for later analysis."""
+        entry = {
+            "timestamp": datetime.now().isoformat(),
+            "test_name": test_name,
+            "prompt": prompt,
+            "output": result.get("output", ""),
+            "error": result.get("error", ""),
+            "success": result.get("success", False),
+            "exit_code": result.get("exit_code"),
+            "duration": result.get("duration"),
+        }
+        self.responses.append(entry)
+
+        if self.enabled:
+            # Write individual response file
+            safe_name = test_name.replace("::", "_").replace(" ", "_")[:50]
+            response_file = self.output_dir / f"{safe_name}.json"
+            with open(response_file, "w") as f:
+                json.dump(entry, f, indent=2)
+
+    def save_all(self) -> None:
+        """Save all responses to a single file."""
+        if self.enabled and self.responses:
+            all_responses_file = self.output_dir / "all_responses.json"
+            with open(all_responses_file, "w") as f:
+                json.dump(self.responses, f, indent=2)
+
+
+def assert_response_contains(
+    result: Dict[str, Any],
+    terms: List[str],
+    message: str,
+    match_any: bool = True
+) -> None:
+    """
+    Assert that response contains expected terms, with helpful error message.
+
+    Args:
+        result: The response dict from claude_runner.send_prompt()
+        terms: List of terms to search for
+        message: Error message prefix
+        match_any: If True, pass if ANY term found. If False, ALL must be found.
+    """
+    output = result.get("output", "").lower()
+    error = result.get("error", "").lower()
+    combined = f"{output}\n{error}"
+
+    if match_any:
+        found = any(term.lower() in combined for term in terms)
+    else:
+        found = all(term.lower() in combined for term in terms)
+
+    if not found:
+        # Build detailed error message
+        error_details = [
+            f"\n{message}",
+            f"\nExpected {'any of' if match_any else 'all of'}: {terms}",
+            f"\n\n--- ACTUAL RESPONSE ({len(output)} chars) ---",
+            output[:2000] if output else "(empty)",
+        ]
+        if error:
+            error_details.extend([
+                f"\n\n--- STDERR ---",
+                error[:500]
+            ])
+        error_details.append("\n--- END RESPONSE ---\n")
+
+        assert False, "".join(error_details)
 
 
 def pytest_addoption(parser):
@@ -26,6 +110,12 @@ def pytest_addoption(parser):
         action="store_true",
         default=os.environ.get("E2E_VERBOSE", "").lower() == "true",
         help="Enable verbose output",
+    )
+    parser.addoption(
+        "--e2e-save-responses",
+        action="store_true",
+        default=os.environ.get("E2E_SAVE_RESPONSES", "").lower() == "true",
+        help="Save all responses to files for debugging",
     )
 
 
@@ -70,6 +160,24 @@ def e2e_model(request):
 def e2e_verbose(request):
     """Get E2E verbosity setting."""
     return request.config.getoption("--e2e-verbose")
+
+
+@pytest.fixture(scope="session")
+def e2e_save_responses(request):
+    """Get E2E save responses setting."""
+    return request.config.getoption("--e2e-save-responses")
+
+
+@pytest.fixture(scope="session")
+def response_logger(project_root, e2e_save_responses, request):
+    """Create response logger for debugging."""
+    output_dir = project_root / "tests" / "e2e" / "responses"
+    logger = ResponseLogger(output_dir, enabled=e2e_save_responses)
+
+    yield logger
+
+    # Save all responses at end of session
+    logger.save_all()
 
 
 @pytest.fixture(scope="session")

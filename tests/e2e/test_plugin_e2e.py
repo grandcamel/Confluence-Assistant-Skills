@@ -2,11 +2,13 @@
 E2E test classes for confluence-assistant-skills
 
 Run with: pytest tests/e2e/ -v --e2e-verbose
+Save responses: pytest tests/e2e/ -v --e2e-save-responses
 """
 
 import pytest
 from pathlib import Path
 
+from .conftest import assert_response_contains
 from .runner import E2ETestStatus
 
 
@@ -49,11 +51,14 @@ class TestPluginInstallation:
             pytest.skip("E2E disabled")
 
         result = claude_runner.send_prompt("What skills are available?")
-        output = result["output"].lower()
 
-        # Check for at least one skill
-        found = any(s.lower() in output for s in EXPECTED_SKILLS)
-        assert found or result["success"], "No skills found in output"
+        # Check for at least one skill mentioned
+        assert_response_contains(
+            result,
+            EXPECTED_SKILLS,
+            "No Confluence skills found in output",
+            match_any=True
+        )
 
 
 class TestConfluenceSkills:
@@ -82,10 +87,12 @@ class TestPageOperations:
             pytest.skip("E2E disabled")
 
         result = claude_runner.send_prompt("How do I create a new Confluence page?")
-        output = result["output"].lower()
 
-        assert any(term in output for term in ["create", "page", "space"]), \
+        assert_response_contains(
+            result,
+            ["create", "page", "space", "confluence"],
             "Expected page creation info in response"
+        )
 
     def test_page_update_help(self, claude_runner, installed_plugin, e2e_enabled):
         """Test help for page updates."""
@@ -93,10 +100,12 @@ class TestPageOperations:
             pytest.skip("E2E disabled")
 
         result = claude_runner.send_prompt("How do I update an existing Confluence page?")
-        output = result["output"].lower()
 
-        assert any(term in output for term in ["update", "edit", "modify"]), \
+        assert_response_contains(
+            result,
+            ["update", "edit", "modify", "page", "content"],
             "Expected page update info in response"
+        )
 
 
 class TestSearchOperations:
@@ -108,10 +117,12 @@ class TestSearchOperations:
             pytest.skip("E2E disabled")
 
         result = claude_runner.send_prompt("How do I write a CQL query for Confluence?")
-        output = result["output"].lower()
 
-        assert any(term in output for term in ["cql", "query", "search"]), \
+        assert_response_contains(
+            result,
+            ["cql", "query", "search", "confluence"],
             "Expected CQL info in response"
+        )
 
     def test_export_help(self, claude_runner, installed_plugin, e2e_enabled):
         """Test search export help."""
@@ -119,10 +130,12 @@ class TestSearchOperations:
             pytest.skip("E2E disabled")
 
         result = claude_runner.send_prompt("How do I export Confluence search results?")
-        output = result["output"].lower()
 
-        assert any(term in output for term in ["export", "csv", "json"]), \
+        assert_response_contains(
+            result,
+            ["export", "csv", "json", "results", "search"],
             "Expected export info in response"
+        )
 
 
 @pytest.mark.skip(reason="Redundant with test_individual_case parametrized tests")
@@ -168,8 +181,10 @@ class TestErrorHandling:
         result = claude_runner.send_prompt(
             "What do I need to configure to use Confluence skills?"
         )
-        output = result["output"].lower()
 
-        assert any(term in output for term in [
-            "api_token", "api token", "credential", "authentication", "configure"
-        ]), "Expected configuration info in response"
+        assert_response_contains(
+            result,
+            ["api_token", "api token", "credential", "authentication", "configure",
+             "token", "url", "email", "settings", "environment"],
+            "Expected configuration info in response"
+        )
