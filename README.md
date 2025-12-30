@@ -561,3 +561,19 @@ Made with ❤️ for the Confluence community
 [![GitHub stars](https://img.shields.io/github/stars/grandcamel/Confluence-Assistant-Skills?style=social)](https://github.com/grandcamel/Confluence-Assistant-Skills)
 
 </div>
+
+---
+
+## E2E Testing
+
+### Run E2E Tests
+
+E2E tests validate the plugin with the Claude Code CLI:
+
+```bash
+# Requires ANTHROPIC_API_KEY
+./scripts/run-e2e-tests.sh           # Docker
+./scripts/run-e2e-tests.sh --local   # Local
+```
+
+See [tests/e2e/README.md](tests/e2e/README.md) for details.

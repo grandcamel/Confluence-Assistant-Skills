@@ -519,3 +519,13 @@ def test_space(confluence_client):
 - Properties: `/rest/api/content/{id}/property/{key}`
 
 Documentation: https://developer.atlassian.com/cloud/confluence/rest/v2/intro/
+
+
+### Run E2E Tests
+
+```bash
+# Requires ANTHROPIC_API_KEY
+./scripts/run-e2e-tests.sh           # Docker
+./scripts/run-e2e-tests.sh --local   # Local
+./scripts/run-e2e-tests.sh --verbose # Verbose
+```
