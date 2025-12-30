@@ -1,0 +1,88 @@
+name: E2E Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: 'Claude model to use'
+        required: false
+        default: 'claude-sonnet-4-20250514'
+        type: choice
+        options:
+          - claude-haiku-3-5-20250110
+          - claude-sonnet-4-20250514
+          - claude-opus-4-20250514
+      verbose:
+        description: 'Verbose output'
+        required: false
+        default: false
+        type: boolean
+  # Can also run on schedule for nightly testing
+  # schedule:
+  #   - cron: '0 6 * * *'  # 6 AM UTC daily
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-e2e.txt
+          pip install confluence-assistant-skills-lib
+
+      - name: Run E2E tests
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          E2E_TEST_MODEL: ${{ inputs.model || 'claude-sonnet-4-20250514' }}
+          E2E_TEST_TIMEOUT: '180'
+          E2E_VERBOSE: ${{ inputs.verbose && 'true' || 'false' }}
+          CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+          CLAUDE_CODE_SKIP_OOBE: '1'
+        run: |
+          mkdir -p test-results/e2e
+          python -m pytest tests/e2e/ -v \
+            --tb=short \
+            --junitxml=test-results/e2e/junit.xml \
+            ${{ inputs.verbose && '--e2e-verbose' || '' }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: test-results/e2e/
+          retention-days: 30
+
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "## E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Model**: ${{ inputs.model || 'claude-sonnet-4-20250514' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Verbose**: ${{ inputs.verbose && 'Yes' || 'No' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f test-results/e2e/junit.xml ]; then
+            echo "Test results uploaded as artifact." >> $GITHUB_STEP_SUMMARY
+          fi
