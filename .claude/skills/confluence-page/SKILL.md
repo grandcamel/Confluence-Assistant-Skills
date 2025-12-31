@@ -45,16 +45,16 @@ Create a new Confluence page.
 **Usage:**
 ```bash
 # Create a simple page
-python create_page.py --space DOCS --title "My New Page" --body "Page content here"
+confluence page create --space DOCS --title "My New Page" --body "Page content here"
 
 # Create with parent page
-python create_page.py --space DOCS --title "Child Page" --parent 12345 --body "Content"
+confluence page create --space DOCS --title "Child Page" --parent 12345 --body "Content"
 
 # Create from Markdown file
-python create_page.py --space DOCS --title "From Markdown" --file content.md
+confluence page create --space DOCS --title "From Markdown" --file content.md
 
 # Create as draft
-python create_page.py --space DOCS --title "Draft Page" --body "WIP" --status draft
+confluence page create --space DOCS --title "Draft Page" --body "WIP" --status draft
 ```
 
 **Arguments:**
@@ -74,16 +74,16 @@ Retrieve a page's content and metadata.
 **Usage:**
 ```bash
 # Get by page ID
-python get_page.py 12345
+confluence page get 12345
 
 # Get with full body content
-python get_page.py 12345 --body
+confluence page get 12345 --body
 
 # Get specific body format
-python get_page.py 12345 --body --format markdown
+confluence page get 12345 --body --format markdown
 
 # JSON output
-python get_page.py 12345 --output json
+confluence page get 12345 --output json
 ```
 
 **Arguments:**
@@ -100,19 +100,19 @@ Update an existing page.
 **Usage:**
 ```bash
 # Update title
-python update_page.py 12345 --title "New Title"
+confluence page update 12345 --title "New Title"
 
 # Update body
-python update_page.py 12345 --body "New content"
+confluence page update 12345 --body "New content"
 
 # Update from file
-python update_page.py 12345 --file updated-content.md
+confluence page update 12345 --file updated-content.md
 
 # Update with version message
-python update_page.py 12345 --body "Updated" --message "Fixed typos"
+confluence page update 12345 --body "Updated" --message "Fixed typos"
 
 # Change status
-python update_page.py 12345 --status draft
+confluence page update 12345 --status draft
 ```
 
 **Arguments:**
@@ -132,13 +132,13 @@ Delete a page (move to trash or permanent delete).
 **Usage:**
 ```bash
 # Move to trash (default)
-python delete_page.py 12345
+confluence page delete 12345
 
 # Permanent delete
-python delete_page.py 12345 --permanent
+confluence page delete 12345 --permanent
 
 # Force without confirmation
-python delete_page.py 12345 --force
+confluence page delete 12345 --force
 ```
 
 **Arguments:**
@@ -153,10 +153,10 @@ Create a new blog post.
 
 **Usage:**
 ```bash
-python create_blogpost.py --space BLOG --title "My Blog Post" --body "Blog content"
+confluence page blog create --space BLOG --title "My Blog Post" --body "Blog content"
 
 # From Markdown
-python create_blogpost.py --space BLOG --title "From MD" --file post.md
+confluence page blog create --space BLOG --title "From MD" --file post.md
 ```
 
 **Arguments:**
@@ -173,7 +173,7 @@ Retrieve a blog post.
 
 **Usage:**
 ```bash
-python get_blogpost.py 67890 --body
+confluence page blog get 67890 --body
 ```
 
 **Arguments:**
@@ -190,13 +190,13 @@ Copy a page to a new location.
 **Usage:**
 ```bash
 # Copy to same space
-python copy_page.py 12345 --title "Page Copy"
+confluence page copy 12345 --title "Page Copy"
 
 # Copy to different space
-python copy_page.py 12345 --title "Page Copy" --space NEWSPACE
+confluence page copy 12345 --title "Page Copy" --space NEWSPACE
 
 # Copy with children
-python copy_page.py 12345 --title "Page Copy" --include-children
+confluence page copy 12345 --title "Page Copy" --include-children
 ```
 
 **Arguments:**
@@ -215,13 +215,13 @@ Move a page to a new location.
 **Usage:**
 ```bash
 # Move to new parent
-python move_page.py 12345 --parent 67890
+confluence page move 12345 --parent 67890
 
 # Move to different space
-python move_page.py 12345 --space NEWSPACE
+confluence page move 12345 --space NEWSPACE
 
 # Move to space root
-python move_page.py 12345 --space NEWSPACE --root
+confluence page move 12345 --space NEWSPACE --root
 ```
 
 **Arguments:**
@@ -238,13 +238,13 @@ Get version history for a page.
 **Usage:**
 ```bash
 # List all versions
-python get_page_versions.py 12345
+confluence page versions 12345
 
 # Limit results
-python get_page_versions.py 12345 --limit 10
+confluence page versions 12345 --limit 10
 
 # Show version details
-python get_page_versions.py 12345 --detailed
+confluence page versions 12345 --detailed
 ```
 
 **Arguments:**
@@ -261,10 +261,10 @@ Restore a page to a previous version.
 **Usage:**
 ```bash
 # Restore to version 5
-python restore_version.py 12345 --version 5
+confluence page restore 12345 --version 5
 
 # With version message
-python restore_version.py 12345 --version 5 --message "Restoring to known good state"
+confluence page restore 12345 --version 5 --message "Restoring to known good state"
 ```
 
 **Arguments:**

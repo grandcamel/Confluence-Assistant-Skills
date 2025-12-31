@@ -38,7 +38,7 @@ Retrieves:
 
 **Usage:**
 ```bash
-python get_page_views.py PAGE_ID [--output json] [--profile PROFILE]
+confluence analytics views PAGE_ID [--output json] [--profile PROFILE]
 ```
 
 **Arguments:**
@@ -49,13 +49,13 @@ python get_page_views.py PAGE_ID [--output json] [--profile PROFILE]
 **Examples:**
 ```bash
 # Get page analytics
-python get_page_views.py 12345
+confluence analytics views 12345
 
 # Get as JSON
-python get_page_views.py 12345 --output json
+confluence analytics views 12345 --output json
 
 # Use specific profile
-python get_page_views.py 12345 --profile production
+confluence analytics views 12345 --profile production
 ```
 
 **Output (text):**
@@ -96,7 +96,7 @@ Retrieves:
 
 **Usage:**
 ```bash
-python get_space_analytics.py SPACE_KEY [--days N] [--output json] [--profile PROFILE]
+confluence analytics space SPACE_KEY [--days N] [--output json] [--profile PROFILE]
 ```
 
 **Arguments:**
@@ -108,13 +108,13 @@ python get_space_analytics.py SPACE_KEY [--days N] [--output json] [--profile PR
 **Examples:**
 ```bash
 # Get all-time space analytics
-python get_space_analytics.py DOCS
+confluence analytics space DOCS
 
 # Get last 30 days
-python get_space_analytics.py DOCS --days 30
+confluence analytics space DOCS --days 30
 
 # Get as JSON
-python get_space_analytics.py DOCS --output json
+confluence analytics space DOCS --output json
 ```
 
 **Output (text):**
@@ -154,7 +154,7 @@ Uses CQL queries with ordering to identify popular content based on:
 
 **Usage:**
 ```bash
-python get_popular_content.py [--space SPACE_KEY] [--label LABEL] [--type TYPE] [--sort SORT] [--limit N] [--output json] [--profile PROFILE]
+confluence analytics popular [--space SPACE_KEY] [--label LABEL] [--type TYPE] [--sort SORT] [--limit N] [--output json] [--profile PROFILE]
 ```
 
 **Arguments:**
@@ -171,16 +171,16 @@ python get_popular_content.py [--space SPACE_KEY] [--label LABEL] [--type TYPE] 
 **Examples:**
 ```bash
 # Most recently modified in space
-python get_popular_content.py --space DOCS
+confluence analytics popular --space DOCS
 
 # Most recently created pages
-python get_popular_content.py --space DOCS --type page --sort created --limit 5
+confluence analytics popular --space DOCS --type page --sort created --limit 5
 
 # Content with featured label
-python get_popular_content.py --label featured --limit 10
+confluence analytics popular --label featured --limit 10
 
 # Recent blog posts
-python get_popular_content.py --space DOCS --type blogpost --limit 5
+confluence analytics popular --space DOCS --type blogpost --limit 5
 ```
 
 **Output (text):**
@@ -212,7 +212,7 @@ Get the list of users watching a page (who will be notified of changes).
 
 **Usage:**
 ```bash
-python get_content_watchers.py PAGE_ID [--output json] [--profile PROFILE]
+confluence analytics watchers PAGE_ID [--output json] [--profile PROFILE]
 ```
 
 **Arguments:**
@@ -223,10 +223,10 @@ python get_content_watchers.py PAGE_ID [--output json] [--profile PROFILE]
 **Examples:**
 ```bash
 # Get watchers for a page
-python get_content_watchers.py 12345
+confluence analytics watchers 12345
 
 # Get as JSON
-python get_content_watchers.py 12345 --output json
+confluence analytics watchers 12345 --output json
 ```
 
 **Output (text):**

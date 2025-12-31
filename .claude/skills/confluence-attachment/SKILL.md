@@ -21,8 +21,8 @@ Upload a file to a page.
 
 **Usage:**
 ```bash
-python upload_attachment.py 12345 --file report.pdf
-python upload_attachment.py 12345 --file image.png --comment "Screenshot"
+confluence attachment upload 12345 --file report.pdf
+confluence attachment upload 12345 --file image.png --comment "Screenshot"
 ```
 
 ### download_attachment.py
@@ -30,8 +30,8 @@ Download an attachment.
 
 **Usage:**
 ```bash
-python download_attachment.py ATTACHMENT_ID --output ./downloads/
-python download_attachment.py 12345 --all  # Download all from page
+confluence attachment download ATTACHMENT_ID --output ./downloads/
+confluence attachment download 12345 --all  # Download all from page
 ```
 
 ### list_attachments.py
@@ -39,8 +39,8 @@ List attachments on a page.
 
 **Usage:**
 ```bash
-python list_attachments.py 12345
-python list_attachments.py 12345 --output json
+confluence attachment list 12345
+confluence attachment list 12345 --output json
 ```
 
 ### delete_attachment.py
@@ -48,8 +48,8 @@ Remove an attachment.
 
 **Usage:**
 ```bash
-python delete_attachment.py ATTACHMENT_ID
-python delete_attachment.py ATTACHMENT_ID --force
+confluence attachment delete ATTACHMENT_ID
+confluence attachment delete ATTACHMENT_ID --force
 ```
 
 ### update_attachment.py
@@ -57,5 +57,5 @@ Replace an attachment file.
 
 **Usage:**
 ```bash
-python update_attachment.py ATTACHMENT_ID --file new_version.pdf
+confluence attachment update ATTACHMENT_ID --file new_version.pdf
 ```

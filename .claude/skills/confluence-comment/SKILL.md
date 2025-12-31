@@ -27,9 +27,9 @@ Add a footer comment to a Confluence page.
 
 **Usage:**
 ```bash
-python add_comment.py PAGE_ID "Comment text"
-python add_comment.py PAGE_ID --file comment.txt
-python add_comment.py PAGE_ID "Great page!" --profile production
+confluence comment add PAGE_ID "Comment text"
+confluence comment add PAGE_ID --file comment.txt
+confluence comment add PAGE_ID "Great page!" --profile production
 ```
 
 **Arguments:**
@@ -47,10 +47,10 @@ Retrieve all footer comments on a Confluence page.
 
 **Usage:**
 ```bash
-python get_comments.py PAGE_ID
-python get_comments.py PAGE_ID --limit 10
-python get_comments.py PAGE_ID --sort created
-python get_comments.py PAGE_ID --output json
+confluence comment list PAGE_ID
+confluence comment list PAGE_ID --limit 10
+confluence comment list PAGE_ID --sort created
+confluence comment list PAGE_ID --output json
 ```
 
 **Arguments:**
@@ -68,9 +68,9 @@ Update an existing comment's body.
 
 **Usage:**
 ```bash
-python update_comment.py COMMENT_ID "Updated text"
-python update_comment.py COMMENT_ID --file updated.txt
-python update_comment.py COMMENT_ID "Fixed typo" --profile production
+confluence comment update COMMENT_ID "Updated text"
+confluence comment update COMMENT_ID --file updated.txt
+confluence comment update COMMENT_ID "Fixed typo" --profile production
 ```
 
 **Arguments:**
@@ -88,9 +88,9 @@ Delete a comment from a Confluence page.
 
 **Usage:**
 ```bash
-python delete_comment.py COMMENT_ID
-python delete_comment.py COMMENT_ID --force
-python delete_comment.py COMMENT_ID --profile production
+confluence comment delete COMMENT_ID
+confluence comment delete COMMENT_ID --force
+confluence comment delete COMMENT_ID --profile production
 ```
 
 **Arguments:**
@@ -106,8 +106,8 @@ Add an inline comment to specific text in a Confluence page.
 
 **Usage:**
 ```bash
-python add_inline_comment.py PAGE_ID "selected text" "Comment about this text"
-python add_inline_comment.py PAGE_ID "text" "Needs revision" --profile production
+confluence comment add-inline PAGE_ID "selected text" "Comment about this text"
+confluence comment add-inline PAGE_ID "text" "Needs revision" --profile production
 ```
 
 **Arguments:**
@@ -127,9 +127,9 @@ Mark a comment as resolved or reopen it.
 
 **Usage:**
 ```bash
-python resolve_comment.py COMMENT_ID --resolve
-python resolve_comment.py COMMENT_ID --unresolve
-python resolve_comment.py COMMENT_ID --resolve --profile production
+confluence comment resolve COMMENT_ID --resolve
+confluence comment resolve COMMENT_ID --unresolve
+confluence comment resolve COMMENT_ID --resolve --profile production
 ```
 
 **Arguments:**

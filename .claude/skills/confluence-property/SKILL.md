@@ -34,16 +34,16 @@ Retrieve content properties from a page or blog post.
 **Usage:**
 ```bash
 # Get all properties on content
-python get_properties.py 12345
+confluence property get 12345
 
 # Get specific property by key
-python get_properties.py 12345 --key my-property
+confluence property get 12345 --key my-property
 
 # Get with expanded version info
-python get_properties.py 12345 --expand version
+confluence property get 12345 --expand version
 
 # Output as JSON
-python get_properties.py 12345 --output json
+confluence property get 12345 --output json
 ```
 
 **Options:**
@@ -59,16 +59,16 @@ Create or update a content property.
 **Usage:**
 ```bash
 # Set simple string value
-python set_property.py 12345 my-property --value "text value"
+confluence property set 12345 my-property --value "text value"
 
 # Set from JSON file
-python set_property.py 12345 config --file config.json
+confluence property set 12345 config --file config.json
 
 # Set complex JSON value
-python set_property.py 12345 data --value '{"enabled": true, "count": 42}'
+confluence property set 12345 data --value '{"enabled": true, "count": 42}'
 
 # Update existing property (auto-increments version)
-python set_property.py 12345 my-property --value "updated" --update
+confluence property set 12345 my-property --value "updated" --update
 ```
 
 **Options:**
@@ -94,10 +94,10 @@ Delete a content property.
 **Usage:**
 ```bash
 # Delete property (with confirmation prompt)
-python delete_property.py 12345 my-property
+confluence property delete 12345 my-property
 
 # Force delete without confirmation
-python delete_property.py 12345 my-property --force
+confluence property delete 12345 my-property --force
 ```
 
 **Options:**
@@ -112,22 +112,22 @@ List and filter content properties.
 **Usage:**
 ```bash
 # List all properties
-python list_properties.py 12345
+confluence property list 12345
 
 # Filter by key prefix
-python list_properties.py 12345 --prefix app.
+confluence property list 12345 --prefix app.
 
 # Filter by regex pattern
-python list_properties.py 12345 --pattern "config.*"
+confluence property list 12345 --pattern "config.*"
 
 # Sort by version
-python list_properties.py 12345 --sort version
+confluence property list 12345 --sort version
 
 # Show detailed version info
-python list_properties.py 12345 --expand version --verbose
+confluence property list 12345 --expand version --verbose
 
 # JSON output
-python list_properties.py 12345 --output json
+confluence property list 12345 --output json
 ```
 
 **Options:**
@@ -156,52 +156,52 @@ Uses Confluence REST API v1 endpoints:
 
 ```bash
 # Set review status
-python set_property.py 98765 review-status --value '{"status": "approved", "date": "2024-01-15", "reviewer": "john@example.com"}'
+confluence property set 98765 review-status --value '{"status": "approved", "date": "2024-01-15", "reviewer": "john@example.com"}'
 
 # Get review status
-python get_properties.py 98765 --key review-status
+confluence property get 98765 --key review-status
 
 # Update review status
-python set_property.py 98765 review-status --value '{"status": "published", "date": "2024-01-20"}' --update
+confluence property set 98765 review-status --value '{"status": "published", "date": "2024-01-20"}' --update
 ```
 
 ### Configuration Management
 
 ```bash
 # Store config from file
-python set_property.py 12345 app-config --file config.json
+confluence property set 12345 app-config --file config.json
 
 # List all config properties
-python list_properties.py 12345 --prefix app-
+confluence property list 12345 --prefix app-
 
 # Get specific config
-python get_properties.py 12345 --key app-config
+confluence property get 12345 --key app-config
 ```
 
 ### Workflow State Tracking
 
 ```bash
 # Initialize workflow state
-python set_property.py 12345 workflow --value '{"stage": "draft", "assignee": "alice@example.com"}'
+confluence property set 12345 workflow --value '{"stage": "draft", "assignee": "alice@example.com"}'
 
 # Update to next stage
-python set_property.py 12345 workflow --value '{"stage": "review", "assignee": "bob@example.com"}' --update
+confluence property set 12345 workflow --value '{"stage": "review", "assignee": "bob@example.com"}' --update
 
 # List all workflow properties
-python list_properties.py 12345 --pattern "workflow.*" --verbose
+confluence property list 12345 --pattern "workflow.*" --verbose
 ```
 
 ### Cleanup Old Properties
 
 ```bash
 # List all properties
-python list_properties.py 12345
+confluence property list 12345
 
 # Delete specific property
-python delete_property.py 12345 old-property --force
+confluence property delete 12345 old-property --force
 
 # Delete with confirmation
-python delete_property.py 12345 temp-data
+confluence property delete 12345 temp-data
 ```
 
 ## Property Versioning
@@ -214,7 +214,7 @@ Properties support versioning for conflict detection:
 
 **Auto-version update:**
 ```bash
-python set_property.py 12345 my-prop --value "new value" --update
+confluence property set 12345 my-prop --value "new value" --update
 ```
 
 This automatically fetches the current version and increments it.
@@ -287,11 +287,11 @@ Use `--output json` for programmatic error handling.
 
 ```bash
 # Get property value in scripts
-VALUE=$(python get_properties.py 12345 --key status --output json | jq -r '.value.status')
+VALUE=$(confluence property get 12345 --key status --output json | jq -r '.value.status')
 
 # Conditional updates
 if [ "$VALUE" == "draft" ]; then
-  python set_property.py 12345 status --value '{"status": "review"}' --update
+  confluence property set 12345 status --value '{"status": "review"}' --update
 fi
 ```
 
@@ -300,7 +300,7 @@ fi
 ```bash
 # Update properties on multiple pages
 for PAGE_ID in 111 222 333; do
-  python set_property.py $PAGE_ID deploy-status --value '{"deployed": true}' --update
+  confluence property set $PAGE_ID deploy-status --value '{"deployed": true}' --update
 done
 ```
 

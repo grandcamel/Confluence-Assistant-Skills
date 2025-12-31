@@ -26,22 +26,22 @@ List available page templates and blueprints in your Confluence instance.
 **Usage:**
 ```bash
 # List all templates
-python list_templates.py
+confluence template list
 
 # Filter by space
-python list_templates.py --space DOCS
+confluence template list --space DOCS
 
 # Filter by type (page or blogpost)
-python list_templates.py --type page
+confluence template list --type page
 
 # List blueprints instead of templates
-python list_templates.py --blueprints
+confluence template list --blueprints
 
 # JSON output
-python list_templates.py --output json
+confluence template list --output json
 
 # Limit results
-python list_templates.py --limit 50
+confluence template list --limit 50
 ```
 
 **Arguments:**
@@ -58,19 +58,19 @@ Retrieve detailed information about a specific template or blueprint.
 **Usage:**
 ```bash
 # Get template details
-python get_template.py tmpl-123
+confluence template get tmpl-123
 
 # Include body content
-python get_template.py tmpl-123 --body
+confluence template get tmpl-123 --body
 
 # Convert body to Markdown
-python get_template.py tmpl-123 --body --format markdown
+confluence template get tmpl-123 --body --format markdown
 
 # Get blueprint details
-python get_template.py bp-456 --blueprint
+confluence template get bp-456 --blueprint
 
 # JSON output
-python get_template.py tmpl-123 --output json
+confluence template get tmpl-123 --output json
 ```
 
 **Arguments:**
@@ -87,22 +87,22 @@ Create a new Confluence page based on an existing template or blueprint.
 **Usage:**
 ```bash
 # Create page from template
-python create_from_template.py --template tmpl-123 --space DOCS --title "New Page"
+confluence template create-from --template tmpl-123 --space DOCS --title "New Page"
 
 # Create page with parent
-python create_from_template.py --template tmpl-123 --space DOCS --title "Page" --parent-id 12345
+confluence template create-from --template tmpl-123 --space DOCS --title "Page" --parent-id 12345
 
 # Create from blueprint
-python create_from_template.py --blueprint bp-456 --space DOCS --title "Project Plan"
+confluence template create-from --blueprint bp-456 --space DOCS --title "Project Plan"
 
 # Add labels
-python create_from_template.py --template tmpl-123 --space DOCS --title "Page" --labels "tag1,tag2"
+confluence template create-from --template tmpl-123 --space DOCS --title "Page" --labels "tag1,tag2"
 
 # Override template content
-python create_from_template.py --template tmpl-123 --space DOCS --title "Page" --content "<p>Custom content</p>"
+confluence template create-from --template tmpl-123 --space DOCS --title "Page" --content "<p>Custom content</p>"
 
 # Use content from file
-python create_from_template.py --template tmpl-123 --space DOCS --title "Page" --file content.md
+confluence template create-from --template tmpl-123 --space DOCS --title "Page" --file content.md
 ```
 
 **Arguments:**
@@ -123,25 +123,25 @@ Create a new page template in Confluence.
 **Usage:**
 ```bash
 # Create basic template
-python create_template.py --name "Meeting Notes" --space DOCS
+confluence template create --name "Meeting Notes" --space DOCS
 
 # With description
-python create_template.py --name "Status Report" --space DOCS --description "Weekly status report"
+confluence template create --name "Status Report" --space DOCS --description "Weekly status report"
 
 # From HTML file
-python create_template.py --name "Template" --space DOCS --file template.html
+confluence template create --name "Template" --space DOCS --file template.html
 
 # From Markdown file
-python create_template.py --name "Template" --space DOCS --file template.md
+confluence template create --name "Template" --space DOCS --file template.md
 
 # With labels
-python create_template.py --name "Template" --space DOCS --labels "template,meeting"
+confluence template create --name "Template" --space DOCS --labels "template,meeting"
 
 # Blogpost template
-python create_template.py --name "Blog Template" --space DOCS --type blogpost
+confluence template create --name "Blog Template" --space DOCS --type blogpost
 
 # Based on blueprint
-python create_template.py --name "Custom" --space DOCS --blueprint-id com.atlassian...
+confluence template create --name "Custom" --space DOCS --blueprint-id com.atlassian...
 ```
 
 **Arguments:**
@@ -162,28 +162,28 @@ Update an existing page template.
 **Usage:**
 ```bash
 # Update name
-python update_template.py tmpl-123 --name "Updated Template"
+confluence template update tmpl-123 --name "Updated Template"
 
 # Update description
-python update_template.py tmpl-123 --description "New description"
+confluence template update tmpl-123 --description "New description"
 
 # Update content from HTML file
-python update_template.py tmpl-123 --file updated.html
+confluence template update tmpl-123 --file updated.html
 
 # Update from Markdown file
-python update_template.py tmpl-123 --file updated.md
+confluence template update tmpl-123 --file updated.md
 
 # Update inline content
-python update_template.py tmpl-123 --content "<h1>Updated</h1>"
+confluence template update tmpl-123 --content "<h1>Updated</h1>"
 
 # Add labels
-python update_template.py tmpl-123 --add-labels "tag1,tag2"
+confluence template update tmpl-123 --add-labels "tag1,tag2"
 
 # Remove labels
-python update_template.py tmpl-123 --remove-labels "old-tag"
+confluence template update tmpl-123 --remove-labels "old-tag"
 
 # Multiple updates
-python update_template.py tmpl-123 --name "New Name" --description "New desc" --add-labels "new"
+confluence template update tmpl-123 --name "New Name" --description "New desc" --add-labels "new"
 ```
 
 **Arguments:**
@@ -216,39 +216,39 @@ This skill uses the Confluence v1 REST API:
 
 ```bash
 # List all available templates
-python list_templates.py
+confluence template list
 
 # Find templates in a specific space
-python list_templates.py --space DOCS
+confluence template list --space DOCS
 
 # Get template details
-python get_template.py tmpl-123 --body --format markdown
+confluence template get tmpl-123 --body --format markdown
 
 # Create a page from that template
-python create_from_template.py --template tmpl-123 --space DOCS --title "My Meeting Notes"
+confluence template create-from --template tmpl-123 --space DOCS --title "My Meeting Notes"
 ```
 
 ### Creating Custom Templates
 
 ```bash
 # Create a simple template
-python create_template.py --name "Weekly Report" --space DOCS --description "Template for weekly status reports"
+confluence template create --name "Weekly Report" --space DOCS --description "Template for weekly status reports"
 
 # Create from a Markdown file
-python create_template.py --name "Project Plan" --space DOCS --file project-template.md --labels "template,planning"
+confluence template create --name "Project Plan" --space DOCS --file project-template.md --labels "template,planning"
 ```
 
 ### Maintaining Templates
 
 ```bash
 # Update template content from file
-python update_template.py tmpl-123 --file updated-template.md
+confluence template update tmpl-123 --file updated-template.md
 
 # Add tags to categorize
-python update_template.py tmpl-123 --add-labels "engineering,documentation"
+confluence template update tmpl-123 --add-labels "engineering,documentation"
 
 # Update name and description
-python update_template.py tmpl-123 --name "New Template Name" --description "Updated description"
+confluence template update tmpl-123 --name "New Template Name" --description "Updated description"
 ```
 
 ## Tips

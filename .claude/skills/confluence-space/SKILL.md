@@ -38,13 +38,13 @@ Create a new Confluence space.
 **Usage:**
 ```bash
 # Create a basic space
-python create_space.py --key DOCS --name "Documentation"
+confluence space create --key DOCS --name "Documentation"
 
 # Create with description
-python create_space.py --key KB --name "Knowledge Base" --description "Company knowledge base"
+confluence space create --key KB --name "Knowledge Base" --description "Company knowledge base"
 
 # Create personal space
-python create_space.py --key ~username --name "Personal Space" --type personal
+confluence space create --key ~username --name "Personal Space" --type personal
 ```
 
 **Arguments:**
@@ -61,8 +61,8 @@ Retrieve space details.
 
 **Usage:**
 ```bash
-python get_space.py DOCS
-python get_space.py DOCS --output json
+confluence space get DOCS
+confluence space get DOCS --output json
 ```
 
 **Arguments:**
@@ -77,16 +77,16 @@ List all accessible spaces.
 **Usage:**
 ```bash
 # List all spaces
-python list_spaces.py
+confluence space list
 
 # Filter by type
-python list_spaces.py --type global
+confluence space list --type global
 
 # Search by name
-python list_spaces.py --query "docs"
+confluence space list --query "docs"
 
 # Limit results
-python list_spaces.py --limit 10
+confluence space list --limit 10
 ```
 
 **Arguments:**
@@ -103,9 +103,9 @@ Update space properties.
 
 **Usage:**
 ```bash
-python update_space.py DOCS --name "New Name"
-python update_space.py DOCS --description "Updated description"
-python update_space.py DOCS --homepage 12345
+confluence space update DOCS --name "New Name"
+confluence space update DOCS --description "Updated description"
+confluence space update DOCS --homepage 12345
 ```
 
 **Arguments:**
@@ -122,8 +122,8 @@ Delete a space.
 
 **Usage:**
 ```bash
-python delete_space.py DOCS
-python delete_space.py DOCS --force
+confluence space delete DOCS
+confluence space delete DOCS --force
 ```
 
 **Arguments:**
@@ -138,13 +138,13 @@ List pages in a space.
 **Usage:**
 ```bash
 # List all pages
-python get_space_content.py DOCS
+confluence space content DOCS
 
 # Filter by depth
-python get_space_content.py DOCS --depth root
+confluence space content DOCS --depth root
 
 # Include archived
-python get_space_content.py DOCS --include-archived
+confluence space content DOCS --include-archived
 ```
 
 **Arguments:**
@@ -162,7 +162,7 @@ Get space settings and theme.
 
 **Usage:**
 ```bash
-python get_space_settings.py DOCS
+confluence space settings DOCS
 ```
 
 **Arguments:**

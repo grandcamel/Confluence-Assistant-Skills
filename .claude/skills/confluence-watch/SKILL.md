@@ -30,7 +30,7 @@ Start watching a Confluence page to receive notifications for updates.
 
 **Usage:**
 ```bash
-python watch_page.py PAGE_ID [--profile PROFILE] [--output FORMAT]
+confluence watch page PAGE_ID [--profile PROFILE] [--output FORMAT]
 ```
 
 **Arguments:**
@@ -41,13 +41,13 @@ python watch_page.py PAGE_ID [--profile PROFILE] [--output FORMAT]
 **Examples:**
 ```bash
 # Watch a page
-python watch_page.py 123456
+confluence watch page 123456
 
 # Watch with specific profile
-python watch_page.py 123456 --profile production
+confluence watch page 123456 --profile production
 
 # Get JSON output
-python watch_page.py 123456 --output json
+confluence watch page 123456 --output json
 ```
 
 ### unwatch_page.py
@@ -55,7 +55,7 @@ Stop watching a Confluence page.
 
 **Usage:**
 ```bash
-python unwatch_page.py PAGE_ID [--profile PROFILE] [--output FORMAT]
+confluence watch unwatch-page PAGE_ID [--profile PROFILE] [--output FORMAT]
 ```
 
 **Arguments:**
@@ -66,10 +66,10 @@ python unwatch_page.py PAGE_ID [--profile PROFILE] [--output FORMAT]
 **Examples:**
 ```bash
 # Unwatch a page
-python unwatch_page.py 123456
+confluence watch unwatch-page 123456
 
 # Unwatch with JSON output
-python unwatch_page.py 123456 --output json
+confluence watch unwatch-page 123456 --output json
 ```
 
 ### watch_space.py
@@ -77,7 +77,7 @@ Start watching an entire Confluence space to receive notifications for new conte
 
 **Usage:**
 ```bash
-python watch_space.py SPACE_KEY [--profile PROFILE] [--output FORMAT]
+confluence watch space SPACE_KEY [--profile PROFILE] [--output FORMAT]
 ```
 
 **Arguments:**
@@ -88,13 +88,13 @@ python watch_space.py SPACE_KEY [--profile PROFILE] [--output FORMAT]
 **Examples:**
 ```bash
 # Watch a space
-python watch_space.py DOCS
+confluence watch space DOCS
 
 # Watch space with lowercase key (auto-converted to uppercase)
-python watch_space.py kb --profile production
+confluence watch space kb --profile production
 
 # Get JSON output
-python watch_space.py TEST --output json
+confluence watch space TEST --output json
 ```
 
 ### get_watchers.py
@@ -102,7 +102,7 @@ Get the list of users who are watching a page.
 
 **Usage:**
 ```bash
-python get_watchers.py PAGE_ID [--profile PROFILE] [--output FORMAT]
+confluence watch list PAGE_ID [--profile PROFILE] [--output FORMAT]
 ```
 
 **Arguments:**
@@ -113,10 +113,10 @@ python get_watchers.py PAGE_ID [--profile PROFILE] [--output FORMAT]
 **Examples:**
 ```bash
 # Get watchers for a page
-python get_watchers.py 123456
+confluence watch list 123456
 
 # Get watchers as JSON
-python get_watchers.py 123456 --output json
+confluence watch list 123456 --output json
 ```
 
 **Output (text format):**
@@ -155,7 +155,7 @@ Check if the current authenticated user is watching a specific page.
 
 **Usage:**
 ```bash
-python am_i_watching.py PAGE_ID [--profile PROFILE] [--output FORMAT]
+confluence watch status PAGE_ID [--profile PROFILE] [--output FORMAT]
 ```
 
 **Arguments:**
@@ -166,13 +166,13 @@ python am_i_watching.py PAGE_ID [--profile PROFILE] [--output FORMAT]
 **Examples:**
 ```bash
 # Check if watching a page
-python am_i_watching.py 123456
+confluence watch status 123456
 
 # Check with specific profile
-python am_i_watching.py 123456 --profile production
+confluence watch status 123456 --profile production
 
 # Get JSON output
-python am_i_watching.py 123456 --output json
+confluence watch status 123456 --output json
 ```
 
 **Output (text format - watching):**
@@ -219,29 +219,29 @@ This skill uses the Confluence v1 REST API:
 ### Watch Pages for a Project
 ```bash
 # Watch all key pages for a project
-python watch_page.py 123456  # Requirements page
-python watch_page.py 789012  # Design doc
-python watch_page.py 345678  # Release notes
+confluence watch page 123456  # Requirements page
+confluence watch page 789012  # Design doc
+confluence watch page 345678  # Release notes
 ```
 
 ### Audit Watchers
 ```bash
 # Check who's watching important pages
-python get_watchers.py 123456 --output json > watchers.json
+confluence watch list 123456 --output json > watchers.json
 ```
 
 ### Verify Watch Status
 ```bash
 # Check if you're watching before unwatching
-python am_i_watching.py 123456
-python unwatch_page.py 123456
+confluence watch status 123456
+confluence watch unwatch-page 123456
 ```
 
 ### Bulk Space Watching
 ```bash
 # Watch multiple spaces
 for space in DOCS KB DEV; do
-    python watch_space.py $space
+    confluence watch space $space
 done
 ```
 

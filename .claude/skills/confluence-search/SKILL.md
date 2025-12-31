@@ -103,16 +103,16 @@ Execute CQL queries against Confluence.
 **Usage:**
 ```bash
 # Simple text search
-python cql_search.py "text ~ 'API documentation'"
+confluence search cql "text ~ 'API documentation'"
 
 # Search with space filter
-python cql_search.py "space = 'DOCS' AND type = page"
+confluence search cql "space = 'DOCS' AND type = page"
 
 # With limit
-python cql_search.py "label = 'approved'" --limit 50
+confluence search cql "label = 'approved'" --limit 50
 
 # Show excerpts
-python cql_search.py "text ~ 'config'" --show-excerpts
+confluence search cql "text ~ 'config'" --show-excerpts
 ```
 
 **Arguments:**
@@ -129,8 +129,8 @@ Validate CQL query syntax.
 
 **Usage:**
 ```bash
-python cql_validate.py "space = 'DOCS' AND type = page"
-python cql_validate.py "invalid query (("
+confluence search validate "space = 'DOCS' AND type = page"
+confluence search validate "invalid query (("
 ```
 
 **Arguments:**
@@ -144,11 +144,11 @@ Get CQL field and value suggestions.
 **Usage:**
 ```bash
 # Get field suggestions
-python cql_suggest.py --fields
+confluence search suggest --fields
 
 # Get values for a field
-python cql_suggest.py --field space
-python cql_suggest.py --field type
+confluence search suggest --field space
+confluence search suggest --field type
 ```
 
 **Arguments:**
@@ -162,8 +162,8 @@ Interactive CQL query builder.
 
 **Usage:**
 ```bash
-python cql_interactive.py
-python cql_interactive.py --space DOCS
+confluence search interactive
+confluence search interactive --space DOCS
 ```
 
 **Arguments:**
@@ -177,13 +177,13 @@ Export search results to file.
 **Usage:**
 ```bash
 # Export to CSV
-python export_results.py "space = 'DOCS'" --format csv --output results.csv
+confluence search export "space = 'DOCS'" --format csv --output results.csv
 
 # Export to JSON
-python export_results.py "label = 'api'" --format json --output results.json
+confluence search export "label = 'api'" --format json --output results.json
 
 # Select columns
-python export_results.py "type = page" --columns id,title,space,created
+confluence search export "type = page" --columns id,title,space,created
 ```
 
 **Arguments:**
@@ -201,10 +201,10 @@ Export large result sets with checkpoints.
 **Usage:**
 ```bash
 # Full export with progress
-python streaming_export.py "space = 'DOCS'" --output docs.csv
+confluence search stream-export "space = 'DOCS'" --output docs.csv
 
 # Resume from checkpoint
-python streaming_export.py "space = 'DOCS'" --output docs.csv --resume
+confluence search stream-export "space = 'DOCS'" --output docs.csv --resume
 ```
 
 **Arguments:**
@@ -222,13 +222,13 @@ Manage local query history.
 **Usage:**
 ```bash
 # List recent queries
-python cql_history.py list
+confluence search history list
 
 # Search history
-python cql_history.py search "space = DOCS"
+confluence search history search "space = DOCS"
 
 # Clear history
-python cql_history.py clear
+confluence search history clear
 ```
 
 **Arguments:**
@@ -241,9 +241,9 @@ Simple text search (no CQL knowledge required).
 
 **Usage:**
 ```bash
-python search_content.py "meeting notes"
-python search_content.py "meeting notes" --space DOCS
-python search_content.py "API documentation" --type page
+confluence search content "meeting notes"
+confluence search content "meeting notes" --space DOCS
+confluence search content "API documentation" --type page
 ```
 
 **Arguments:**

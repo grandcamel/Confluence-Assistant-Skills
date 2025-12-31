@@ -28,9 +28,9 @@ Get all ancestor pages for a given page (parent, grandparent, etc.).
 
 **Usage:**
 ```bash
-python get_ancestors.py <page_id>
-python get_ancestors.py <page_id> --breadcrumb
-python get_ancestors.py <page_id> --output json
+confluence hierarchy ancestors <page_id>
+confluence hierarchy ancestors <page_id> --breadcrumb
+confluence hierarchy ancestors <page_id> --output json
 ```
 
 **Options:**
@@ -39,8 +39,8 @@ python get_ancestors.py <page_id> --output json
 - `--profile` - Confluence profile to use
 
 **Examples:**
-- Get ancestors: `python get_ancestors.py 12345`
-- Show breadcrumb: `python get_ancestors.py 12345 --breadcrumb`
+- Get ancestors: `confluence hierarchy ancestors 12345`
+- Show breadcrumb: `confluence hierarchy ancestors 12345 --breadcrumb`
 
 ### get_children.py
 
@@ -48,9 +48,9 @@ Get direct child pages of a parent page (one level down only).
 
 **Usage:**
 ```bash
-python get_children.py <page_id>
-python get_children.py <page_id> --limit 50
-python get_children.py <page_id> --sort title
+confluence hierarchy children <page_id>
+confluence hierarchy children <page_id> --limit 50
+confluence hierarchy children <page_id> --sort title
 ```
 
 **Options:**
@@ -60,8 +60,8 @@ python get_children.py <page_id> --sort title
 - `--profile` - Confluence profile to use
 
 **Examples:**
-- Get children: `python get_children.py 12345`
-- Sort by title: `python get_children.py 12345 --sort title`
+- Get children: `confluence hierarchy children 12345`
+- Sort by title: `confluence hierarchy children 12345 --sort title`
 
 ### get_descendants.py
 
@@ -69,9 +69,9 @@ Get all descendant pages recursively (children, grandchildren, etc.).
 
 **Usage:**
 ```bash
-python get_descendants.py <page_id>
-python get_descendants.py <page_id> --max-depth 2
-python get_descendants.py <page_id> --output json
+confluence hierarchy descendants <page_id>
+confluence hierarchy descendants <page_id> --max-depth 2
+confluence hierarchy descendants <page_id> --output json
 ```
 
 **Options:**
@@ -80,8 +80,8 @@ python get_descendants.py <page_id> --output json
 - `--profile` - Confluence profile to use
 
 **Examples:**
-- Get all descendants: `python get_descendants.py 12345`
-- Limit depth: `python get_descendants.py 12345 --max-depth 2`
+- Get all descendants: `confluence hierarchy descendants 12345`
+- Limit depth: `confluence hierarchy descendants 12345 --max-depth 2`
 
 ### get_page_tree.py
 
@@ -89,9 +89,9 @@ Get full hierarchical tree structure with nested children.
 
 **Usage:**
 ```bash
-python get_page_tree.py <page_id>
-python get_page_tree.py <page_id> --max-depth 3
-python get_page_tree.py <page_id> --stats
+confluence hierarchy tree <page_id>
+confluence hierarchy tree <page_id> --max-depth 3
+confluence hierarchy tree <page_id> --stats
 ```
 
 **Options:**
@@ -101,8 +101,8 @@ python get_page_tree.py <page_id> --stats
 - `--profile` - Confluence profile to use
 
 **Examples:**
-- Get page tree: `python get_page_tree.py 12345`
-- With statistics: `python get_page_tree.py 12345 --stats`
+- Get page tree: `confluence hierarchy tree 12345`
+- With statistics: `confluence hierarchy tree 12345 --stats`
 
 ### reorder_children.py
 
@@ -110,9 +110,9 @@ Reorder child pages of a parent page.
 
 **Usage:**
 ```bash
-python reorder_children.py <parent_id>
-python reorder_children.py <parent_id> <id1,id2,id3>
-python reorder_children.py <parent_id> --reverse
+confluence hierarchy reorder <parent_id>
+confluence hierarchy reorder <parent_id> <id1,id2,id3>
+confluence hierarchy reorder <parent_id> --reverse
 ```
 
 **Options:**
@@ -121,9 +121,9 @@ python reorder_children.py <parent_id> --reverse
 - `--profile` - Confluence profile to use
 
 **Examples:**
-- Show current order: `python reorder_children.py 12345`
-- Reorder: `python reorder_children.py 12345 200,201,202`
-- Reverse order: `python reorder_children.py 12345 --reverse`
+- Show current order: `confluence hierarchy reorder 12345`
+- Reorder: `confluence hierarchy reorder 12345 200,201,202`
+- Reverse order: `confluence hierarchy reorder 12345 --reverse`
 
 **Note:** The Confluence v2 API may have limited support for page reordering. This script provides validation and structure for when the API fully supports it.
 
@@ -151,28 +151,28 @@ These phrases will trigger this skill:
 ### Building Breadcrumbs
 
 ```bash
-python get_ancestors.py 12345 --breadcrumb
+confluence hierarchy ancestors 12345 --breadcrumb
 # Output: Space Root > Section > Subsection > Current Page
 ```
 
 ### Visualizing Page Structure
 
 ```bash
-python get_page_tree.py 12345 --stats
+confluence hierarchy tree 12345 --stats
 # Shows hierarchical tree with statistics
 ```
 
 ### Finding All Pages Below
 
 ```bash
-python get_descendants.py 12345 --output json > descendants.json
+confluence hierarchy descendants 12345 --output json > descendants.json
 # Export all descendants to JSON
 ```
 
 ### Limiting Traversal Depth
 
 ```bash
-python get_descendants.py 12345 --max-depth 2
+confluence hierarchy descendants 12345 --max-depth 2
 # Only get children and grandchildren
 ```
 
