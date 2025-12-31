@@ -164,6 +164,40 @@ python .claude/skills/confluence-space/scripts/list_spaces.py --limit 1
 
 <br>
 
+## 🔧 Setup (Assistant Skills)
+
+If you're using this as part of the **Assistant Skills** ecosystem, run the setup wizard after installing:
+
+```bash
+/assistant-skills-setup
+```
+
+This configures:
+- Shared Python venv at `~/.assistant-skills-venv/`
+- Required dependencies from `requirements.txt`
+- Environment variables (prompts you to set: `CONFLUENCE_SITE_URL`, `CONFLUENCE_EMAIL`, `CONFLUENCE_API_TOKEN`)
+- `claude-as` shell function for running Claude with dependencies
+
+After setup, use `claude-as` instead of `claude`:
+```bash
+claude-as  # Runs Claude with Assistant Skills venv activated
+```
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `CONFLUENCE_SITE_URL` | Yes | Confluence Cloud site URL (e.g., `https://your-site.atlassian.net`) |
+| `CONFLUENCE_EMAIL` | Yes | Atlassian account email for API authentication |
+| `CONFLUENCE_API_TOKEN` | Yes | API token from [Atlassian Account Settings](https://id.atlassian.com/manage-profile/security/api-tokens) |
+| `CONFLUENCE_PROFILE` | No | Configuration profile name (default: `default`) |
+
+<br>
+
+---
+
+<br>
+
 ## 🎯 What You Can Do
 
 ```mermaid
