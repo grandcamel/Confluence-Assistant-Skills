@@ -7,7 +7,7 @@ Tests CQL query history management functionality.
 import pytest
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class TestHistoryStorage:
@@ -57,7 +57,7 @@ class TestAddingToHistory:
         # Add query
         entry = {
             'query': "space = 'DOCS'",
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'timestamp': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
             'results_count': 42
         }
 
@@ -80,7 +80,7 @@ class TestAddingToHistory:
         for i in range(5):
             history.append({
                 'query': f"query {i}",
-                'timestamp': datetime.utcnow().isoformat() + 'Z',
+                'timestamp': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
                 'results_count': i * 10
             })
 
@@ -98,7 +98,7 @@ class TestAddingToHistory:
         history = [
             {
                 'query': f"query {i}",
-                'timestamp': datetime.utcnow().isoformat() + 'Z'
+                'timestamp': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
             }
             for i in range(150)
         ]
@@ -302,9 +302,9 @@ class TestHistoryMaintenance:
         history = []
 
         # Add entries from different dates
-        now = datetime.utcnow()
-        old_date = (now - timedelta(days=90)).isoformat() + 'Z'
-        recent_date = now.isoformat() + 'Z'
+        now = datetime.now(timezone.utc)
+        old_date = (now - timedelta(days=90)).isoformat().replace('+00:00', 'Z')
+        recent_date = now.isoformat().replace('+00:00', 'Z')
 
         history.append({'query': 'old query', 'timestamp': old_date})
         history.append({'query': 'recent query', 'timestamp': recent_date})

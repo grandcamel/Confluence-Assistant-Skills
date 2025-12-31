@@ -16,7 +16,7 @@ import argparse
 import json
 import csv
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from confluence_assistant_skills_lib import (
     handle_errors, ValidationError, print_success, print_info,
     print_warning, format_timestamp,
@@ -72,7 +72,7 @@ def add_entry(query, results_count=None, execution_time=None):
 
     entry = {
         'query': query,
-        'timestamp': datetime.utcnow().isoformat() + 'Z'
+        'timestamp': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
     }
 
     if results_count is not None:
@@ -167,7 +167,7 @@ def cleanup_old_entries(days=90):
     """
     history = load_history()
 
-    cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat() + 'Z'
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat().replace('+00:00', 'Z')
 
     filtered = [e for e in history if e['timestamp'] >= cutoff]
 

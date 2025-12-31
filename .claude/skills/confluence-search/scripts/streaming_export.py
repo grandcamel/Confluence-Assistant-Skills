@@ -16,7 +16,7 @@ import json
 import csv
 import time
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from confluence_assistant_skills_lib import (
     get_confluence_client, handle_errors, ValidationError, validate_cql,
     validate_file_path, print_success, print_info, print_warning,
@@ -69,7 +69,7 @@ def save_checkpoint(output_file, cql, last_start, total_exported, batch_size, ex
         "total_exported": total_exported,
         "batch_size": batch_size,
         "format": export_format,
-        "timestamp": datetime.utcnow().isoformat() + 'Z'
+        "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
     }
 
     checkpoint_file.write_text(json.dumps(checkpoint, indent=2))

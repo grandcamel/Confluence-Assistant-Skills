@@ -353,7 +353,7 @@ Examples:
         # Import and use cql_history if available
         try:
             import json
-            from datetime import datetime
+            from datetime import datetime, timezone
 
             history_file = Path.home() / '.confluence_cql_history.json'
             history = []
@@ -363,7 +363,7 @@ Examples:
 
             history.append({
                 'query': query,
-                'timestamp': datetime.utcnow().isoformat() + 'Z',
+                'timestamp': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
                 'results_count': len(results)
             })
 
