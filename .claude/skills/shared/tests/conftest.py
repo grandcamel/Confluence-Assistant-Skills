@@ -7,6 +7,9 @@ This conftest.py provides common fixtures used across all skill tests:
 - Sample data generators
 - Live integration fixtures (when --profile is provided)
 
+Note: Pytest hooks (addoption, configure, collection_modifyitems) and
+basic temp directory fixtures are defined in the root conftest.py.
+
 Usage:
     # In your test file
     def test_something(mock_client, sample_page):
@@ -24,47 +27,6 @@ from typing import Dict, Any, Optional
 
 lib_path = Path(__file__).parent.parent / 'scripts' / 'lib'
 sys.path.insert(0, str(lib_path))
-
-
-def pytest_addoption(parser):
-    """Add custom command-line options."""
-    try:
-        parser.addoption(
-            "--profile",
-            action="store",
-            default=None,
-            help="Confluence profile for live integration tests"
-        )
-    except ValueError:
-        pass  # Option already added
-    try:
-        parser.addoption(
-            "--live",
-            action="store_true",
-            default=False,
-            help="Run live integration tests"
-        )
-    except ValueError:
-        pass  # Option already added
-
-
-def pytest_configure(config):
-    """Configure custom markers."""
-    config.addinivalue_line(
-        "markers", "live: mark test as requiring live Confluence connection"
-    )
-    config.addinivalue_line(
-        "markers", "destructive: mark test as making destructive changes"
-    )
-
-
-def pytest_collection_modifyitems(config, items):
-    """Skip live tests unless --profile or --live is provided."""
-    if not config.getoption("--profile") and not config.getoption("--live"):
-        skip_live = pytest.mark.skip(reason="Need --profile or --live to run")
-        for item in items:
-            if "live" in item.keywords:
-                item.add_marker(skip_live)
 
 
 # ============================================================================

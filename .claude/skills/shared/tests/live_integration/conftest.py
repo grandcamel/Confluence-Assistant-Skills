@@ -19,21 +19,12 @@ from confluence_assistant_skills_lib import (
 )
 
 # =============================================================================
-# Pytest Configuration (extends parent conftest.py)
-# Note: --profile is already defined in parent conftest.py
+# Pytest Configuration (extends root conftest.py)
+# Note: --profile and --live options are defined in root conftest.py
 # =============================================================================
 
 def pytest_addoption(parser):
-    """Add custom command-line options for live integration tests."""
-    try:
-        parser.addoption(
-            "--profile",
-            action="store",
-            default=None,
-            help="Confluence profile for live integration tests"
-        )
-    except ValueError:
-        pass  # Option already added
+    """Add live integration test specific options."""
     try:
         parser.addoption(
             "--keep-space",
@@ -53,11 +44,10 @@ def pytest_addoption(parser):
     except ValueError:
         pass  # Option already added
 
+
 def pytest_configure(config):
-    """Register custom markers for live integration tests."""
-    config.addinivalue_line("markers", "integration: mark test as integration test")
+    """Register Confluence-specific markers for live integration tests."""
     config.addinivalue_line("markers", "confluence: mark test as Confluence test")
-    config.addinivalue_line("markers", "slow: mark test as slow running")
     config.addinivalue_line("markers", "pages: mark test as page-related")
     config.addinivalue_line("markers", "spaces: mark test as space-related")
     config.addinivalue_line("markers", "search: mark test as search-related")

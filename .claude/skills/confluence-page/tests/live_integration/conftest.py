@@ -1,23 +1,15 @@
 """
 Shared fixtures for confluence-page live integration tests.
 Imports fixtures from shared conftest and adds skill-specific ones.
+
+Note: The --profile option is defined in the root conftest.py.
 """
-
-import sys
-
 
 import pytest
 import uuid
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
-
-def pytest_addoption(parser):
-    """Add --profile option if not already added."""
-    try:
-        parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
