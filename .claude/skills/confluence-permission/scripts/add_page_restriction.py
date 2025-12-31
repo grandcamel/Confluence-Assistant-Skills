@@ -41,7 +41,7 @@ def parse_principal(principal_str):
     return principal_type, identifier
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Add restriction to a Confluence page',
         epilog='''
@@ -69,7 +69,7 @@ Note: This uses the v1 API as page restrictions are not available in v2.
                         help='Restriction type (read or update)')
     parser.add_argument('principal', help='Principal in format type:identifier (e.g., user:email or group:name)')
     parser.add_argument('--profile', help='Confluence profile to use')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate
     page_id = validate_page_id(args.page_id)

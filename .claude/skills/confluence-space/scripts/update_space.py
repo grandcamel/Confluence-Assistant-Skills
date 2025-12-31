@@ -18,7 +18,7 @@ from confluence_assistant_skills_lib import (
 
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Update Confluence space properties',
         epilog='''
@@ -35,7 +35,7 @@ Examples:
     parser.add_argument('--profile', help='Confluence profile to use')
     parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
                         help='Output format (default: text)')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate
     space_key = validate_space_key(args.space_key)

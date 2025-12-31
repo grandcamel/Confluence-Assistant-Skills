@@ -86,7 +86,7 @@ def validate_order(
         )
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Reorder child pages of a Confluence page',
         epilog='''
@@ -108,7 +108,7 @@ API supports it. Check the Confluence API documentation for current capabilities
     parser.add_argument('--reverse', action='store_true',
                         help='Reverse current order')
     parser.add_argument('--profile', help='Confluence profile to use')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate parent ID
     parent_id = validate_page_id(args.parent_id)

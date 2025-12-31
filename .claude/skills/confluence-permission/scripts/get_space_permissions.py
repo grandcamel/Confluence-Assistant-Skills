@@ -36,7 +36,7 @@ def format_permission(permission):
     }
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Get permissions for a Confluence space',
         epilog='''
@@ -51,7 +51,7 @@ Examples:
     parser.add_argument('--profile', help='Confluence profile to use')
     parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
                         help='Output format (default: text)')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate
     space_id = validate_page_id(args.space_id, 'space_id')

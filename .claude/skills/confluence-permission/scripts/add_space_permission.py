@@ -51,7 +51,7 @@ def parse_principal(principal_str):
     return principal_type, identifier
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Add permission to a Confluence space',
         epilog='''
@@ -78,7 +78,7 @@ Note: This uses the v1 API. Space permission management is not available in v2.
     parser.add_argument('operation', choices=VALID_OPERATIONS,
                         help='Permission operation to grant')
     parser.add_argument('--profile', help='Confluence profile to use')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate
     space_key = validate_space_key(args.space_key)

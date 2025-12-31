@@ -213,7 +213,7 @@ def export_history(output_file, format='csv'):
     print_success(f"Exported {len(history)} entries to {output_path}")
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Manage CQL query history',
         epilog='''
@@ -256,7 +256,7 @@ Examples:
     parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
                         help='Output format (default: text)')
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # List entries
     if args.command == 'list':

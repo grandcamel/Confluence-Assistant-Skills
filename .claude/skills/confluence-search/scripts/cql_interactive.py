@@ -231,7 +231,7 @@ def build_query_interactive(client, initial_parts=None):
     return " ".join(parts)
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Interactive CQL query builder',
         epilog='''
@@ -260,7 +260,7 @@ Examples:
     parser.add_argument('--execute', action='store_true',
                         help='Execute query after building')
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Get client
     client = get_confluence_client(profile=args.profile)

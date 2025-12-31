@@ -25,7 +25,7 @@ def build_cql_query(space: str = None) -> str:
     return 'type in (page, blogpost)'
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='List most popular labels in a space or across all spaces',
         epilog='''
@@ -45,7 +45,7 @@ Examples:
     parser.add_argument('--profile', '-p', help='Confluence profile to use')
     parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
                         help='Output format (default: text)')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate inputs
     limit = validate_limit(args.limit, max_value=250)

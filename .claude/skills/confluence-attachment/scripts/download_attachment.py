@@ -17,7 +17,7 @@ from confluence_assistant_skills_lib import (
 
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Download attachment(s) from Confluence',
         epilog='''
@@ -37,7 +37,7 @@ Examples:
     parser.add_argument('--output', '-o', required=True, type=Path, help='Output file or directory')
     parser.add_argument('--all', '-a', action='store_true', help='Download all attachments from page')
     parser.add_argument('--profile', help='Confluence profile to use')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate inputs
     item_id = validate_page_id(args.id)  # Works for both page and attachment IDs

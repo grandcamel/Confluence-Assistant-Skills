@@ -32,7 +32,7 @@ from confluence_assistant_skills_lib import (
 
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='List and filter content properties',
         epilog='''
@@ -65,7 +65,7 @@ Examples:
     parser.add_argument('--profile', '-p', help='Confluence profile to use')
     parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
                         help='Output format (default: text)')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate
     content_id = validate_page_id(args.content_id)

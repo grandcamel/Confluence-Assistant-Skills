@@ -21,7 +21,7 @@ def confirm_deletion(attachment_title: str, attachment_id: str) -> bool:
     return response.lower() in ('y', 'yes')
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Delete an attachment from Confluence',
         epilog='''
@@ -37,7 +37,7 @@ Examples:
     parser.add_argument('attachment_id', help='Attachment ID to delete')
     parser.add_argument('--force', '-f', action='store_true', help='Skip confirmation prompt')
     parser.add_argument('--profile', help='Confluence profile to use')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate inputs
     attachment_id = validate_page_id(args.attachment_id)

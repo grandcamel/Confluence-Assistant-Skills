@@ -169,7 +169,7 @@ def export_batch_json(records, output_file, is_first_batch, is_last_batch):
             f.write('\n]\n')
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Export large search result sets with streaming',
         epilog='''
@@ -201,7 +201,7 @@ Examples:
                         help='Resume from last checkpoint')
     parser.add_argument('--profile', help='Confluence profile to use')
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Determine format
     output_file = Path(args.output).resolve()

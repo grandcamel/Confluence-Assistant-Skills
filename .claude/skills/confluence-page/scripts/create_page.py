@@ -29,7 +29,7 @@ def is_markdown_file(file_path: Path) -> bool:
     return file_path.suffix.lower() in ('.md', '.markdown')
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Create a new Confluence page',
         epilog='''
@@ -50,7 +50,7 @@ Examples:
     parser.add_argument('--profile', help='Confluence profile to use')
     parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
                         help='Output format (default: text)')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate inputs
     space_key = validate_space_key(args.space)

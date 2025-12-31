@@ -49,7 +49,7 @@ def read_body_from_file(file_path: Path) -> str:
     return file_path.read_text(encoding='utf-8')
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Update an existing Confluence comment',
         epilog='''
@@ -66,7 +66,7 @@ Examples:
     parser.add_argument('--profile', help='Confluence profile to use')
     parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
                         help='Output format (default: text)')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate inputs
     comment_id = validate_page_id(args.comment_id, "comment_id")

@@ -19,7 +19,7 @@ from confluence_assistant_skills_lib import (
 
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='List Confluence templates and blueprints',
         epilog='''
@@ -42,7 +42,7 @@ Examples:
                         help='Output format (default: text)')
     parser.add_argument('--limit', type=int, default=100,
                         help='Maximum number of results (default: 100)')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate space if provided
     space_key = None

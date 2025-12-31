@@ -90,7 +90,7 @@ def touch_page(content: str) -> str:
     return content
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Sync/refresh JIRA macro content in a Confluence page',
         epilog='''
@@ -113,7 +113,7 @@ Examples:
     parser.add_argument('--profile', help='Confluence profile to use')
     parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
                         help='Output format (default: text)')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate inputs
     page_id = validate_page_id(args.page_id)

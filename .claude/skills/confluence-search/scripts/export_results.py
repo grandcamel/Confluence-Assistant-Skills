@@ -54,7 +54,7 @@ def extract_field(result: dict, field: str) -> str:
         return str(content.get(field, ''))
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Export search results to file',
         epilog='''
@@ -73,7 +73,7 @@ Examples:
     parser.add_argument('--limit', '-l', type=int, default=1000,
                         help='Maximum results (default: 1000)')
     parser.add_argument('--profile', help='Confluence profile to use')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate
     cql = validate_cql(args.cql)

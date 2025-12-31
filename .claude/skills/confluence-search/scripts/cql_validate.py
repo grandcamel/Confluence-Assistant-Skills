@@ -16,7 +16,7 @@ from confluence_assistant_skills_lib import (
 
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Validate CQL query syntax',
         epilog='''
@@ -30,7 +30,7 @@ Examples:
     parser.add_argument('--profile', help='Confluence profile (for server validation)')
     parser.add_argument('--server', action='store_true',
                         help='Also validate against server')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Local validation
     print(f"\nValidating CQL: {args.cql}\n")

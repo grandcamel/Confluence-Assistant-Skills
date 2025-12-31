@@ -200,7 +200,7 @@ def get_field_values(client, field_name):
     return values
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Get CQL field and value suggestions',
         epilog='''
@@ -233,7 +233,7 @@ Examples:
     parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
                         help='Output format (default: text)')
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate that at least one option is provided
     if not any([args.fields, args.field, args.operators, args.functions]):

@@ -33,7 +33,7 @@ def validate_template_name(name: str) -> str:
     return name
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Update an existing Confluence page template',
         epilog='''
@@ -57,7 +57,7 @@ Examples:
     parser.add_argument('--profile', help='Confluence profile to use')
     parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
                         help='Output format (default: text)')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate template ID
     if not args.template_id or not args.template_id.strip():

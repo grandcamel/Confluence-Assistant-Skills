@@ -30,7 +30,7 @@ def confirm_delete(page_title: str, permanent: bool) -> bool:
     return response in ('y', 'yes')
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Delete a Confluence page',
         epilog='''
@@ -47,7 +47,7 @@ Examples:
     parser.add_argument('--force', '-f', action='store_true',
                         help='Skip confirmation prompt')
     parser.add_argument('--profile', help='Confluence profile to use')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate
     page_id = validate_page_id(args.page_id)
