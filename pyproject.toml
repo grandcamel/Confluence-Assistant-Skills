@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "confluence-assistant-skills"
+version = "1.0.0"
+description = "A collection of CLI-based assistant skills for interacting with Confluence."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+    {name = "Jason Krueger"}
+]
+keywords = ["confluence", "atlassian", "cli", "assistant", "skills"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "click>=8.0",
+    "confluence-assistant-skills-lib>=0.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[project.scripts]
+confluence = "confluence_assistant_skills.cli.main:cli"
+
+[project.urls]
+Homepage = "https://github.com/jasonkrueger/Confluence-Assistant-Skills"
+Documentation = "https://github.com/jasonkrueger/Confluence-Assistant-Skills#readme"
+Repository = "https://github.com/jasonkrueger/Confluence-Assistant-Skills"
+Issues = "https://github.com/jasonkrueger/Confluence-Assistant-Skills/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
