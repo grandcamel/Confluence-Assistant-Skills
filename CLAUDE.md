@@ -409,7 +409,7 @@ label = "documentation"
 text ~ "API documentation"
 
 # Recent content
-created >= "2024-01-01" AND creator = currentUser()
+created >= "2025-01-01" AND creator = currentUser()
 ```
 
 ### Advanced Queries
@@ -422,7 +422,7 @@ space in ("DOCS", "KB", "DEV") AND type = page
 label = "approved" AND label != "draft"
 
 # Date ranges
-lastModified >= "2024-01-01" AND lastModified < "2024-02-01"
+lastModified >= "2025-01-01" AND lastModified < "2025-02-01"
 
 # Ancestor (child pages)
 ancestor = 12345
@@ -520,6 +520,8 @@ def test_space(confluence_client):
 
 Documentation: https://developer.atlassian.com/cloud/confluence/rest/v2/intro/
 
+
+## E2E Testing
 
 ### Run E2E Tests
 

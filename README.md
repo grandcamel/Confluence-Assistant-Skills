@@ -414,14 +414,16 @@ python .claude/skills/confluence-permission/scripts/get_space_permissions.py \
 ├── confluence-hierarchy/     # Page tree
 ├── confluence-jira/          # JIRA integration
 └── shared/
-    ├── scripts/lib/          # Shared Python library
-    │   ├── confluence_client.py   # HTTP client with retry
-    │   ├── config_manager.py      # Multi-profile config
-    │   ├── error_handler.py       # Exception handling
-    │   ├── validators.py          # Input validation
-    │   └── formatters.py          # Output formatting
     ├── config/               # Configuration schema
     └── tests/                # Shared test fixtures
+
+# Shared library (PyPI package)
+confluence-assistant-skills-lib
+├── confluence_client.py      # HTTP client with retry
+├── config_manager.py         # Multi-profile config
+├── error_handler.py          # Exception handling
+├── validators.py             # Input validation
+└── formatters.py             # Output formatting
 ```
 
 <br>
