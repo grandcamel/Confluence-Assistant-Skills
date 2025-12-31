@@ -183,14 +183,25 @@ markdown = xhtml_to_markdown(page['body']['storage']['value'])
 
 ## Testing Scripts
 
+### Test Configuration
+
+Tests are configured via centralized files at the project root:
+- `pytest.ini` - Test paths, markers, import mode (`--import-mode=importlib`)
+- `conftest.py` - Shared fixtures (`temp_path`, `temp_dir`) and pytest hooks
+
+The `--profile` and `--live` options are defined in the root `conftest.py` and available to all tests.
+
 ### Unit Tests
 
 ```bash
-# Run all unit tests
-pytest .claude/skills/confluence-*/tests/test_*.py -v
+# Run all tests (unit + e2e)
+pytest -v
+
+# Run only skill tests
+pytest .claude/skills/ -v
 
 # Run tests for a specific skill
-pytest .claude/skills/confluence-page/tests/test_*.py -v
+pytest .claude/skills/confluence-page/tests/ -v
 
 # Run with coverage
 pytest --cov=confluence_assistant_skills_lib --cov-report=html
@@ -199,10 +210,19 @@ pytest --cov=confluence_assistant_skills_lib --cov-report=html
 ### Live Integration Tests
 
 ```bash
-# Run live tests with a profile
+# Run all live integration tests
+pytest .claude/skills/*/tests/live_integration/ --profile=sandbox -v
+
+# Run live tests for a specific skill
 pytest .claude/skills/confluence-page/tests/live_integration/ \
     --profile=sandbox \
     -v
+
+# Use existing space instead of creating temporary one
+pytest --profile=sandbox --space-key=EXISTING -v
+
+# Keep test space after tests (for debugging)
+pytest --profile=sandbox --keep-space -v
 
 # Skip destructive tests
 pytest --ignore-glob="**/test_delete*"
@@ -283,12 +303,14 @@ if __name__ == '__main__':
 │   ├── __init__.py
 │   └── operation.py
 ├── tests/             # Unit tests
-│   ├── conftest.py
+│   ├── conftest.py    # Skill-specific fixtures only
 │   ├── test_operation.py
 │   └── live_integration/
 │       └── test_operation_live.py
 └── references/        # API docs, examples
 ```
+
+**Note:** Do not add `__init__.py` to test directories. Pytest hooks (`pytest_addoption`, `pytest_configure`) are defined in the root `conftest.py`. Skill-specific `conftest.py` files should only contain fixtures unique to that skill.
 
 ### SKILL.md Template
 
@@ -481,11 +503,22 @@ pytest .claude/skills/confluence-page/tests/live_integration/ --profile=test -v
 
 # With verbose output
 pytest -v -s --profile=test
+
+# Use existing space (faster, no cleanup)
+pytest --profile=test --space-key=MYTEST -v
+
+# Keep space after tests (for debugging)
+pytest --profile=test --keep-space -v
 ```
 
 ### Test Fixtures
 
-Tests use session-scoped fixtures for setup/teardown:
+Shared fixtures are defined in:
+- **Root `conftest.py`** - `temp_path`, `temp_dir`, pytest hooks
+- **`.claude/skills/shared/tests/conftest.py`** - `mock_client`, `sample_page`, etc.
+- **`.claude/skills/shared/tests/live_integration/conftest.py`** - `confluence_client`, `test_space`, `test_page`
+
+Example session-scoped fixture for setup/teardown:
 
 ```python
 @pytest.fixture(scope="session")

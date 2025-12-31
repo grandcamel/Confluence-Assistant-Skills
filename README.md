@@ -10,7 +10,7 @@
 <tr>
 <td align="center"><strong>14</strong><br><sub>Skills</sub></td>
 <td align="center"><strong>88</strong><br><sub>Scripts</sub></td>
-<td align="center"><strong>1,039</strong><br><sub>Tests</sub></td>
+<td align="center"><strong>940</strong><br><sub>Tests</sub></td>
 <td align="center"><strong>CQL</strong><br><sub>Query Support</sub></td>
 </tr>
 </table>
@@ -398,6 +398,10 @@ python .claude/skills/confluence-permission/scripts/get_space_permissions.py \
 ## 🏗️ Architecture
 
 ```
+# Root configuration
+pytest.ini                    # Test paths, markers, import mode
+conftest.py                   # Shared fixtures and pytest hooks
+
 .claude/skills/
 ├── confluence-assistant/     # Hub skill - routes requests
 ├── confluence-page/          # Page CRUD operations
@@ -478,20 +482,27 @@ python .claude/skills/confluence-page/scripts/get_page.py \
 
 | Metric | Value |
 |--------|-------|
-| Test Files | 1,039 |
+| Total Tests | 940 |
 | Unit Tests | Comprehensive coverage |
 | Live Integration Tests | 64 test files |
 | Code Style | PEP 8 compliant |
 
 ```bash
-# Run all unit tests
-pytest .claude/skills/*/tests/ -v --ignore="**/live_integration"
+# Run all tests
+pytest -v
+
+# Run unit tests only (skip live integration)
+pytest .claude/skills/ -v --ignore-glob="**/live_integration/*"
 
 # Run with coverage
-pytest --cov=.claude/skills/shared/scripts/lib --cov-report=html
+pytest --cov=confluence_assistant_skills_lib --cov-report=html
 
 # Run live integration tests
 pytest .claude/skills/*/tests/live_integration/ --profile=sandbox -v
+
+# Run E2E tests (requires ANTHROPIC_API_KEY)
+./scripts/run-e2e-tests.sh           # Docker
+./scripts/run-e2e-tests.sh --local   # Local
 ```
 
 <br>
@@ -597,19 +608,3 @@ Made with ❤️ for the Confluence community
 [![GitHub stars](https://img.shields.io/github/stars/grandcamel/Confluence-Assistant-Skills?style=social)](https://github.com/grandcamel/Confluence-Assistant-Skills)
 
 </div>
-
----
-
-## E2E Testing
-
-### Run E2E Tests
-
-E2E tests validate the plugin with the Claude Code CLI:
-
-```bash
-# Requires ANTHROPIC_API_KEY
-./scripts/run-e2e-tests.sh           # Docker
-./scripts/run-e2e-tests.sh --local   # Local
-```
-
-See [tests/e2e/README.md](tests/e2e/README.md) for details.
