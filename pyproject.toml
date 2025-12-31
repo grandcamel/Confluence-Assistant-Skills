@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "confluence-assistant-skills"
-version = "1.0.0"
+version = "1.1.0"
 description = "A collection of CLI-based assistant skills for interacting with Confluence."
 readme = "README.md"
 license = {text = "MIT"}

@@ -5,6 +5,31 @@ All notable changes to the Confluence Assistant Skills project will be documente
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-12-31
+
+### Added
+
+- **CLI Framework**: Unified `confluence` command-line interface using Click
+  - 13 command groups: page, space, search, comment, label, attachment, hierarchy, permission, analytics, watch, template, property, jira
+  - Global options: `--profile`, `--output`, `--verbose`, `--quiet`
+  - Shell completion support for bash and zsh
+- **Package Installation**: Install via `pip install -e .` with `confluence` entry point
+- **Hybrid Dispatch**: CLI calls skill scripts directly with subprocess fallback
+- **Comprehensive CLI Tests**: 31 tests covering all command groups
+
+### Changed
+
+- All 75 skill scripts now accept `argv` parameter for testability and CLI integration
+- SKILL.md files updated to use new `confluence <group> <command>` syntax
+- Documentation updated with CLI installation, usage, and examples
+- Script template pattern now includes `argv: list[str] | None = None` parameter
+
+### Documentation
+
+- Added CLI Interface section to CLAUDE.md
+- Updated README.md Quick Start with CLI installation
+- All code examples converted from `python script.py` to `confluence` CLI syntax
+
 ## 1.0.0 (2025-12-29)
 
 
