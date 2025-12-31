@@ -38,7 +38,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r .claude/skills/shared/scripts/lib/requirements.txt
+          pip install -r requirements.txt
+          pip install pytest flake8
 
       - name: Run unit tests
         run: |
@@ -52,10 +53,9 @@ jobs:
             fi
           done
 
-      - name: Lint shared library
+      - name: Lint skill scripts
         run: |
-          pip install flake8
-          flake8 .claude/skills/shared/scripts/lib/ \
+          flake8 .claude/skills/*/scripts/ \
             --count \
             --select=E9,F63,F7,F82 \
             --show-source \
