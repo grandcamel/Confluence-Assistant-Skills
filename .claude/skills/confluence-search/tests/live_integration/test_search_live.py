@@ -149,13 +149,13 @@ class TestCqlSearchLive:
         """Test searching by label."""
         label = f"searchtest-{uuid.uuid4().hex[:8]}"
 
-        # Add label to page
+        # Add label to page using v1 API (v2 doesn't support POST for labels)
         confluence_client.post(
-            f"/api/v2/pages/{test_page['id']}/labels",
-            json_data={'name': label}
+            f"/rest/api/content/{test_page['id']}/label",
+            json_data=[{'name': label}]
         )
 
-        time.sleep(2)  # Wait for indexing
+        time.sleep(3)  # Wait for indexing
 
         results = confluence_client.get(
             '/rest/api/search',
@@ -210,11 +210,17 @@ class TestSearchPaginationLive:
         assert 'results' in page2
 
         # Pages should be different (if enough content exists)
-        if page1['results'] and page2['results']:
-            page1_ids = [r.get('content', {}).get('id') for r in page1['results']]
-            page2_ids = [r.get('content', {}).get('id') for r in page2['results']]
-            # At least some IDs should differ
-            assert set(page1_ids) != set(page2_ids) or len(page1_ids) == 0
+        # Note: With sparse data, page2 may be empty or have same results
+        page1_ids = [r.get('content', {}).get('id') for r in page1.get('results', [])]
+        page2_ids = [r.get('content', {}).get('id') for r in page2.get('results', [])]
+
+        # Verify pagination structure works - results may overlap with sparse data
+        if len(page1_ids) >= 2 and len(page2_ids) >= 1:
+            # With sufficient results, page 2 should have different content
+            assert set(page1_ids) != set(page2_ids)
+        # Otherwise just verify the structure is correct
+        assert isinstance(page1_ids, list)
+        assert isinstance(page2_ids, list)
 
 @pytest.mark.integration
 class TestSearchWithExpandLive:

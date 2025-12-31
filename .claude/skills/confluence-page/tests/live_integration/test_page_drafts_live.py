@@ -81,7 +81,7 @@ class TestPageDraftsLive:
         page_id = page['id']
 
         try:
-            # Publish the draft
+            # Publish the draft - version must be 1 for first publish
             published = confluence_client.put(
                 f'/api/v2/pages/{page_id}',
                 json_data={
@@ -93,13 +93,16 @@ class TestPageDraftsLive:
                         'representation': 'storage',
                         'value': '<p>Now published.</p>'
                     },
-                    'version': {'number': page['version']['number'] + 1}
+                    'version': {'number': 1}
                 }
             )
 
             assert published['status'] == 'current'
         finally:
-            confluence_client.delete(f"/api/v2/pages/{page_id}")
+            try:
+                confluence_client.delete(f"/api/v2/pages/{page_id}")
+            except Exception:
+                pass  # Page may have been auto-deleted or not found
 
     def test_update_draft_content(self, confluence_client, test_space):
         """Test updating draft content before publishing."""
@@ -122,7 +125,7 @@ class TestPageDraftsLive:
         page_id = page['id']
 
         try:
-            # Update the draft
+            # Update the draft - drafts don't support multiple versions, must use version 1
             updated = confluence_client.put(
                 f'/api/v2/pages/{page_id}',
                 json_data={
@@ -134,7 +137,7 @@ class TestPageDraftsLive:
                         'representation': 'storage',
                         'value': '<p>Updated draft content.</p>'
                     },
-                    'version': {'number': page['version']['number'] + 1}
+                    'version': {'number': 1}
                 }
             )
 

@@ -232,14 +232,20 @@ class TestMovePageLive:
         )
 
         try:
-            # Move to parent2 using v1 API
-            confluence_client.session.put(
-                f"{confluence_client.base_url}/wiki/rest/api/content/{child['id']}/move/position/append/targetId/{parent2['id']}",
-                headers={'Content-Type': 'application/json'}
+            # Move to parent2 using v2 API PUT
+            moved = confluence_client.put(
+                f'/api/v2/pages/{child["id"]}',
+                json_data={
+                    'id': child['id'],
+                    'status': 'current',
+                    'title': child['title'],
+                    'spaceId': test_space['id'],
+                    'parentId': parent2['id'],
+                    'version': {'number': child['version']['number'] + 1}
+                }
             )
 
             # Verify new parent
-            moved = confluence_client.get(f"/api/v2/pages/{child['id']}")
             assert moved['parentId'] == parent2['id']
 
         finally:
