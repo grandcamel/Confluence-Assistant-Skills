@@ -44,6 +44,76 @@ pip install confluence-assistant-skills-lib
 - `xhtml_helper` - Legacy storage format utilities
 - `Cache` - Response caching
 
+## CLI Interface
+
+### Installation
+
+The project provides a unified `confluence` CLI for all operations:
+
+```bash
+# Install in development mode
+pip install -e .
+
+# Verify installation
+confluence --version
+```
+
+### Usage
+
+```bash
+# Get help
+confluence --help
+confluence page --help
+confluence page get --help
+
+# Page operations
+confluence page get 12345
+confluence page get 12345 --body --format markdown
+confluence page create DOCS "My Page" --body "Content here"
+confluence page update 12345 --title "New Title"
+confluence page delete 12345 --confirm
+
+# Space operations
+confluence space list
+confluence space list --output json
+confluence space get DOCS
+
+# Search operations
+confluence search cql "space = DOCS AND type = page"
+confluence search cql "label = 'approved'" --limit 50 --show-labels
+confluence search export "space = DOCS" --format csv --output-file results.csv
+
+# Other commands
+confluence comment add 12345 "Great page!"
+confluence label add 12345 api-docs approved
+confluence attachment list 12345
+confluence hierarchy tree 12345 --depth 3
+```
+
+### Global Options
+
+All commands support these global options:
+
+| Option | Description |
+|--------|-------------|
+| `--profile, -p` | Configuration profile to use |
+| `--output, -o` | Output format: `text` or `json` |
+| `--verbose, -v` | Enable verbose output |
+| `--quiet, -q` | Suppress non-essential output |
+| `--help` | Show command help |
+
+### Shell Completion
+
+Enable tab completion for bash:
+```bash
+eval "$(_CONFLUENCE_COMPLETE=bash_source confluence)"
+```
+
+For zsh:
+```bash
+eval "$(_CONFLUENCE_COMPLETE=zsh_source confluence)"
+```
+
 ### Import Pattern
 
 Every script should import shared utilities like this:
@@ -103,7 +173,7 @@ Profiles allow switching between different Confluence instances:
 
 Use profiles:
 ```bash
-python get_page.py 12345 --profile sandbox
+confluence page get 12345 --profile sandbox
 ```
 
 ## Error Handling Strategy
@@ -242,8 +312,9 @@ pytest --ignore-glob="**/test_delete*"
 Brief description of what this script does.
 
 Examples:
-    python script_name.py SPACE-KEY --option value
+    confluence space get SPACE-KEY --option value
 """
+from __future__ import annotations
 
 import argparse
 from confluence_assistant_skills_lib import (
@@ -256,7 +327,7 @@ from confluence_assistant_skills_lib import (
 
 
 @handle_errors
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description='Script description',
         formatter_class=argparse.RawDescriptionHelpFormatter
@@ -264,7 +335,7 @@ def main():
     parser.add_argument('space_key', help='Space key')
     parser.add_argument('--profile', '-p', help='Confluence profile')
     parser.add_argument('--output', '-o', choices=['text', 'json'], default='text')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate
     space_key = validate_space_key(args.space_key)
@@ -287,6 +358,8 @@ def main():
 if __name__ == '__main__':
     main()
 ```
+
+**Note:** The `argv` parameter enables direct function calls from the CLI framework and simplifies testing.
 
 3. **Add tests** in the skill's `tests/` directory
 
@@ -336,7 +409,7 @@ Description of operation.
 
 **Usage:**
 \`\`\`bash
-python operation.py ARG --option VALUE
+confluence {group} {command} ARG --option VALUE
 \`\`\`
 
 ## Examples

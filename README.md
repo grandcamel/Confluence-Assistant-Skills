@@ -142,13 +142,30 @@ export CONFLUENCE_API_TOKEN="your-api-token"
 <tr>
 <td>
 
-### 3️⃣ Use
+### 3️⃣ Install CLI
 
 ```bash
-# Verify connection
-python .claude/skills/confluence-space/scripts/list_spaces.py --limit 1
+pip install -e .
 
-# Then just ask Claude naturally:
+# Verify installation
+confluence --version
+confluence space list --limit 1
+```
+
+</td>
+</tr>
+<tr>
+<td>
+
+### 4️⃣ Use
+
+```bash
+# CLI commands
+confluence page get 12345
+confluence search cql "space = DOCS"
+confluence label add 12345 approved
+
+# Or ask Claude naturally:
 "Create a page titled 'Meeting Notes' in the DOCS space"
 "Search for pages about API documentation"
 "Add label 'approved' to page 12345"
@@ -294,14 +311,12 @@ lastModified >= startOfWeek()
 
 ```bash
 # Export to CSV
-python .claude/skills/confluence-search/scripts/export_results.py \
-  "label = 'release-notes'" \
+confluence search export "label = 'release-notes'" \
   --format csv \
-  --output releases.csv
+  --output-file releases.csv
 
 # Export to JSON
-python .claude/skills/confluence-search/scripts/export_results.py \
-  "space = 'DOCS'" \
+confluence search export "space = 'DOCS'" \
   --format json
 ```
 
@@ -329,8 +344,7 @@ python .claude/skills/confluence-search/scripts/export_results.py \
 
 ```bash
 # Find all pages needing review
-python .claude/skills/confluence-search/scripts/cql_search.py \
-  "label = 'needs-review' AND lastModified < startOfMonth(-3)"
+confluence search cql "label = 'needs-review' AND lastModified < startOfMonth(-3)"
 ```
 
 </details>
@@ -347,8 +361,7 @@ python .claude/skills/confluence-search/scripts/cql_search.py \
 
 ```bash
 # Create release notes page
-python .claude/skills/confluence-page/scripts/create_page.py \
-  --space RELEASES --title "v2.5.0" --file CHANGELOG.md
+confluence page create RELEASES "v2.5.0" --file CHANGELOG.md
 ```
 
 </details>
@@ -365,8 +378,7 @@ python .claude/skills/confluence-page/scripts/create_page.py \
 
 ```bash
 # Get page view statistics
-python .claude/skills/confluence-analytics/scripts/get_page_views.py \
-  12345 --output json
+confluence analytics views 12345 --output json
 ```
 
 </details>
@@ -383,8 +395,7 @@ python .claude/skills/confluence-analytics/scripts/get_page_views.py \
 
 ```bash
 # List all space permissions
-python .claude/skills/confluence-permission/scripts/get_space_permissions.py \
-  DOCS --output json
+confluence permission space DOCS --output json
 ```
 
 </details>
@@ -468,8 +479,7 @@ export CONFLUENCE_API_TOKEN="your-api-token"
 
 ```bash
 # Use specific profile
-python .claude/skills/confluence-page/scripts/get_page.py \
-  12345 --profile sandbox
+confluence page get 12345 --profile sandbox
 ```
 
 <br>
@@ -536,7 +546,7 @@ pytest .claude/skills/*/tests/live_integration/ --profile=sandbox -v
 
 ```bash
 # Validate your query
-python .claude/skills/confluence-search/scripts/cql_validate.py "your query"
+confluence search validate "your query"
 ```
 
 Check quotes are balanced and field names are valid.
