@@ -10,6 +10,10 @@
 **/secrets.json
 **/.secrets/
 
+# Runtime .claude directory (user config, logs)
+.claude/settings.json
+.claude/logs/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -23,7 +27,6 @@ downloads/
 eggs/
 .eggs/
 lib/
-!.claude/skills/shared/scripts/lib/
 lib64/
 parts/
 sdist/

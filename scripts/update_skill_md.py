@@ -133,7 +133,7 @@ def update_skill_md(skill_path: Path) -> tuple[int, int]:
 
 def main():
     """Update all SKILL.md files."""
-    skills_dir = Path(".claude/skills")
+    skills_dir = Path(".claude-plugin/.claude/skills")
 
     total_changes = 0
     total_files = 0

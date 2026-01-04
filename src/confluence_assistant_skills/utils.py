@@ -8,37 +8,40 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import click.exceptions
+
 
 def get_skills_root_dir() -> Path:
     """Get the root directory for skill scripts.
 
     Resolution order:
     1. CONFLUENCE_SKILLS_ROOT environment variable
-    2. Relative to this package (../../.claude/skills)
+    2. Plugin directory (.claude-plugin/.claude/skills)
+    3. Current working directory plugin location
     """
     # Check environment variable first
     env_root = os.environ.get("CONFLUENCE_SKILLS_ROOT")
     if env_root:
         return Path(env_root)
 
-    # Default: relative to this package
-    # src/confluence_assistant_skills/utils.py -> ../../.claude/skills
+    # Default: relative to this package - look in plugin directory
+    # src/confluence_assistant_skills/utils.py -> ../../.claude-plugin/.claude/skills
     package_dir = Path(__file__).resolve().parent
     project_root = package_dir.parent.parent.parent
-    skills_dir = project_root / ".claude" / "skills"
+    skills_dir = project_root / ".claude-plugin" / ".claude" / "skills"
 
     if skills_dir.exists():
         return skills_dir
 
     # Fallback for installed package - check current working directory
-    cwd_skills = Path.cwd() / ".claude" / "skills"
+    cwd_skills = Path.cwd() / ".claude-plugin" / ".claude" / "skills"
     if cwd_skills.exists():
         return cwd_skills
 
     raise RuntimeError(
         f"Could not locate skills directory. "
         f"Set CONFLUENCE_SKILLS_ROOT environment variable or ensure "
-        f".claude/skills exists in the current directory."
+        f".claude-plugin/.claude/skills exists in the current directory."
     )
 
 
@@ -152,6 +155,10 @@ def call_skill_main(
             return 0 if result is None else int(result)
 
         raise AttributeError(f"Module {script_name} has no 'main' or 'execute_skill' function")
+
+    except click.exceptions.Exit as e:
+        # Script exited via Click - return the exit code (don't treat as error)
+        return e.exit_code
 
     except Exception as e:
         # Fall back to subprocess

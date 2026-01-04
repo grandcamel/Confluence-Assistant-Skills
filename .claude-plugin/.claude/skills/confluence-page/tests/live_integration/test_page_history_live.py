@@ -6,6 +6,7 @@ Usage:
 """
 
 import pytest
+import time
 import uuid
 import sys
 from confluence_assistant_skills_lib import (
@@ -43,6 +44,9 @@ def page_with_history(confluence_client, test_space):
         }
     )
 
+    # Brief delay to allow Confluence to process the initial version
+    time.sleep(0.5)
+
     # Create version 2
     page = confluence_client.put(
         f'/api/v2/pages/{page["id"]}',
@@ -55,6 +59,9 @@ def page_with_history(confluence_client, test_space):
             'version': {'number': 2}
         }
     )
+
+    # Brief delay before next update to avoid version conflicts
+    time.sleep(0.5)
 
     # Create version 3
     page = confluence_client.put(
