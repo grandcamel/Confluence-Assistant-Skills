@@ -1,6 +1,6 @@
 {
   "name": "confluence-assistant-skills-marketplace",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Claude Code skills for automating Confluence Cloud operations via natural language. 14 skills, 88 scripts, 1,039 tests.",
   "owner": {
     "name": "Jason Krueger",
@@ -10,7 +10,7 @@
     {
       "name": "confluence-assistant-skills",
       "description": "14 specialized skills for Confluence Cloud automation. Natural language page management, CQL search with export, comments, attachments, labels, permissions, and JIRA integration. 88 scripts with 1,039 tests.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "Jason Krueger",
         "url": "https://github.com/grandcamel"
