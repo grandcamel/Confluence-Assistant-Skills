@@ -637,3 +637,4 @@ Documentation: https://developer.atlassian.com/cloud/confluence/rest/v2/intro/
 ./scripts/run-e2e-tests.sh --local   # Local
 ./scripts/run-e2e-tests.sh --verbose # Verbose
 ```
+- Always Test Driven Development / TDD in planning and execution of new features
