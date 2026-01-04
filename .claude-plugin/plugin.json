@@ -1,6 +1,6 @@
 {
   "name": "confluence-assistant-skills",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "14 specialized skills for Confluence Cloud automation. Natural language page management, CQL search with export, comments, attachments, labels, permissions, and JIRA integration.",
   "author": {
     "name": "Jason Krueger",
@@ -19,6 +19,11 @@
     "collaboration"
   ],
   "skills": "./.claude/skills/",
+  "commands": [
+    "./commands/confluence-assistant-setup.md",
+    "./commands/browse-skills.md",
+    "./commands/skill-info.md"
+  ],
   "assistant_skills": {
     "requirements": "requirements.txt",
     "env_vars": [
