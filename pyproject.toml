@@ -35,8 +35,15 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0",
-    "pytest-cov>=4.0",
+    "pre-commit>=3.5.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.8.0",
+    "mypy>=1.0.0",
+    "types-requests>=2.28.0",
+    "types-click>=7.1.0",
+    "bandit[toml]>=1.7.0",
 ]
 
 [project.scripts]
@@ -53,3 +60,130 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "*" = ["py.typed"]
+
+# =============================================================================
+# Ruff - Fast Python linter and formatter (replaces flake8, isort, black)
+# =============================================================================
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+src = ["src", ".claude-plugin/.claude/skills"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG",    # flake8-unused-arguments
+    "SIM",    # flake8-simplify
+    "TCH",    # flake8-type-checking
+    "PTH",    # flake8-use-pathlib
+    "RUF",    # Ruff-specific rules
+]
+ignore = [
+    "E501",   # Line too long (handled by formatter)
+    "B008",   # Do not perform function calls in argument defaults (Click uses this)
+    "B904",   # Within an except clause, raise from err or None
+    "ARG001", # Unused function argument (common in CLI apps)
+    "ARG002", # Unused method argument
+    "SIM108", # Use ternary operator (readability preference)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**/*.py" = ["ARG", "S101", "PLR2004"]  # Allow asserts and magic values in tests
+"**/conftest.py" = ["ARG"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["confluence_assistant_skills", "confluence_assistant_skills_lib"]
+force-single-line = false
+combine-as-imports = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+
+# =============================================================================
+# Mypy - Static type checking
+# =============================================================================
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+strict_equality = true
+check_untyped_defs = true
+disallow_untyped_defs = false  # Gradual adoption - enable later
+disallow_incomplete_defs = true
+no_implicit_optional = true
+show_error_codes = true
+show_column_numbers = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = [
+    "tabulate.*",
+    "colorama.*",
+    "tqdm.*",
+    "responses.*",
+    "confluence_assistant_skills_lib.*",
+]
+ignore_missing_imports = true
+
+# =============================================================================
+# Bandit - Security scanning
+# =============================================================================
+[tool.bandit]
+exclude_dirs = ["tests", "**/tests", "conftest.py"]
+skips = [
+    "B101",  # assert_used - OK in production for invariants
+    "B104",  # hardcoded_bind_all_interfaces - not applicable
+]
+
+# =============================================================================
+# Pytest configuration
+# =============================================================================
+[tool.pytest.ini_options]
+minversion = "7.0"
+pythonpath = ["."]
+testpaths = [".claude-plugin/.claude/skills", "tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+import_mode = "importlib"
+markers = [
+    "unit: Unit tests (fast, no external dependencies)",
+    "integration: Integration tests (may hit external services)",
+    "live: Live integration tests against real Confluence",
+    "slow: Slow-running tests",
+    "analytics: Tests for confluence-analytics skill",
+    "attachment: Tests for confluence-attachment skill",
+    "comment: Tests for confluence-comment skill",
+    "hierarchy: Tests for confluence-hierarchy skill",
+    "jira: Tests for confluence-jira skill",
+    "label: Tests for confluence-label skill",
+    "page: Tests for confluence-page skill",
+    "permission: Tests for confluence-permission skill",
+    "property: Tests for confluence-property skill",
+    "search: Tests for confluence-search skill",
+    "space: Tests for confluence-space skill",
+    "template: Tests for confluence-template skill",
+    "watch: Tests for confluence-watch skill",
+    "shared: Tests for shared library",
+]
+
+[tool.coverage.run]
+source = [".claude-plugin/.claude/skills", "src"]
+omit = ["*/tests/*", "*/conftest.py", "*/__init__.py"]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
