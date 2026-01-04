@@ -195,7 +195,7 @@ if [[ -n "$TEST_SPEC" ]]; then
     fi
 else
     # No test spec - run all tests (excluding live_integration)
-    PYTEST_CMD+=(. --ignore-glob="**/live_integration/*")
+    PYTEST_CMD+=(. --ignore=live_integration)
 fi
 
 # Add any pytest args

@@ -189,7 +189,7 @@ run_skill_tests() {
 
     # Run pytest and capture output
     if pytest_output=$(python -m pytest . \
-        --ignore-glob="**/live_integration/*" \
+        --ignore=live_integration \
         --tb=short \
         -q \
         $VERBOSE \
