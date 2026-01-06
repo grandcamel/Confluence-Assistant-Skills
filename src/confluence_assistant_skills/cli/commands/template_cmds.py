@@ -15,8 +15,15 @@ def template() -> None:
 
 @template.command(name="list")
 @click.option("--space", "-s", help="Limit to specific space")
-@click.option("--type", "template_type", help="Template type (page, blog)")
-@click.option("--limit", "-l", type=int, default=25, help="Maximum templates to return")
+@click.option(
+    "--type",
+    "-t",
+    "template_type",
+    type=click.Choice(["page", "blogpost"]),
+    help="Template type (page or blogpost)",
+)
+@click.option("--blueprints", is_flag=True, help="List blueprints instead of templates")
+@click.option("--limit", "-l", type=int, default=100, help="Maximum templates to return")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
@@ -26,6 +33,7 @@ def list_templates(
     ctx: click.Context,
     space: str | None,
     template_type: str | None,
+    blueprints: bool,
     limit: int,
     profile: str | None,
     output: str,
@@ -36,7 +44,9 @@ def list_templates(
         argv.extend(["--space", space])
     if template_type:
         argv.extend(["--type", template_type])
-    if limit != 25:
+    if blueprints:
+        argv.append("--blueprints")
+    if limit != 100:
         argv.extend(["--limit", str(limit)])
     if profile:
         argv.extend(["--profile", profile])
@@ -48,6 +58,15 @@ def list_templates(
 
 @template.command(name="get")
 @click.argument("template_id")
+@click.option("--body", is_flag=True, help="Include body content in output")
+@click.option(
+    "--format",
+    "body_format",
+    type=click.Choice(["storage", "markdown"]),
+    default="storage",
+    help="Body format (storage or markdown)",
+)
+@click.option("--blueprint", is_flag=True, help="Get blueprint instead of template")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
@@ -56,11 +75,20 @@ def list_templates(
 def get_template(
     ctx: click.Context,
     template_id: str,
+    body: bool,
+    body_format: str,
+    blueprint: bool,
     profile: str | None,
     output: str,
 ) -> None:
     """Get a template by ID."""
     argv = [template_id]
+    if body:
+        argv.append("--body")
+    if body_format != "storage":
+        argv.extend(["--format", body_format])
+    if blueprint:
+        argv.append("--blueprint")
     if profile:
         argv.extend(["--profile", profile])
     if output != "text":
@@ -70,11 +98,21 @@ def get_template(
 
 
 @template.command(name="create")
-@click.argument("space_key")
-@click.argument("name")
-@click.option("--body", help="Template body content")
-@click.option("--body-file", type=click.Path(exists=True), help="Read body from file")
+@click.option("--name", required=True, help="Template name")
+@click.option("--space", "-s", required=True, help="Space key for the template")
 @click.option("--description", help="Template description")
+@click.option("--content", help="Template body content (HTML/XHTML)")
+@click.option("--file", "content_file", type=click.Path(exists=True), help="File with template content")
+@click.option("--labels", help="Comma-separated labels")
+@click.option(
+    "--type",
+    "-t",
+    "template_type",
+    type=click.Choice(["page", "blogpost"]),
+    default="page",
+    help="Template type (default: page)",
+)
+@click.option("--blueprint-id", help="Base on existing blueprint")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
@@ -82,22 +120,31 @@ def get_template(
 @click.pass_context
 def create_template(
     ctx: click.Context,
-    space_key: str,
     name: str,
-    body: str | None,
-    body_file: str | None,
+    space: str,
     description: str | None,
+    content: str | None,
+    content_file: str | None,
+    labels: str | None,
+    template_type: str,
+    blueprint_id: str | None,
     profile: str | None,
     output: str,
 ) -> None:
     """Create a new template."""
-    argv = [space_key, name]
-    if body:
-        argv.extend(["--body", body])
-    if body_file:
-        argv.extend(["--body-file", body_file])
+    argv = ["--name", name, "--space", space]
     if description:
         argv.extend(["--description", description])
+    if content:
+        argv.extend(["--content", content])
+    if content_file:
+        argv.extend(["--file", content_file])
+    if labels:
+        argv.extend(["--labels", labels])
+    if template_type != "page":
+        argv.extend(["--type", template_type])
+    if blueprint_id:
+        argv.extend(["--blueprint-id", blueprint_id])
     if profile:
         argv.extend(["--profile", profile])
     if output != "text":
@@ -109,9 +156,11 @@ def create_template(
 @template.command(name="update")
 @click.argument("template_id")
 @click.option("--name", help="New template name")
-@click.option("--body", help="New template body")
-@click.option("--body-file", type=click.Path(exists=True), help="Read body from file")
 @click.option("--description", help="New template description")
+@click.option("--content", help="New template body content (HTML/XHTML)")
+@click.option("--file", "content_file", type=click.Path(exists=True), help="File with new content")
+@click.option("--add-labels", help="Comma-separated labels to add")
+@click.option("--remove-labels", help="Comma-separated labels to remove")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
@@ -121,9 +170,11 @@ def update_template(
     ctx: click.Context,
     template_id: str,
     name: str | None,
-    body: str | None,
-    body_file: str | None,
     description: str | None,
+    content: str | None,
+    content_file: str | None,
+    add_labels: str | None,
+    remove_labels: str | None,
     profile: str | None,
     output: str,
 ) -> None:
@@ -131,12 +182,16 @@ def update_template(
     argv = [template_id]
     if name:
         argv.extend(["--name", name])
-    if body:
-        argv.extend(["--body", body])
-    if body_file:
-        argv.extend(["--body-file", body_file])
     if description:
         argv.extend(["--description", description])
+    if content:
+        argv.extend(["--content", content])
+    if content_file:
+        argv.extend(["--file", content_file])
+    if add_labels:
+        argv.extend(["--add-labels", add_labels])
+    if remove_labels:
+        argv.extend(["--remove-labels", remove_labels])
     if profile:
         argv.extend(["--profile", profile])
     if output != "text":
@@ -146,11 +201,14 @@ def update_template(
 
 
 @template.command(name="create-from")
-@click.argument("template_id")
-@click.argument("space_key")
-@click.argument("title")
+@click.option("--template", "template_id", help="Template ID to use")
+@click.option("--blueprint", "blueprint_id", help="Blueprint ID to use (alternative to --template)")
+@click.option("--space", "-s", required=True, help="Space key for the new page")
+@click.option("--title", required=True, help="Title for the new page")
 @click.option("--parent-id", help="Parent page ID")
-@click.option("--variables", help="Template variables as JSON")
+@click.option("--labels", help="Comma-separated labels to add")
+@click.option("--content", help="Custom content (overrides template)")
+@click.option("--file", "content_file", type=click.Path(exists=True), help="File with custom content")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
@@ -158,20 +216,32 @@ def update_template(
 @click.pass_context
 def create_from_template(
     ctx: click.Context,
-    template_id: str,
-    space_key: str,
+    template_id: str | None,
+    blueprint_id: str | None,
+    space: str,
     title: str,
     parent_id: str | None,
-    variables: str | None,
+    labels: str | None,
+    content: str | None,
+    content_file: str | None,
     profile: str | None,
     output: str,
 ) -> None:
     """Create a page from a template."""
-    argv = [template_id, space_key, title]
+    argv = []
+    if template_id:
+        argv.extend(["--template", template_id])
+    if blueprint_id:
+        argv.extend(["--blueprint", blueprint_id])
+    argv.extend(["--space", space, "--title", title])
     if parent_id:
         argv.extend(["--parent-id", parent_id])
-    if variables:
-        argv.extend(["--variables", variables])
+    if labels:
+        argv.extend(["--labels", labels])
+    if content:
+        argv.extend(["--content", content])
+    if content_file:
+        argv.extend(["--file", content_file])
     if profile:
         argv.extend(["--profile", profile])
     if output != "text":
