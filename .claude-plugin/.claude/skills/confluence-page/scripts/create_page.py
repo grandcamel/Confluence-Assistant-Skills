@@ -10,6 +10,7 @@ Examples:
 
 import sys
 import argparse
+from pathlib import Path
 from confluence_assistant_skills_lib import (
     get_confluence_client, handle_errors, ValidationError, validate_space_key,
     validate_page_id, validate_title, print_success, format_page,
