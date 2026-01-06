@@ -39,16 +39,22 @@ def watch_page(
 @watch.command(name="unwatch-page")
 @click.argument("page_id")
 @click.option("--profile", "-p", help="Confluence profile to use")
+@click.option(
+    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+)
 @click.pass_context
 def unwatch_page(
     ctx: click.Context,
     page_id: str,
     profile: str | None,
+    output: str,
 ) -> None:
     """Stop watching a page."""
     argv = [page_id]
     if profile:
         argv.extend(["--profile", profile])
+    if output != "text":
+        argv.extend(["--output", output])
 
     ctx.exit(call_skill_main("confluence-watch", "unwatch_page", argv))
 
