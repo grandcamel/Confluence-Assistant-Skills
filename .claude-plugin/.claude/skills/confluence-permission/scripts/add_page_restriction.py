@@ -5,9 +5,9 @@ Add restriction to a Confluence page.
 Restricts page access to specific users or groups.
 
 Examples:
-    python add_page_restriction.py 123456 read user:john.doe@example.com
-    python add_page_restriction.py 123456 update group:confluence-users
-    python add_page_restriction.py 123456 read user:account-id:123456
+    python add_page_restriction.py 123456 --operation read --user john.doe@example.com
+    python add_page_restriction.py 123456 --operation update --group confluence-users
+    python add_page_restriction.py 123456 --operation read --user account-id:123456
 """
 
 import sys
@@ -20,25 +20,6 @@ from confluence_assistant_skills_lib import (
 
 VALID_OPERATIONS = ['read', 'update']
 
-def parse_principal(principal_str):
-    """Parse principal string in format 'type:identifier'."""
-    if ':' not in principal_str:
-        raise ValidationError(
-            "Principal must be in format 'type:identifier' (e.g., 'user:email@example.com' or 'group:groupname')"
-        )
-
-    parts = principal_str.split(':', 1)
-    principal_type = parts[0].lower()
-
-    if principal_type not in ['user', 'group']:
-        raise ValidationError(f"Principal type must be 'user' or 'group', got '{principal_type}'")
-
-    identifier = parts[1]
-
-    if not identifier:
-        raise ValidationError("Principal identifier cannot be empty")
-
-    return principal_type, identifier
 
 @handle_errors
 def main(argv: list[str] | None = None):
@@ -46,15 +27,9 @@ def main(argv: list[str] | None = None):
         description='Add restriction to a Confluence page',
         epilog='''
 Examples:
-  python add_page_restriction.py 123456 read user:john.doe@example.com
-  python add_page_restriction.py 123456 update group:confluence-users
-  python add_page_restriction.py 123456 read user:account-id:123456
-
-Principal Format:
-  user:email@example.com       - User by email
-  user:username                - User by username
-  user:account-id:123456       - User by account ID
-  group:groupname              - Group by name
+  python add_page_restriction.py 123456 --operation read --user john.doe@example.com
+  python add_page_restriction.py 123456 --operation update --group confluence-users
+  python add_page_restriction.py 123456 --operation read --user account-id:123456
 
 Valid Operations:
   read   - Who can view the page
@@ -65,16 +40,32 @@ Note: This uses the v1 API as page restrictions are not available in v2.
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument('page_id', help='Page ID')
-    parser.add_argument('operation', choices=VALID_OPERATIONS,
+    parser.add_argument('--user', help='User to restrict (email, username, or account-id:xxx)')
+    parser.add_argument('--group', help='Group to restrict')
+    parser.add_argument('--operation', required=True, choices=VALID_OPERATIONS,
                         help='Restriction type (read or update)')
-    parser.add_argument('principal', help='Principal in format type:identifier (e.g., user:email or group:name)')
     parser.add_argument('--profile', help='Confluence profile to use')
+    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
+                        help='Output format (default: text)')
     args = parser.parse_args(argv)
+
+    # Validate inputs
+    if not args.user and not args.group:
+        raise ValidationError("Either --user or --group must be specified")
+    if args.user and args.group:
+        raise ValidationError("Cannot specify both --user and --group")
 
     # Validate
     page_id = validate_page_id(args.page_id)
     operation = args.operation
-    principal_type, identifier = parse_principal(args.principal)
+
+    # Determine principal type and identifier
+    if args.user:
+        principal_type = 'user'
+        identifier = args.user
+    else:
+        principal_type = 'group'
+        identifier = args.group
 
     # Get client
     client = get_confluence_client(profile=args.profile)

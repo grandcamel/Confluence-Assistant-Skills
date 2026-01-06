@@ -91,6 +91,7 @@ def add_page_restriction(
     required=True,
     help="Operation restriction to remove",
 )
+@click.option("--all", "remove_all", is_flag=True, help="Remove all restrictions of this type")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
 def remove_page_restriction(
@@ -99,6 +100,7 @@ def remove_page_restriction(
     user: str | None,
     group_name: str | None,
     operation: str,
+    remove_all: bool,
     profile: str | None,
 ) -> None:
     """Remove a restriction from a page."""
@@ -107,6 +109,8 @@ def remove_page_restriction(
         argv.extend(["--user", user])
     if group_name:
         argv.extend(["--group", group_name])
+    if remove_all:
+        argv.append("--all")
     if profile:
         argv.extend(["--profile", profile])
 

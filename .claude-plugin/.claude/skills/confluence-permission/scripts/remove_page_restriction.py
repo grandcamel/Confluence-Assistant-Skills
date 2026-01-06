@@ -5,9 +5,9 @@ Remove restriction from a Confluence page.
 Removes a user or group restriction from a page.
 
 Examples:
-    python remove_page_restriction.py 123456 read user:john.doe@example.com
-    python remove_page_restriction.py 123456 update group:confluence-users
-    python remove_page_restriction.py 123456 read --all
+    python remove_page_restriction.py 123456 --operation read --user john.doe@example.com
+    python remove_page_restriction.py 123456 --operation update --group confluence-users
+    python remove_page_restriction.py 123456 --operation read --all
 """
 
 import sys
@@ -20,25 +20,6 @@ from confluence_assistant_skills_lib import (
 
 VALID_OPERATIONS = ['read', 'update']
 
-def parse_principal(principal_str):
-    """Parse principal string in format 'type:identifier'."""
-    if ':' not in principal_str:
-        raise ValidationError(
-            "Principal must be in format 'type:identifier' (e.g., 'user:email@example.com' or 'group:groupname')"
-        )
-
-    parts = principal_str.split(':', 1)
-    principal_type = parts[0].lower()
-
-    if principal_type not in ['user', 'group']:
-        raise ValidationError(f"Principal type must be 'user' or 'group', got '{principal_type}'")
-
-    identifier = parts[1]
-
-    if not identifier:
-        raise ValidationError("Principal identifier cannot be empty")
-
-    return principal_type, identifier
 
 @handle_errors
 def main(argv: list[str] | None = None):
@@ -46,14 +27,9 @@ def main(argv: list[str] | None = None):
         description='Remove restriction from a Confluence page',
         epilog='''
 Examples:
-  python remove_page_restriction.py 123456 read user:john.doe@example.com
-  python remove_page_restriction.py 123456 update group:confluence-users
-  python remove_page_restriction.py 123456 read --all
-
-Principal Format:
-  user:email@example.com       - User by email
-  user:username                - User by username
-  group:groupname              - Group by name
+  python remove_page_restriction.py 123456 --operation read --user john.doe@example.com
+  python remove_page_restriction.py 123456 --operation update --group confluence-users
+  python remove_page_restriction.py 123456 --operation read --all
 
 Valid Operations:
   read   - Who can view the page
@@ -64,9 +40,10 @@ Note: This uses the v1 API as page restrictions are not available in v2.
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument('page_id', help='Page ID')
-    parser.add_argument('operation', choices=VALID_OPERATIONS,
+    parser.add_argument('--user', help='User restriction to remove (email, username, or account-id:xxx)')
+    parser.add_argument('--group', help='Group restriction to remove')
+    parser.add_argument('--operation', required=True, choices=VALID_OPERATIONS,
                         help='Restriction type (read or update)')
-    parser.add_argument('principal', nargs='?', help='Principal in format type:identifier (e.g., user:email or group:name)')
     parser.add_argument('--all', action='store_true',
                         help='Remove all restrictions of this type')
     parser.add_argument('--profile', help='Confluence profile to use')
@@ -76,11 +53,15 @@ Note: This uses the v1 API as page restrictions are not available in v2.
     page_id = validate_page_id(args.page_id)
     operation = args.operation
 
-    if not args.all and not args.principal:
-        raise ValidationError("Either specify a principal or use --all to remove all restrictions")
+    # Validate inputs - need either --user, --group, or --all
+    if not args.all and not args.user and not args.group:
+        raise ValidationError("Either --user, --group, or --all must be specified")
 
-    if args.all and args.principal:
-        raise ValidationError("Cannot specify both a principal and --all")
+    if args.all and (args.user or args.group):
+        raise ValidationError("Cannot specify both a principal (--user/--group) and --all")
+
+    if args.user and args.group:
+        raise ValidationError("Cannot specify both --user and --group")
 
     # Get client
     client = get_confluence_client(profile=args.profile)
@@ -107,9 +88,9 @@ Note: This uses the v1 API as page restrictions are not available in v2.
         message = f"all {operation} restrictions"
     else:
         # Remove specific principal
-        principal_type, identifier = parse_principal(args.principal)
-
-        if principal_type == 'user':
+        if args.user:
+            principal_type = 'user'
+            identifier = args.user
             original_count = len(users)
             users = [u for u in users if u.get('username', u.get('accountId', '')) != identifier]
             if len(users) == original_count:
@@ -117,6 +98,8 @@ Note: This uses the v1 API as page restrictions are not available in v2.
                     f"User '{identifier}' does not have {operation} restriction on page {page_id}"
                 )
         else:  # group
+            principal_type = 'group'
+            identifier = args.group
             original_count = len(groups)
             groups = [g for g in groups if g.get('name', '') != identifier]
             if len(groups) == original_count:

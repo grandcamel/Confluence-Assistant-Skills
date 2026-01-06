@@ -5,9 +5,8 @@ Remove permission from a Confluence space.
 Revokes a permission from a user or group for a space.
 
 Examples:
-    python remove_space_permission.py DOCS user:john.doe@example.com read
-    python remove_space_permission.py DOCS group:confluence-users write
-    python remove_space_permission.py TEST --permission-id 123456
+    python remove_space_permission.py DOCS --user john.doe@example.com --operation read
+    python remove_space_permission.py DOCS --group confluence-users --operation write
 """
 
 import sys
@@ -23,25 +22,6 @@ VALID_OPERATIONS = [
     'administer', 'setpermissions', 'createattachment'
 ]
 
-def parse_principal(principal_str):
-    """Parse principal string in format 'type:identifier'."""
-    if ':' not in principal_str:
-        raise ValidationError(
-            "Principal must be in format 'type:identifier' (e.g., 'user:email@example.com' or 'group:groupname')"
-        )
-
-    parts = principal_str.split(':', 1)
-    principal_type = parts[0].lower()
-
-    if principal_type not in ['user', 'group']:
-        raise ValidationError(f"Principal type must be 'user' or 'group', got '{principal_type}'")
-
-    identifier = parts[1]
-
-    if not identifier:
-        raise ValidationError("Principal identifier cannot be empty")
-
-    return principal_type, identifier
 
 @handle_errors
 def main(argv: list[str] | None = None):
@@ -49,13 +29,8 @@ def main(argv: list[str] | None = None):
         description='Remove permission from a Confluence space',
         epilog='''
 Examples:
-  python remove_space_permission.py DOCS user:john.doe@example.com read
-  python remove_space_permission.py DOCS group:confluence-users write
-
-Principal Format:
-  user:email@example.com       - User by email
-  user:username                - User by username
-  group:groupname              - Group by name
+  python remove_space_permission.py DOCS --user john.doe@example.com --operation read
+  python remove_space_permission.py DOCS --group confluence-users --operation write
 
 Valid Operations:
   read, write, create, delete, export, administer, setpermissions, createattachment
@@ -66,15 +41,30 @@ Note: This uses the v1 API. The v2 API does not support removing space permissio
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument('space_key', help='Space key')
-    parser.add_argument('principal', help='Principal in format type:identifier (e.g., user:email or group:name)')
-    parser.add_argument('operation', choices=VALID_OPERATIONS,
+    parser.add_argument('--user', help='User permission to remove (email, username, or account-id:xxx)')
+    parser.add_argument('--group', help='Group permission to remove')
+    parser.add_argument('--operation', required=True, choices=VALID_OPERATIONS,
                         help='Permission operation to revoke')
     parser.add_argument('--profile', help='Confluence profile to use')
     args = parser.parse_args(argv)
 
+    # Validate inputs
+    if not args.user and not args.group:
+        raise ValidationError("Either --user or --group must be specified")
+    if args.user and args.group:
+        raise ValidationError("Cannot specify both --user and --group")
+
     # Validate
     space_key = validate_space_key(args.space_key)
-    principal_type, identifier = parse_principal(args.principal)
+
+    # Determine principal type and identifier
+    if args.user:
+        principal_type = 'user'
+        identifier = args.user
+    else:
+        principal_type = 'group'
+        identifier = args.group
+
     operation = args.operation
 
     # Get client
