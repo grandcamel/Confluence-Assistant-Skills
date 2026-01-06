@@ -15,8 +15,11 @@ def comment() -> None:
 
 @comment.command(name="list")
 @click.argument("page_id")
-@click.option("--include-inline", is_flag=True, help="Include inline comments")
-@click.option("--limit", "-l", type=int, default=25, help="Maximum comments to return")
+@click.option("--limit", "-l", type=int, help="Maximum comments to return")
+@click.option(
+    "--sort", "-s", type=click.Choice(["created", "-created"]), default="-created",
+    help="Sort order (default: -created for newest first)"
+)
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
@@ -25,17 +28,17 @@ def comment() -> None:
 def get_comments(
     ctx: click.Context,
     page_id: str,
-    include_inline: bool,
-    limit: int,
+    limit: int | None,
+    sort: str,
     profile: str | None,
     output: str,
 ) -> None:
     """List comments on a page."""
     argv = [page_id]
-    if include_inline:
-        argv.append("--include-inline")
-    if limit != 25:
+    if limit is not None:
         argv.extend(["--limit", str(limit)])
+    if sort != "-created":
+        argv.extend(["--sort", sort])
     if profile:
         argv.extend(["--profile", profile])
     if output != "text":
@@ -46,7 +49,8 @@ def get_comments(
 
 @comment.command(name="add")
 @click.argument("page_id")
-@click.argument("body")
+@click.argument("body", required=False)
+@click.option("--file", "-f", type=click.Path(exists=True), help="Read comment body from file")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
@@ -55,12 +59,22 @@ def get_comments(
 def add_comment(
     ctx: click.Context,
     page_id: str,
-    body: str,
+    body: str | None,
+    file: str | None,
     profile: str | None,
     output: str,
 ) -> None:
     """Add a comment to a page."""
-    argv = [page_id, body]
+    if not body and not file:
+        raise click.UsageError("Either BODY argument or --file option is required")
+    if body and file:
+        raise click.UsageError("Cannot specify both BODY argument and --file option")
+
+    argv = [page_id]
+    if file:
+        argv.extend(["--file", file])
+    else:
+        argv.append(body)
     if profile:
         argv.extend(["--profile", profile])
     if output != "text":
@@ -71,9 +85,8 @@ def add_comment(
 
 @comment.command(name="add-inline")
 @click.argument("page_id")
+@click.argument("selection")
 @click.argument("body")
-@click.option("--selection-start", type=int, required=True, help="Selection start position")
-@click.option("--selection-end", type=int, required=True, help="Selection end position")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
@@ -82,16 +95,13 @@ def add_comment(
 def add_inline_comment(
     ctx: click.Context,
     page_id: str,
+    selection: str,
     body: str,
-    selection_start: int,
-    selection_end: int,
     profile: str | None,
     output: str,
 ) -> None:
-    """Add an inline comment to a page."""
-    argv = [page_id, body]
-    argv.extend(["--selection-start", str(selection_start)])
-    argv.extend(["--selection-end", str(selection_end)])
+    """Add an inline comment to specific text in a page."""
+    argv = [page_id, selection, body]
     if profile:
         argv.extend(["--profile", profile])
     if output != "text":
@@ -102,7 +112,8 @@ def add_inline_comment(
 
 @comment.command(name="update")
 @click.argument("comment_id")
-@click.argument("body")
+@click.argument("body", required=False)
+@click.option("--file", "-f", type=click.Path(exists=True), help="Read updated body from file")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
@@ -111,12 +122,22 @@ def add_inline_comment(
 def update_comment(
     ctx: click.Context,
     comment_id: str,
-    body: str,
+    body: str | None,
+    file: str | None,
     profile: str | None,
     output: str,
 ) -> None:
     """Update an existing comment."""
-    argv = [comment_id, body]
+    if not body and not file:
+        raise click.UsageError("Either BODY argument or --file option is required")
+    if body and file:
+        raise click.UsageError("Cannot specify both BODY argument and --file option")
+
+    argv = [comment_id]
+    if file:
+        argv.extend(["--file", file])
+    else:
+        argv.append(body)
     if profile:
         argv.extend(["--profile", profile])
     if output != "text":
@@ -127,19 +148,19 @@ def update_comment(
 
 @comment.command(name="delete")
 @click.argument("comment_id")
-@click.option("--confirm", is_flag=True, help="Skip confirmation prompt")
+@click.option("--force", "-f", is_flag=True, help="Skip confirmation prompt")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
 def delete_comment(
     ctx: click.Context,
     comment_id: str,
-    confirm: bool,
+    force: bool,
     profile: str | None,
 ) -> None:
     """Delete a comment."""
     argv = [comment_id]
-    if confirm:
-        argv.append("--confirm")
+    if force:
+        argv.append("--force")
     if profile:
         argv.extend(["--profile", profile])
 
@@ -148,7 +169,8 @@ def delete_comment(
 
 @comment.command(name="resolve")
 @click.argument("comment_id")
-@click.option("--reopen", is_flag=True, help="Reopen a resolved comment")
+@click.option("--resolve", "-r", "action", flag_value="resolve", help="Mark comment as resolved")
+@click.option("--unresolve", "-u", "action", flag_value="unresolve", help="Mark comment as unresolved/open")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
@@ -157,14 +179,19 @@ def delete_comment(
 def resolve_comment(
     ctx: click.Context,
     comment_id: str,
-    reopen: bool,
+    action: str | None,
     profile: str | None,
     output: str,
 ) -> None:
     """Resolve or reopen a comment."""
+    if action is None:
+        raise click.UsageError("One of --resolve or --unresolve is required")
+
     argv = [comment_id]
-    if reopen:
-        argv.append("--reopen")
+    if action == "resolve":
+        argv.append("--resolve")
+    else:
+        argv.append("--unresolve")
     if profile:
         argv.extend(["--profile", profile])
     if output != "text":
