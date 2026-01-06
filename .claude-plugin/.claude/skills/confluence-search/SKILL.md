@@ -120,6 +120,7 @@ confluence search cql "text ~ 'config'" --show-excerpts
 - `--limit, -l` - Maximum results (default: 25)
 - `--show-excerpts` - Show content excerpts
 - `--show-labels` - Show content labels
+- `--show-ancestors` - Show ancestor pages
 - `--profile` - Confluence profile
 - `--output, -o` - Output format: text or json
 
@@ -149,12 +150,19 @@ confluence search suggest --fields
 # Get values for a field
 confluence search suggest --field space
 confluence search suggest --field type
+
+# Get operators and functions
+confluence search suggest --operators
+confluence search suggest --functions
 ```
 
 **Arguments:**
-- `--fields` - List available CQL fields
-- `--field` - Get values for a specific field
+- `--fields` - List all available CQL fields
+- `--field NAME` - Get values for a specific field
+- `--operators` - List all CQL operators
+- `--functions` - List all CQL functions
 - `--profile` - Confluence profile
+- `--output, -o` - Output format: text or json
 
 ### cql_interactive.py
 
@@ -164,10 +172,14 @@ Interactive CQL query builder.
 ```bash
 confluence search interactive
 confluence search interactive --space DOCS
+confluence search interactive --type page --execute
 ```
 
 **Arguments:**
 - `--space` - Pre-filter by space
+- `--type` - Pre-filter by content type: page, blogpost, comment, or attachment
+- `--limit, -l` - Maximum results (default: 25)
+- `--execute` - Execute query after building
 - `--profile` - Confluence profile
 
 ### export_results.py
@@ -205,12 +217,16 @@ confluence search stream-export "space = 'DOCS'" --output docs.csv
 
 # Resume from checkpoint
 confluence search stream-export "space = 'DOCS'" --output docs.csv --resume
+
+# Custom batch size
+confluence search stream-export "type = page" --output pages.csv --batch-size 50
 ```
 
 **Arguments:**
 - `cql` - CQL query (required)
 - `--output, -o` - Output file path (required)
-- `--format, -f` - Output format: csv or json
+- `--format, -f` - Output format: csv or json (inferred from extension if not specified)
+- `--columns` - Columns to include (comma-separated)
 - `--batch-size` - Records per batch (default: 100)
 - `--resume` - Resume from last checkpoint
 - `--profile` - Confluence profile
@@ -223,17 +239,32 @@ Manage local query history.
 ```bash
 # List recent queries
 confluence search history list
+confluence search history list --limit 10
 
 # Search history
 confluence search history search "space = DOCS"
 
+# Show specific query by index
+confluence search history show 5
+
 # Clear history
 confluence search history clear
+
+# Export history to file
+confluence search history export history.csv
+confluence search history export history.json --format json
+
+# Cleanup old entries
+confluence search history cleanup --days 30
 ```
 
-**Arguments:**
-- `command` - list, search, clear, or show
-- `--limit, -l` - Maximum entries for list
+**Subcommands:**
+- `list` - List recent queries (--limit, --output)
+- `search KEYWORD` - Search history for queries containing keyword
+- `show INDEX` - Show specific query by index
+- `clear` - Clear all query history
+- `export FILE` - Export history to file (--format: csv or json)
+- `cleanup` - Remove old entries (--days: default 90)
 
 ### search_content.py
 
