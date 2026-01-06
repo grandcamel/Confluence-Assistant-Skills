@@ -8,8 +8,8 @@ Examples:
     python download_attachment.py 123456 --all --output ./downloads/
 """
 
-import sys
 import argparse
+from pathlib import Path
 from confluence_assistant_skills_lib import (
     get_confluence_client, handle_errors, ValidationError, validate_page_id,
     print_success, print_info,
