@@ -5,47 +5,50 @@ Usage:
     pytest test_comment_threads_live.py --profile development -v
 """
 
-import pytest
+import contextlib
 import uuid
-import sys
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 def pytest_addoption(parser):
-    try:
+    with contextlib.suppress(ValueError):
         parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
+
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
 
+
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': f'Comment Thread Test {uuid.uuid4().hex[:8]}',
-            'body': {'representation': 'storage', 'value': '<p>Test.</p>'}
-        }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": f"Comment Thread Test {uuid.uuid4().hex[:8]}",
+            "body": {"representation": "storage", "value": "<p>Test.</p>"},
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.mark.integration
 class TestCommentThreadsLive:
@@ -55,59 +58,57 @@ class TestCommentThreadsLive:
         """Test creating a comment and adding a reply."""
         # Create parent comment using v1 API
         parent = confluence_client.post(
-            '/rest/api/content',
+            "/rest/api/content",
             json_data={
-                'type': 'comment',
-                'container': {'id': test_page['id'], 'type': 'page'},
-                'body': {
-                    'storage': {
-                        'representation': 'storage',
-                        'value': '<p>Parent comment.</p>'
+                "type": "comment",
+                "container": {"id": test_page["id"], "type": "page"},
+                "body": {
+                    "storage": {
+                        "representation": "storage",
+                        "value": "<p>Parent comment.</p>",
                     }
-                }
-            }
+                },
+            },
         )
 
         try:
             # Create reply using v1 API
             reply = confluence_client.post(
-                '/rest/api/content',
+                "/rest/api/content",
                 json_data={
-                    'type': 'comment',
-                    'container': {'id': test_page['id'], 'type': 'page'},
-                    'ancestors': [{'id': parent['id']}],
-                    'body': {
-                        'storage': {
-                            'value': '<p>Reply comment.</p>',
-                            'representation': 'storage'
+                    "type": "comment",
+                    "container": {"id": test_page["id"], "type": "page"},
+                    "ancestors": [{"id": parent["id"]}],
+                    "body": {
+                        "storage": {
+                            "value": "<p>Reply comment.</p>",
+                            "representation": "storage",
                         }
-                    }
-                }
+                    },
+                },
             )
 
-            assert reply['id'] is not None
+            assert reply["id"] is not None
         finally:
             # Cleanup using v1 API
-            try:
+            with contextlib.suppress(Exception):
                 confluence_client.delete(f"/rest/api/content/{parent['id']}")
-            except Exception:
-                pass
 
     def test_get_all_comments_in_thread(self, confluence_client, test_page):
         """Test getting all comments including replies."""
         # Create a comment using v1 API
         comment = confluence_client.post(
-            '/rest/api/content',
+            "/rest/api/content",
             json_data={
-                'type': 'comment',
-                'container': {'id': test_page['id'], 'type': 'page'},
-                'body': {
-                    'storage': {
-                        'representation': 'storage',
-                        'value': '<p>Thread test comment.</p>'
+                "type": "comment",
+                "container": {"id": test_page["id"], "type": "page"},
+                "body": {
+                    "storage": {
+                        "representation": "storage",
+                        "value": "<p>Thread test comment.</p>",
                     }
-                }
-            }
+                },
+            },
         )
 
         try:
@@ -116,30 +117,28 @@ class TestCommentThreadsLive:
                 f"/api/v2/pages/{test_page['id']}/footer-comments"
             )
 
-            assert 'results' in comments
-            comment_ids = [c['id'] for c in comments.get('results', [])]
-            assert comment['id'] in comment_ids
+            assert "results" in comments
+            comment_ids = [c["id"] for c in comments.get("results", [])]
+            assert comment["id"] in comment_ids
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 confluence_client.delete(f"/rest/api/content/{comment['id']}")
-            except Exception:
-                pass
 
     def test_delete_comment_with_replies(self, confluence_client, test_page):
         """Test deleting a comment that may have replies."""
         # Create comment using v1 API
         comment = confluence_client.post(
-            '/rest/api/content',
+            "/rest/api/content",
             json_data={
-                'type': 'comment',
-                'container': {'id': test_page['id'], 'type': 'page'},
-                'body': {
-                    'storage': {
-                        'representation': 'storage',
-                        'value': '<p>Will be deleted.</p>'
+                "type": "comment",
+                "container": {"id": test_page["id"], "type": "page"},
+                "body": {
+                    "storage": {
+                        "representation": "storage",
+                        "value": "<p>Will be deleted.</p>",
                     }
-                }
-            }
+                },
+            },
         )
 
         # Delete it using v1 API
@@ -149,5 +148,5 @@ class TestCommentThreadsLive:
         comments = confluence_client.get(
             f"/api/v2/pages/{test_page['id']}/footer-comments"
         )
-        comment_ids = [c['id'] for c in comments.get('results', [])]
-        assert comment['id'] not in comment_ids
+        comment_ids = [c["id"] for c in comments.get("results", [])]
+        assert comment["id"] not in comment_ids

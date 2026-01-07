@@ -2,11 +2,9 @@
 Unit tests for update_attachment.py
 """
 
-import pytest
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
+import pytest
 
 
 class TestUpdateAttachment:
@@ -20,15 +18,15 @@ class TestUpdateAttachment:
         updated_attachment["version"]["number"] = 2
 
         # Mock upload_file for update (same as upload)
-        mock_client.upload_file = MagicMock(return_value={
-            "results": [updated_attachment]
-        })
+        mock_client.upload_file = MagicMock(
+            return_value={"results": [updated_attachment]}
+        )
 
         # For v2 API, updating is done via POST with same filename
         result = mock_client.upload_file(
             f"/api/v2/attachments/{attachment_id}/data",
             test_file,
-            operation="update attachment"
+            operation="update attachment",
         )
 
         assert result["results"][0]["version"]["number"] == 2
@@ -43,7 +41,9 @@ class TestUpdateAttachment:
         assert updated_version == 2
         assert updated_version > original_version
 
-    def test_update_with_different_file(self, mock_client, sample_attachment, test_file, test_pdf_file):
+    def test_update_with_different_file(
+        self, mock_client, sample_attachment, test_file, test_pdf_file
+    ):
         """Test updating attachment with a different file."""
         attachment_id = "att123456"
 
@@ -53,14 +53,14 @@ class TestUpdateAttachment:
         updated_attachment["mediaType"] = "application/pdf"
         updated_attachment["version"]["number"] = 2
 
-        mock_client.upload_file = MagicMock(return_value={
-            "results": [updated_attachment]
-        })
+        mock_client.upload_file = MagicMock(
+            return_value={"results": [updated_attachment]}
+        )
 
         result = mock_client.upload_file(
             f"/api/v2/attachments/{attachment_id}/data",
             test_pdf_file,
-            operation="update attachment"
+            operation="update attachment",
         )
 
         assert result["results"][0]["mediaType"] == "application/pdf"
@@ -77,14 +77,11 @@ class TestUpdateAttachment:
 
     def test_update_attachment_not_found(self, mock_client):
         """Test updating non-existent attachment."""
-        attachment_id = "nonexistent"
 
         mock_response = Mock()
         mock_response.status_code = 404
         mock_response.ok = False
-        mock_response.json.return_value = {
-            "message": "Attachment not found"
-        }
+        mock_response.json.return_value = {"message": "Attachment not found"}
 
         # Would raise NotFoundError in actual implementation
         assert mock_response.status_code == 404
@@ -100,6 +97,7 @@ class TestUpdateAttachment:
 
         # Non-existent file should fail
         from confluence_assistant_skills_lib import ValidationError
+
         with pytest.raises(ValidationError):
             validate_file_path("/nonexistent/file.txt")
 
@@ -126,13 +124,11 @@ class TestAttachmentVersioning:
 
         # Note: This endpoint might not exist in v2 API
         # Testing the concept
-        mock_client.get = MagicMock(return_value={
-            "results": versions
-        })
+        mock_client.get = MagicMock(return_value={"results": versions})
 
         result = mock_client.get(
             f"/api/v2/attachments/{attachment_id}/versions",
-            operation="get attachment versions"
+            operation="get attachment versions",
         )
 
         assert len(result["results"]) == 2
@@ -145,15 +141,15 @@ class TestAttachmentVersioning:
         updated_attachment["version"]["number"] = 2
         updated_attachment["version"]["message"] = "Updated document"
 
-        mock_client.upload_file = MagicMock(return_value={
-            "results": [updated_attachment]
-        })
+        mock_client.upload_file = MagicMock(
+            return_value={"results": [updated_attachment]}
+        )
 
         result = mock_client.upload_file(
             f"/api/v2/attachments/{attachment_id}/data",
             test_file,
             additional_data={"comment": "Updated document"},
-            operation="update attachment"
+            operation="update attachment",
         )
 
         assert result["results"][0]["version"]["message"] == "Updated document"

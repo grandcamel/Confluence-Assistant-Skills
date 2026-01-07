@@ -17,11 +17,17 @@ def hierarchy() -> None:
 @click.argument("page_id")
 @click.option("--limit", "-l", type=int, default=25, help="Maximum children to return")
 @click.option(
-    "--sort", type=click.Choice(["title", "id", "created"]), help="Sort children by field"
+    "--sort",
+    type=click.Choice(["title", "id", "created"]),
+    help="Sort children by field",
 )
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_children(
@@ -51,7 +57,11 @@ def get_children(
 @click.option("--breadcrumb", is_flag=True, help="Show as breadcrumb path")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_ancestors(
@@ -78,7 +88,11 @@ def get_ancestors(
 @click.option("--max-depth", "-d", type=int, help="Maximum depth to traverse")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_descendants(
@@ -102,11 +116,17 @@ def get_descendants(
 
 @hierarchy.command(name="tree")
 @click.argument("page_id")
-@click.option("--max-depth", "-d", type=int, help="Maximum depth to traverse (default: unlimited)")
+@click.option(
+    "--max-depth", "-d", type=int, help="Maximum depth to traverse (default: unlimited)"
+)
 @click.option("--stats", is_flag=True, help="Show tree statistics")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_page_tree(

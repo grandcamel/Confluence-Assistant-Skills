@@ -17,15 +17,17 @@ Usage:
         assert result['id'] == '123'
 """
 
+import contextlib
+import json
 import os
 import sys
-import json
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
-from typing import Dict, Any, Optional
+from typing import Optional
+from unittest.mock import MagicMock, Mock, patch
 
-lib_path = Path(__file__).parent.parent / 'scripts' / 'lib'
+import pytest
+
+lib_path = Path(__file__).parent.parent / "scripts" / "lib"
 sys.path.insert(0, str(lib_path))
 
 
@@ -33,14 +35,16 @@ sys.path.insert(0, str(lib_path))
 # Mock Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def mock_response():
     """Factory for creating mock HTTP responses."""
+
     def _create_response(
         status_code: int = 200,
-        json_data: Optional[Dict] = None,
+        json_data: Optional[dict] = None,
         text: str = "",
-        headers: Optional[Dict] = None,
+        headers: Optional[dict] = None,
     ):
         response = Mock()
         response.status_code = status_code
@@ -63,18 +67,18 @@ def mock_client(mock_response):
     """Create a mock Confluence client."""
     from confluence_assistant_skills_lib import ConfluenceClient
 
-    with patch.object(ConfluenceClient, '_create_session'):
+    with patch.object(ConfluenceClient, "_create_session"):
         client = ConfluenceClient(
             base_url="https://test.atlassian.net",
             email="test@example.com",
-            api_token="test-token"
+            api_token="test-token",
         )
 
         # Create a mock session
         client.session = MagicMock()
 
         # Helper to set up responses
-        def setup_response(method: str, response_data: Dict, status_code: int = 200):
+        def setup_response(method: str, response_data: dict, status_code: int = 200):
             response = mock_response(status_code=status_code, json_data=response_data)
             getattr(client.session, method.lower()).return_value = response
 
@@ -100,13 +104,14 @@ def mock_config():
             "timeout": 30,
             "max_retries": 3,
             "retry_backoff": 2.0,
-        }
+        },
     }
 
 
 # ============================================================================
 # Sample Data Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def sample_page():
@@ -128,32 +133,31 @@ def sample_page():
             "message": "Initial version",
             "minorEdit": False,
             "authorId": "user123",
-            "createdAt": "2024-01-15T10:30:00.000Z"
+            "createdAt": "2024-01-15T10:30:00.000Z",
         },
         "body": {
-            "storage": {
-                "value": "<p>Test content</p>",
-                "representation": "storage"
-            },
+            "storage": {"value": "<p>Test content</p>", "representation": "storage"},
             "atlas_doc_format": {
-                "value": json.dumps({
-                    "type": "doc",
-                    "version": 1,
-                    "content": [
-                        {
-                            "type": "paragraph",
-                            "content": [{"type": "text", "text": "Test content"}]
-                        }
-                    ]
-                }),
-                "representation": "atlas_doc_format"
-            }
+                "value": json.dumps(
+                    {
+                        "type": "doc",
+                        "version": 1,
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [{"type": "text", "text": "Test content"}],
+                            }
+                        ],
+                    }
+                ),
+                "representation": "atlas_doc_format",
+            },
         },
         "_links": {
             "webui": "/wiki/spaces/TEST/pages/123456/Test+Page",
             "editui": "/wiki/pages/resumedraft.action?draftId=123456",
-            "tinyui": "/wiki/x/abc123"
-        }
+            "tinyui": "/wiki/x/abc123",
+        },
     }
 
 
@@ -168,14 +172,9 @@ def sample_space():
         "status": "current",
         "homepageId": "123456",
         "description": {
-            "plain": {
-                "value": "A test space for unit tests",
-                "representation": "plain"
-            }
+            "plain": {"value": "A test space for unit tests", "representation": "plain"}
         },
-        "_links": {
-            "webui": "/wiki/spaces/TEST"
-        }
+        "_links": {"webui": "/wiki/spaces/TEST"},
     }
 
 
@@ -189,16 +188,13 @@ def sample_comment():
         "pageId": "123456",
         "authorId": "user456",
         "createdAt": "2024-01-16T14:00:00.000Z",
-        "version": {
-            "number": 1,
-            "createdAt": "2024-01-16T14:00:00.000Z"
-        },
+        "version": {"number": 1, "createdAt": "2024-01-16T14:00:00.000Z"},
         "body": {
             "storage": {
                 "value": "<p>This is a test comment</p>",
-                "representation": "storage"
+                "representation": "storage",
             }
-        }
+        },
     }
 
 
@@ -215,24 +211,15 @@ def sample_attachment():
         "webuiLink": "/wiki/download/attachments/123456/document.pdf",
         "downloadLink": "/wiki/download/attachments/123456/document.pdf",
         "pageId": "123456",
-        "version": {
-            "number": 1,
-            "createdAt": "2024-01-17T09:00:00.000Z"
-        },
-        "_links": {
-            "download": "/wiki/download/attachments/123456/document.pdf"
-        }
+        "version": {"number": 1, "createdAt": "2024-01-17T09:00:00.000Z"},
+        "_links": {"download": "/wiki/download/attachments/123456/document.pdf"},
     }
 
 
 @pytest.fixture
 def sample_label():
     """Sample label data from API."""
-    return {
-        "id": "label123",
-        "name": "documentation",
-        "prefix": "global"
-    }
+    return {"id": "label123", "name": "documentation", "prefix": "global"}
 
 
 @pytest.fixture
@@ -243,16 +230,14 @@ def sample_search_results(sample_page):
             {
                 "content": sample_page,
                 "excerpt": "This is a <em>test</em> page with content...",
-                "lastModified": "2024-01-15T10:30:00.000Z"
+                "lastModified": "2024-01-15T10:30:00.000Z",
             }
         ],
-        "_links": {
-            "next": "/rest/api/search?cql=space=TEST&cursor=abc123"
-        },
+        "_links": {"next": "/rest/api/search?cql=space=TEST&cursor=abc123"},
         "limit": 25,
         "size": 1,
         "start": 0,
-        "totalSize": 1
+        "totalSize": 1,
     }
 
 
@@ -266,23 +251,24 @@ def sample_adf():
             {
                 "type": "heading",
                 "attrs": {"level": 1},
-                "content": [{"type": "text", "text": "Test Heading"}]
+                "content": [{"type": "text", "text": "Test Heading"}],
             },
             {
                 "type": "paragraph",
                 "content": [
                     {"type": "text", "text": "This is "},
                     {"type": "text", "text": "bold", "marks": [{"type": "strong"}]},
-                    {"type": "text", "text": " text."}
-                ]
-            }
-        ]
+                    {"type": "text", "text": " text."},
+                ],
+            },
+        ],
     }
 
 
 # ============================================================================
 # Live Integration Fixtures
 # ============================================================================
+
 
 @pytest.fixture(scope="session")
 def live_profile(request):
@@ -297,6 +283,7 @@ def live_profile(request):
 def live_client(live_profile):
     """Create a real Confluence client for live tests."""
     from confluence_assistant_skills_lib import get_confluence_client
+
     return get_confluence_client(profile=live_profile)
 
 
@@ -312,34 +299,40 @@ def live_test_space(live_client):
 
     if existing_space:
         # Use existing space
-        spaces = list(live_client.paginate(
-            '/api/v2/spaces',
-            params={'keys': existing_space}
-        ))
+        spaces = list(
+            live_client.paginate("/api/v2/spaces", params={"keys": existing_space})
+        )
         if spaces:
             yield spaces[0]
             return
 
     # Create temporary test space
     import uuid
+
     space_key = f"CASTEST{uuid.uuid4().hex[:6].upper()}"
 
-    space = live_client.post('/api/v2/spaces', json_data={
-        'key': space_key,
-        'name': f'CAS Test Space {space_key}',
-        'description': {
-            'plain': {
-                'value': 'Temporary space for Confluence Assistant Skills integration tests',
-                'representation': 'plain'
-            }
-        }
-    }, operation='create test space')
+    space = live_client.post(
+        "/api/v2/spaces",
+        json_data={
+            "key": space_key,
+            "name": f"CAS Test Space {space_key}",
+            "description": {
+                "plain": {
+                    "value": "Temporary space for Confluence Assistant Skills integration tests",
+                    "representation": "plain",
+                }
+            },
+        },
+        operation="create test space",
+    )
 
     yield space
 
     # Cleanup - delete the test space
     try:
-        live_client.delete(f"/api/v2/spaces/{space['id']}", operation='delete test space')
+        live_client.delete(
+            f"/api/v2/spaces/{space['id']}", operation="delete test space"
+        )
     except Exception as e:
         print(f"Warning: Failed to cleanup test space: {e}")
 
@@ -349,32 +342,36 @@ def live_test_page(live_client, live_test_space):
     """Create a test page for a single test."""
     import uuid
 
-    page = live_client.post('/api/v2/pages', json_data={
-        'spaceId': live_test_space['id'],
-        'status': 'current',
-        'title': f'Test Page {uuid.uuid4().hex[:8]}',
-        'body': {
-            'representation': 'storage',
-            'value': '<p>Test content for integration test</p>'
-        }
-    }, operation='create test page')
+    page = live_client.post(
+        "/api/v2/pages",
+        json_data={
+            "spaceId": live_test_space["id"],
+            "status": "current",
+            "title": f"Test Page {uuid.uuid4().hex[:8]}",
+            "body": {
+                "representation": "storage",
+                "value": "<p>Test content for integration test</p>",
+            },
+        },
+        operation="create test page",
+    )
 
     yield page
 
     # Cleanup
-    try:
-        live_client.delete(f"/api/v2/pages/{page['id']}", operation='delete test page')
-    except Exception:
-        pass
+    with contextlib.suppress(Exception):
+        live_client.delete(f"/api/v2/pages/{page['id']}", operation="delete test page")
 
 
 # ============================================================================
 # Utility Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def temp_file(tmp_path):
     """Create a temporary file for upload tests."""
+
     def _create_file(name: str = "test.txt", content: str = "Test content"):
         file_path = tmp_path / name
         file_path.write_text(content)
@@ -386,6 +383,7 @@ def temp_file(tmp_path):
 @pytest.fixture
 def capture_output(capsys):
     """Helper to capture and return stdout/stderr."""
+
     def _capture():
         captured = capsys.readouterr()
         return captured.out, captured.err

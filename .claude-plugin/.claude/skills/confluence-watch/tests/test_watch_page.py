@@ -3,7 +3,6 @@ Unit tests for watch_page.py
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
 
 
 class TestWatchPage:
@@ -18,7 +17,7 @@ class TestWatchPage:
 
     def test_validate_page_id_invalid(self):
         """Test that invalid page IDs fail validation."""
-        from confluence_assistant_skills_lib import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("")
@@ -31,36 +30,33 @@ class TestWatchPage:
 
     def test_watch_page_success(self, mock_client, sample_watch_response):
         """Test successful page watching."""
-        mock_client.setup_response('post', sample_watch_response)
+        mock_client.setup_response("post", sample_watch_response)
 
         # Mock the API call
         result = mock_client.post(
-            f'/rest/api/user/watch/content/123456',
-            operation='watch page'
+            "/rest/api/user/watch/content/123456", operation="watch page"
         )
 
-        assert result['success'] is True
-        assert result['status_code'] == 200
+        assert result["success"] is True
+        assert result["status_code"] == 200
 
     def test_watch_page_already_watching(self, mock_client):
         """Test watching a page that is already being watched."""
         # API returns 200 even if already watching
-        mock_client.setup_response('post', {"success": True, "status_code": 200})
+        mock_client.setup_response("post", {"success": True, "status_code": 200})
 
         result = mock_client.post(
-            f'/rest/api/user/watch/content/123456',
-            operation='watch page'
+            "/rest/api/user/watch/content/123456", operation="watch page"
         )
 
-        assert result['success'] is True
+        assert result["success"] is True
 
     def test_watch_page_not_found(self, mock_client, mock_response):
         """Test watching a non-existent page."""
         from confluence_assistant_skills_lib import handle_confluence_error
 
         error_response = mock_response(
-            status_code=404,
-            json_data={"message": "Page not found"}
+            status_code=404, json_data={"message": "Page not found"}
         )
 
         with pytest.raises(Exception):
@@ -71,8 +67,7 @@ class TestWatchPage:
         from confluence_assistant_skills_lib import handle_confluence_error
 
         error_response = mock_response(
-            status_code=403,
-            json_data={"message": "Permission denied"}
+            status_code=403, json_data={"message": "Permission denied"}
         )
 
         with pytest.raises(Exception):
@@ -80,14 +75,13 @@ class TestWatchPage:
 
     def test_watch_page_with_profile(self, mock_client, sample_watch_response):
         """Test watching with a specific profile."""
-        mock_client.setup_response('post', sample_watch_response)
+        mock_client.setup_response("post", sample_watch_response)
 
         result = mock_client.post(
-            f'/rest/api/user/watch/content/123456',
-            operation='watch page'
+            "/rest/api/user/watch/content/123456", operation="watch page"
         )
 
-        assert result['success'] is True
+        assert result["success"] is True
 
     def test_watch_page_output_json(self):
         """Test JSON output format."""

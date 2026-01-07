@@ -4,22 +4,23 @@ Unit tests for streaming_export.py
 Tests large result export with checkpointing functionality.
 """
 
-import pytest
-import json
 import csv
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+import json
+
+import pytest
 
 
 class TestStreamingExport:
     """Tests for streaming export functionality."""
 
-    def test_export_small_result_set(self, mock_client, sample_search_results, tmp_path):
+    def test_export_small_result_set(
+        self, mock_client, sample_search_results, tmp_path
+    ):
         """Test exporting a small result set (no streaming needed)."""
         output_file = tmp_path / "results.csv"
 
         # Mock returns 10 results
-        mock_client.setup_response('get', sample_search_results)
+        mock_client.setup_response("get", sample_search_results)
 
         # Export would write to CSV
         # Verify file exists and has correct data
@@ -27,7 +28,7 @@ class TestStreamingExport:
 
     def test_export_large_result_set(self, mock_client, tmp_path):
         """Test exporting large result set with batching."""
-        output_file = tmp_path / "results.csv"
+        tmp_path / "results.csv"
 
         # Mock returns results in batches
         # Batch 1: results 0-99
@@ -53,19 +54,20 @@ class TestStreamingExport:
 
         # Write CSV
         from confluence_assistant_skills_lib import export_csv
-        export_csv(data, output_file, columns=['id', 'title', 'space'])
+
+        export_csv(data, output_file, columns=["id", "title", "space"])
 
         # Verify
         assert output_file.exists()
 
         # Read and check
-        with open(output_file, 'r') as f:
+        with open(output_file) as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 
         assert len(rows) == 2
-        assert rows[0]['id'] == '123'
-        assert rows[0]['title'] == 'Page 1'
+        assert rows[0]["id"] == "123"
+        assert rows[0]["title"] == "Page 1"
 
     def test_json_export_format(self, tmp_path):
         """Test JSON export format."""
@@ -87,7 +89,7 @@ class TestStreamingExport:
         loaded = json.loads(output_file.read_text())
 
         assert len(loaded) == 2
-        assert loaded[0]['id'] == '123'
+        assert loaded[0]["id"] == "123"
 
 
 class TestCheckpointing:
@@ -105,7 +107,7 @@ class TestCheckpointing:
             "last_start": 200,
             "total_exported": 200,
             "batch_size": 100,
-            "format": "csv"
+            "format": "csv",
         }
 
         # Write checkpoint
@@ -115,8 +117,8 @@ class TestCheckpointing:
 
         # Read checkpoint
         loaded = json.loads(checkpoint_file.read_text())
-        assert loaded['last_start'] == 200
-        assert loaded['total_exported'] == 200
+        assert loaded["last_start"] == 200
+        assert loaded["total_exported"] == 200
 
     def test_resume_from_checkpoint(self, tmp_path):
         """Test resuming export from checkpoint."""
@@ -129,7 +131,7 @@ class TestCheckpointing:
             "last_start": 200,
             "total_exported": 200,
             "batch_size": 100,
-            "format": "csv"
+            "format": "csv",
         }
 
         checkpoint_file.write_text(json.dumps(checkpoint))
@@ -139,7 +141,7 @@ class TestCheckpointing:
         # 2. Continue from last_start + batch_size
         loaded = json.loads(checkpoint_file.read_text())
 
-        next_start = loaded['last_start'] + loaded['batch_size']
+        next_start = loaded["last_start"] + loaded["batch_size"]
         assert next_start == 300
 
     def test_checkpoint_deleted_on_completion(self, tmp_path):
@@ -147,7 +149,7 @@ class TestCheckpointing:
         checkpoint_file = tmp_path / "results.csv.checkpoint"
 
         # Create checkpoint
-        checkpoint_file.write_text('{}')
+        checkpoint_file.write_text("{}")
         assert checkpoint_file.exists()
 
         # On completion, delete checkpoint
@@ -163,20 +165,20 @@ class TestCheckpointing:
         checkpoint_file.write_text(json.dumps(checkpoint))
 
         # After batch 1
-        checkpoint['last_start'] = 100
-        checkpoint['total_exported'] = 100
+        checkpoint["last_start"] = 100
+        checkpoint["total_exported"] = 100
         checkpoint_file.write_text(json.dumps(checkpoint))
 
         loaded = json.loads(checkpoint_file.read_text())
-        assert loaded['total_exported'] == 100
+        assert loaded["total_exported"] == 100
 
         # After batch 2
-        checkpoint['last_start'] = 200
-        checkpoint['total_exported'] = 200
+        checkpoint["last_start"] = 200
+        checkpoint["total_exported"] = 200
         checkpoint_file.write_text(json.dumps(checkpoint))
 
         loaded = json.loads(checkpoint_file.read_text())
-        assert loaded['total_exported'] == 200
+        assert loaded["total_exported"] == 200
 
 
 class TestProgressReporting:
@@ -194,7 +196,6 @@ class TestProgressReporting:
     def test_show_batch_progress(self):
         """Test showing batch progress messages."""
         batch_num = 5
-        batch_size = 100
         total_exported = 500
 
         message = f"Exported batch {batch_num}: {total_exported} records"
@@ -206,7 +207,7 @@ class TestProgressReporting:
         """Test estimating remaining time."""
         import time
 
-        start_time = time.time()
+        time.time()
         exported = 250
         total = 1000
 
@@ -240,7 +241,7 @@ class TestErrorHandling:
 
         # User can resume from 500
         loaded = json.loads(checkpoint_file.read_text())
-        assert loaded['last_start'] == 500
+        assert loaded["last_start"] == 500
 
     def test_handle_disk_full_error(self, tmp_path):
         """Test handling disk full error."""
@@ -250,7 +251,7 @@ class TestErrorHandling:
 
     def test_handle_invalid_cql_error(self):
         """Test handling invalid CQL query."""
-        from confluence_assistant_skills_lib import validate_cql, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_cql
 
         invalid_cql = "invalid query (("
 
@@ -270,17 +271,18 @@ class TestColumnSelection:
         output_file = tmp_path / "results.csv"
 
         from confluence_assistant_skills_lib import export_csv
+
         export_csv(data, output_file)
 
         # Should include all columns
-        with open(output_file, 'r') as f:
+        with open(output_file) as f:
             reader = csv.DictReader(f)
             headers = reader.fieldnames
 
-        assert 'id' in headers
-        assert 'title' in headers
-        assert 'space' in headers
-        assert 'created' in headers
+        assert "id" in headers
+        assert "title" in headers
+        assert "space" in headers
+        assert "created" in headers
 
     def test_export_selected_columns(self, tmp_path):
         """Test exporting only selected columns."""
@@ -289,29 +291,36 @@ class TestColumnSelection:
         ]
 
         output_file = tmp_path / "results.csv"
-        columns = ['id', 'title']
+        columns = ["id", "title"]
 
         from confluence_assistant_skills_lib import export_csv
+
         export_csv(data, output_file, columns=columns)
 
         # Should only include selected columns
-        with open(output_file, 'r') as f:
+        with open(output_file) as f:
             reader = csv.DictReader(f)
             headers = reader.fieldnames
 
-        assert 'id' in headers
-        assert 'title' in headers
-        assert 'space' not in headers
+        assert "id" in headers
+        assert "title" in headers
+        assert "space" not in headers
 
     def test_default_columns_for_pages(self):
         """Test default column set for page exports."""
         default_columns = [
-            'id', 'type', 'title', 'space', 'created', 'lastModified', 'url'
+            "id",
+            "type",
+            "title",
+            "space",
+            "created",
+            "lastModified",
+            "url",
         ]
 
-        assert 'id' in default_columns
-        assert 'title' in default_columns
-        assert 'space' in default_columns
+        assert "id" in default_columns
+        assert "title" in default_columns
+        assert "space" in default_columns
 
 
 class TestBatchSizing:

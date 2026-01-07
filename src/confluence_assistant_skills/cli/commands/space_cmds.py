@@ -20,7 +20,11 @@ def space() -> None:
 @click.option("--limit", "-l", type=int, default=50, help="Maximum spaces to return")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def list_spaces(
@@ -54,7 +58,11 @@ def list_spaces(
 @click.argument("space_key")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_space(
@@ -74,13 +82,21 @@ def get_space(
 
 
 @space.command(name="create")
-@click.option("--key", "-k", required=True, help="Space key (2-255 chars, alphanumeric)")
+@click.option(
+    "--key", "-k", required=True, help="Space key (2-255 chars, alphanumeric)"
+)
 @click.option("--name", "-n", required=True, help="Space name")
 @click.option("--description", "-d", help="Space description")
-@click.option("--type", "space_type", default="global", help="Space type (global or personal)")
+@click.option(
+    "--type", "space_type", default="global", help="Space type (global or personal)"
+)
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def create_space(
@@ -113,7 +129,11 @@ def create_space(
 @click.option("--homepage", help="Homepage page ID")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def update_space(
@@ -170,7 +190,11 @@ def delete_space(
 @click.option("--limit", "-l", type=int, default=50, help="Maximum items to return")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_space_content(
@@ -205,7 +229,11 @@ def get_space_content(
 @click.argument("space_key")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_space_settings(

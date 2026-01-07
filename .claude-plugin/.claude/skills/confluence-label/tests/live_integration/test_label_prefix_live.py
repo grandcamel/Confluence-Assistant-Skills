@@ -5,47 +5,50 @@ Usage:
     pytest test_label_prefix_live.py --profile development -v
 """
 
-import pytest
+import contextlib
 import uuid
-import sys
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 def pytest_addoption(parser):
-    try:
+    with contextlib.suppress(ValueError):
         parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
+
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
 
+
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': f'Label Prefix Test {uuid.uuid4().hex[:8]}',
-            'body': {'representation': 'storage', 'value': '<p>Test.</p>'}
-        }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": f"Label Prefix Test {uuid.uuid4().hex[:8]}",
+            "body": {"representation": "storage", "value": "<p>Test.</p>"},
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.mark.integration
 class TestLabelPrefixLive:
@@ -58,11 +61,11 @@ class TestLabelPrefixLive:
         # Use v1 API for adding labels
         confluence_client.post(
             f"/rest/api/content/{test_page['id']}/label",
-            json_data=[{'prefix': 'global', 'name': label}]
+            json_data=[{"prefix": "global", "name": label}],
         )
 
         labels = confluence_client.get(f"/api/v2/pages/{test_page['id']}/labels")
-        label_names = [l['name'] for l in labels.get('results', [])]
+        label_names = [l["name"] for l in labels.get("results", [])]
         assert label in label_names
 
     def test_label_with_prefix_format(self, confluence_client, test_page):
@@ -71,11 +74,11 @@ class TestLabelPrefixLive:
 
         confluence_client.post(
             f"/rest/api/content/{test_page['id']}/label",
-            json_data=[{'prefix': 'global', 'name': label}]
+            json_data=[{"prefix": "global", "name": label}],
         )
 
         labels = confluence_client.get(f"/api/v2/pages/{test_page['id']}/labels")
-        label_names = [l['name'] for l in labels.get('results', [])]
+        label_names = [l["name"] for l in labels.get("results", [])]
         assert label in label_names
 
     def test_labels_with_special_characters(self, confluence_client, test_page):
@@ -85,11 +88,11 @@ class TestLabelPrefixLive:
         # Use v1 API for adding labels
         confluence_client.post(
             f"/rest/api/content/{test_page['id']}/label",
-            json_data=[{'prefix': 'global', 'name': label}]
+            json_data=[{"prefix": "global", "name": label}],
         )
 
         labels = confluence_client.get(f"/api/v2/pages/{test_page['id']}/labels")
-        label_names = [l['name'] for l in labels.get('results', [])]
+        label_names = [l["name"] for l in labels.get("results", [])]
         assert label in label_names
 
     def test_lowercase_labels(self, confluence_client, test_page):
@@ -99,10 +102,10 @@ class TestLabelPrefixLive:
         # Use v1 API for adding labels
         confluence_client.post(
             f"/rest/api/content/{test_page['id']}/label",
-            json_data=[{'prefix': 'global', 'name': label_input}]
+            json_data=[{"prefix": "global", "name": label_input}],
         )
 
         labels = confluence_client.get(f"/api/v2/pages/{test_page['id']}/labels")
-        label_names = [l['name'] for l in labels.get('results', [])]
+        label_names = [l["name"] for l in labels.get("results", [])]
         # Labels are typically lowercased
         assert label_input.lower() in label_names or label_input in label_names

@@ -3,7 +3,6 @@ Unit tests for get_space_analytics.py
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
 
 
 class TestGetSpaceAnalytics:
@@ -19,7 +18,7 @@ class TestGetSpaceAnalytics:
 
     def test_validate_space_key_invalid(self):
         """Test that invalid space keys fail validation."""
-        from confluence_assistant_skills_lib import validate_space_key, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_space_key
 
         with pytest.raises(ValidationError):
             validate_space_key("")
@@ -32,33 +31,35 @@ class TestGetSpaceAnalytics:
 
     def test_search_space_content(self, mock_client, sample_search_results):
         """Test CQL search for space content."""
-        mock_client.setup_response('get', sample_search_results)
+        mock_client.setup_response("get", sample_search_results)
 
-        result = mock_client.get('/rest/api/search', params={'cql': 'space=TEST AND type=page'})
+        result = mock_client.get(
+            "/rest/api/search", params={"cql": "space=TEST AND type=page"}
+        )
 
-        assert 'results' in result
-        assert len(result['results']) == 2
-        assert result['size'] == 2
+        assert "results" in result
+        assert len(result["results"]) == 2
+        assert result["size"] == 2
 
     def test_aggregate_space_statistics(self, sample_search_results):
         """Test aggregating statistics from search results."""
         # Count total pages
-        total_pages = len(sample_search_results['results'])
+        total_pages = len(sample_search_results["results"])
         assert total_pages == 2
 
         # Extract page IDs
-        page_ids = [r['content']['id'] for r in sample_search_results['results']]
-        assert page_ids == ['123456', '123457']
+        page_ids = [r["content"]["id"] for r in sample_search_results["results"]]
+        assert page_ids == ["123456", "123457"]
 
     def test_space_not_found(self, mock_client):
         """Test handling space not found error."""
         # Mock empty search results
-        mock_client.setup_response('get', {'results': [], 'size': 0})
+        mock_client.setup_response("get", {"results": [], "size": 0})
 
-        result = mock_client.get('/rest/api/search', params={'cql': 'space=NOTFOUND'})
+        result = mock_client.get("/rest/api/search", params={"cql": "space=NOTFOUND"})
 
-        assert result['size'] == 0
-        assert len(result['results']) == 0
+        assert result["size"] == 0
+        assert len(result["results"]) == 0
 
 
 class TestDateRangeFiltering:

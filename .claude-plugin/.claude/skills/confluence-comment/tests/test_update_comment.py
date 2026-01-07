@@ -3,7 +3,6 @@ Unit tests for update_comment.py
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
 
 
 class TestUpdateComment:
@@ -12,10 +11,10 @@ class TestUpdateComment:
     def test_update_comment_basic(self, mock_client, sample_comment):
         """Test updating a comment's body."""
         updated = sample_comment.copy()
-        updated['body']['storage']['value'] = '<p>Updated comment</p>'
-        updated['version']['number'] = 2
+        updated["body"]["storage"]["value"] = "<p>Updated comment</p>"
+        updated["version"]["number"] = 2
 
-        mock_client.setup_response('put', updated)
+        mock_client.setup_response("put", updated)
 
         # Would verify PUT /api/v2/footer-comments/{comment_id}
 
@@ -26,23 +25,20 @@ class TestUpdateComment:
 
     def test_update_comment_not_found(self, mock_client):
         """Test updating non-existent comment."""
-        from confluence_assistant_skills_lib import NotFoundError
 
-        mock_client.setup_response('put', {}, status_code=404)
+        mock_client.setup_response("put", {}, status_code=404)
         # Would verify NotFoundError is raised
 
     def test_update_comment_no_permission(self, mock_client):
         """Test updating comment without permission."""
-        from confluence_assistant_skills_lib import PermissionError
 
-        mock_client.setup_response('put', {}, status_code=403)
+        mock_client.setup_response("put", {}, status_code=403)
         # Would verify PermissionError is raised
 
     def test_update_comment_conflict(self, mock_client):
         """Test updating comment with version conflict."""
-        from confluence_assistant_skills_lib import ConflictError
 
-        mock_client.setup_response('put', {}, status_code=409)
+        mock_client.setup_response("put", {}, status_code=409)
         # Would verify ConflictError is raised for version mismatch
 
 
@@ -51,7 +47,7 @@ class TestUpdateValidation:
 
     def test_comment_id_required(self):
         """Test that comment ID is required."""
-        from confluence_assistant_skills_lib import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("", "comment_id")
@@ -62,6 +58,7 @@ class TestUpdateValidation:
         body = ""
         if not body.strip():
             from confluence_assistant_skills_lib import ValidationError
+
             with pytest.raises(ValidationError):
                 raise ValidationError("Comment body cannot be empty")
 

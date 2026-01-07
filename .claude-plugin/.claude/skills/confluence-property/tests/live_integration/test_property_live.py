@@ -7,51 +7,57 @@ Usage:
     pytest test_property_live.py --profile development -v
 """
 
-import pytest
+import contextlib
 import uuid
-import sys
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 def pytest_addoption(parser):
-    try:
-        parser.addoption("--profile", action="store", default=None, help="Confluence profile")
-    except ValueError:
-        pass
+    with contextlib.suppress(ValueError):
+        parser.addoption(
+            "--profile", action="store", default=None, help="Confluence profile"
+        )
+
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
 
+
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': f'Property Test Page {uuid.uuid4().hex[:8]}',
-            'body': {'representation': 'storage', 'value': '<p>Test.</p>'}
-        }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": f"Property Test Page {uuid.uuid4().hex[:8]}",
+            "body": {"representation": "storage", "value": "<p>Test.</p>"},
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.fixture
 def property_key():
     return f"test-prop-{uuid.uuid4().hex[:8]}"
+
 
 @pytest.mark.integration
 class TestSetPropertyLive:
@@ -62,41 +68,31 @@ class TestSetPropertyLive:
         # Use v1 API for properties
         result = confluence_client.post(
             f"/rest/api/content/{test_page['id']}/property",
-            json_data={
-                'key': property_key,
-                'value': {'stringValue': 'test value'}
-            }
+            json_data={"key": property_key, "value": {"stringValue": "test value"}},
         )
 
-        assert result['key'] == property_key
-        assert 'value' in result
+        assert result["key"] == property_key
+        assert "value" in result
 
     def test_set_property_json(self, confluence_client, test_page, property_key):
         """Test setting a JSON property."""
         result = confluence_client.post(
             f"/rest/api/content/{test_page['id']}/property",
             json_data={
-                'key': property_key,
-                'value': {
-                    'name': 'Test',
-                    'count': 42,
-                    'items': ['a', 'b', 'c']
-                }
-            }
+                "key": property_key,
+                "value": {"name": "Test", "count": 42, "items": ["a", "b", "c"]},
+            },
         )
 
-        assert result['key'] == property_key
-        assert result['value']['count'] == 42
+        assert result["key"] == property_key
+        assert result["value"]["count"] == 42
 
     def test_update_existing_property(self, confluence_client, test_page, property_key):
         """Test updating an existing property."""
         # Create property
         confluence_client.post(
             f"/rest/api/content/{test_page['id']}/property",
-            json_data={
-                'key': property_key,
-                'value': {'version': 1}
-            }
+            json_data={"key": property_key, "value": {"version": 1}},
         )
 
         # Get current version
@@ -108,13 +104,14 @@ class TestSetPropertyLive:
         updated = confluence_client.put(
             f"/rest/api/content/{test_page['id']}/property/{property_key}",
             json_data={
-                'key': property_key,
-                'value': {'version': 2},
-                'version': {'number': prop['version']['number'] + 1}
-            }
+                "key": property_key,
+                "value": {"version": 2},
+                "version": {"number": prop["version"]["number"] + 1},
+            },
         )
 
-        assert updated['value']['version'] == 2
+        assert updated["value"]["version"] == 2
+
 
 @pytest.mark.integration
 class TestGetPropertyLive:
@@ -125,10 +122,7 @@ class TestGetPropertyLive:
         # Set first
         confluence_client.post(
             f"/rest/api/content/{test_page['id']}/property",
-            json_data={
-                'key': property_key,
-                'value': {'data': 'test'}
-            }
+            json_data={"key": property_key, "value": {"data": "test"}},
         )
 
         # Get
@@ -136,8 +130,8 @@ class TestGetPropertyLive:
             f"/rest/api/content/{test_page['id']}/property/{property_key}"
         )
 
-        assert prop['key'] == property_key
-        assert prop['value']['data'] == 'test'
+        assert prop["key"] == property_key
+        assert prop["value"]["data"] == "test"
 
     def test_get_nonexistent_property(self, confluence_client, test_page):
         """Test getting a property that doesn't exist."""
@@ -147,6 +141,7 @@ class TestGetPropertyLive:
             confluence_client.get(
                 f"/rest/api/content/{test_page['id']}/property/nonexistent-key-12345"
             )
+
 
 @pytest.mark.integration
 class TestListPropertiesLive:
@@ -159,38 +154,35 @@ class TestListPropertiesLive:
             confluence_client.post(
                 f"/rest/api/content/{test_page['id']}/property",
                 json_data={
-                    'key': f"prop-{i}-{uuid.uuid4().hex[:8]}",
-                    'value': {'index': i}
-                }
+                    "key": f"prop-{i}-{uuid.uuid4().hex[:8]}",
+                    "value": {"index": i},
+                },
             )
 
         # List
-        props = confluence_client.get(
-            f"/rest/api/content/{test_page['id']}/property"
-        )
+        props = confluence_client.get(f"/rest/api/content/{test_page['id']}/property")
 
-        assert 'results' in props
-        assert len(props['results']) >= 3
+        assert "results" in props
+        assert len(props["results"]) >= 3
 
     def test_list_properties_empty(self, confluence_client, test_space):
         """Test listing properties on page with none."""
         page = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': f'No Props {uuid.uuid4().hex[:8]}',
-                'body': {'representation': 'storage', 'value': '<p>Empty.</p>'}
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": f"No Props {uuid.uuid4().hex[:8]}",
+                "body": {"representation": "storage", "value": "<p>Empty.</p>"},
+            },
         )
 
         try:
-            props = confluence_client.get(
-                f"/rest/api/content/{page['id']}/property"
-            )
-            assert 'results' in props
+            props = confluence_client.get(f"/rest/api/content/{page['id']}/property")
+            assert "results" in props
         finally:
             confluence_client.delete(f"/api/v2/pages/{page['id']}")
+
 
 @pytest.mark.integration
 class TestDeletePropertyLive:
@@ -201,10 +193,7 @@ class TestDeletePropertyLive:
         # Create
         confluence_client.post(
             f"/rest/api/content/{test_page['id']}/property",
-            json_data={
-                'key': property_key,
-                'value': {'delete': True}
-            }
+            json_data={"key": property_key, "value": {"delete": True}},
         )
 
         # Delete
@@ -214,6 +203,7 @@ class TestDeletePropertyLive:
 
         # Verify deleted
         from confluence_assistant_skills_lib import NotFoundError
+
         with pytest.raises(NotFoundError):
             confluence_client.get(
                 f"/rest/api/content/{test_page['id']}/property/{property_key}"

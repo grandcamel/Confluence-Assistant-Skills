@@ -3,7 +3,6 @@ Unit tests for create_page.py
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
 
 
 class TestCreatePage:
@@ -19,7 +18,7 @@ class TestCreatePage:
 
     def test_validate_space_key_invalid(self):
         """Test that invalid space keys fail validation."""
-        from confluence_assistant_skills_lib import validate_space_key, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_space_key
 
         with pytest.raises(ValidationError):
             validate_space_key("")
@@ -39,7 +38,7 @@ class TestCreatePage:
 
     def test_validate_title_invalid(self):
         """Test that invalid titles fail validation."""
-        from confluence_assistant_skills_lib import validate_title, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_title
 
         with pytest.raises(ValidationError):
             validate_title("")
@@ -53,26 +52,28 @@ class TestCreatePage:
     def test_create_page_success(self, mock_client, sample_page, sample_space):
         """Test successful page creation."""
         # Setup mock responses
-        mock_client.setup_response('get', {'results': [sample_space]})
-        mock_client.setup_response('post', sample_page)
+        mock_client.setup_response("get", {"results": [sample_space]})
+        mock_client.setup_response("post", sample_page)
 
         # The actual test would run the script
         # This demonstrates the test structure
 
     def test_create_page_space_not_found(self, mock_client):
         """Test page creation with non-existent space."""
-        mock_client.setup_response('get', {'results': []})
+        mock_client.setup_response("get", {"results": []})
 
         # Would verify ValidationError is raised
 
-    def test_create_page_from_markdown(self, mock_client, sample_page, sample_space, tmp_path):
+    def test_create_page_from_markdown(
+        self, mock_client, sample_page, sample_space, tmp_path
+    ):
         """Test page creation from Markdown file."""
         # Create a test Markdown file
         md_file = tmp_path / "test.md"
         md_file.write_text("# Heading\n\nParagraph")
 
-        mock_client.setup_response('get', {'results': [sample_space]})
-        mock_client.setup_response('post', sample_page)
+        mock_client.setup_response("get", {"results": [sample_space]})
+        mock_client.setup_response("post", sample_page)
 
         # Would verify Markdown is converted to storage format
 
@@ -144,7 +145,7 @@ class TestADFConversion:
 
     def test_adf_to_markdown(self):
         """Test ADF to Markdown conversion."""
-        from confluence_assistant_skills_lib import markdown_to_adf, adf_to_markdown
+        from confluence_assistant_skills_lib import adf_to_markdown, markdown_to_adf
 
         original = "# Test Heading\n\nA paragraph."
         adf = markdown_to_adf(original)

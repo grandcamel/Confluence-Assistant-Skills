@@ -5,47 +5,50 @@ Usage:
     pytest test_comment_resolve_live.py --profile development -v
 """
 
-import pytest
+import contextlib
 import uuid
-import sys
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 def pytest_addoption(parser):
-    try:
+    with contextlib.suppress(ValueError):
         parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
+
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
 
+
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': f'Comment Resolve Test {uuid.uuid4().hex[:8]}',
-            'body': {'representation': 'storage', 'value': '<p>Test.</p>'}
-        }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": f"Comment Resolve Test {uuid.uuid4().hex[:8]}",
+            "body": {"representation": "storage", "value": "<p>Test.</p>"},
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.mark.integration
 class TestCommentResolveLive:
@@ -57,18 +60,18 @@ class TestCommentResolveLive:
             comment = confluence_client.post(
                 f"/api/v2/pages/{test_page['id']}/inline-comments",
                 json_data={
-                    'body': {
-                        'representation': 'storage',
-                        'value': '<p>Inline comment.</p>'
+                    "body": {
+                        "representation": "storage",
+                        "value": "<p>Inline comment.</p>",
                     },
-                    'inlineCommentProperties': {
-                        'textSelection': 'Test',
-                        'textSelectionMatchCount': 1,
-                        'textSelectionMatchIndex': 0
-                    }
-                }
+                    "inlineCommentProperties": {
+                        "textSelection": "Test",
+                        "textSelectionMatchCount": 1,
+                        "textSelectionMatchIndex": 0,
+                    },
+                },
             )
-            assert comment['id'] is not None
+            assert comment["id"] is not None
         except Exception:
             # Inline comments may not be available on all instances
             pass
@@ -79,7 +82,7 @@ class TestCommentResolveLive:
             comments = confluence_client.get(
                 f"/api/v2/pages/{test_page['id']}/inline-comments"
             )
-            assert 'results' in comments
+            assert "results" in comments
         except Exception:
             # Inline comments API may differ
             pass
@@ -88,41 +91,39 @@ class TestCommentResolveLive:
         """Test full comment lifecycle."""
         # Create using v1 API
         comment = confluence_client.post(
-            '/rest/api/content',
+            "/rest/api/content",
             json_data={
-                'type': 'comment',
-                'container': {'id': test_page['id'], 'type': 'page'},
-                'body': {
-                    'storage': {
-                        'representation': 'storage',
-                        'value': '<p>Lifecycle test.</p>'
+                "type": "comment",
+                "container": {"id": test_page["id"], "type": "page"},
+                "body": {
+                    "storage": {
+                        "representation": "storage",
+                        "value": "<p>Lifecycle test.</p>",
                     }
-                }
-            }
+                },
+            },
         )
 
         try:
             # Read using v1 API
-            fetched = confluence_client.get(
-                f"/rest/api/content/{comment['id']}"
-            )
-            assert fetched['id'] == comment['id']
+            fetched = confluence_client.get(f"/rest/api/content/{comment['id']}")
+            assert fetched["id"] == comment["id"]
 
             # Update using v1 API
             updated = confluence_client.put(
                 f"/rest/api/content/{comment['id']}",
                 json_data={
-                    'type': 'comment',
-                    'body': {
-                        'storage': {
-                            'representation': 'storage',
-                            'value': '<p>Updated lifecycle.</p>'
+                    "type": "comment",
+                    "body": {
+                        "storage": {
+                            "representation": "storage",
+                            "value": "<p>Updated lifecycle.</p>",
                         }
                     },
-                    'version': {'number': comment['version']['number'] + 1}
-                }
+                    "version": {"number": comment["version"]["number"] + 1},
+                },
             )
-            assert updated['version']['number'] > comment['version']['number']
+            assert updated["version"]["number"] > comment["version"]["number"]
 
         finally:
             # Delete using v1 API

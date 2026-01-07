@@ -23,10 +23,16 @@ def template() -> None:
     help="Template type (page or blogpost)",
 )
 @click.option("--blueprints", is_flag=True, help="List blueprints instead of templates")
-@click.option("--limit", "-l", type=int, default=100, help="Maximum templates to return")
+@click.option(
+    "--limit", "-l", type=int, default=100, help="Maximum templates to return"
+)
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def list_templates(
@@ -69,7 +75,11 @@ def list_templates(
 @click.option("--blueprint", is_flag=True, help="Get blueprint instead of template")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_template(
@@ -102,7 +112,12 @@ def get_template(
 @click.option("--space", "-s", required=True, help="Space key for the template")
 @click.option("--description", help="Template description")
 @click.option("--content", help="Template body content (HTML/XHTML)")
-@click.option("--file", "content_file", type=click.Path(exists=True), help="File with template content")
+@click.option(
+    "--file",
+    "content_file",
+    type=click.Path(exists=True),
+    help="File with template content",
+)
 @click.option("--labels", help="Comma-separated labels")
 @click.option(
     "--type",
@@ -115,7 +130,11 @@ def get_template(
 @click.option("--blueprint-id", help="Base on existing blueprint")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def create_template(
@@ -158,12 +177,18 @@ def create_template(
 @click.option("--name", help="New template name")
 @click.option("--description", help="New template description")
 @click.option("--content", help="New template body content (HTML/XHTML)")
-@click.option("--file", "content_file", type=click.Path(exists=True), help="File with new content")
+@click.option(
+    "--file", "content_file", type=click.Path(exists=True), help="File with new content"
+)
 @click.option("--add-labels", help="Comma-separated labels to add")
 @click.option("--remove-labels", help="Comma-separated labels to remove")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def update_template(
@@ -202,16 +227,29 @@ def update_template(
 
 @template.command(name="create-from")
 @click.option("--template", "template_id", help="Template ID to use")
-@click.option("--blueprint", "blueprint_id", help="Blueprint ID to use (alternative to --template)")
+@click.option(
+    "--blueprint",
+    "blueprint_id",
+    help="Blueprint ID to use (alternative to --template)",
+)
 @click.option("--space", "-s", required=True, help="Space key for the new page")
 @click.option("--title", required=True, help="Title for the new page")
 @click.option("--parent-id", help="Parent page ID")
 @click.option("--labels", help="Comma-separated labels to add")
 @click.option("--content", help="Custom content (overrides template)")
-@click.option("--file", "content_file", type=click.Path(exists=True), help="File with custom content")
+@click.option(
+    "--file",
+    "content_file",
+    type=click.Path(exists=True),
+    help="File with custom content",
+)
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def create_from_template(

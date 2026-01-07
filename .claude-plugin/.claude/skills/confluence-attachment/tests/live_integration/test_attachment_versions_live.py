@@ -5,60 +5,62 @@ Usage:
     pytest test_attachment_versions_live.py --profile development -v
 """
 
-import pytest
-import uuid
+import contextlib
 import tempfile
-import sys
+import uuid
 from pathlib import Path
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 def pytest_addoption(parser):
-    try:
+    with contextlib.suppress(ValueError):
         parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
+
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
 
+
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': f'Attachment Version Test {uuid.uuid4().hex[:8]}',
-            'body': {'representation': 'storage', 'value': '<p>Test.</p>'}
-        }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": f"Attachment Version Test {uuid.uuid4().hex[:8]}",
+            "body": {"representation": "storage", "value": "<p>Test.</p>"},
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.fixture
 def test_file():
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-        f.write('Version 1 content.')
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        f.write("Version 1 content.")
         temp_path = Path(f.name)
     yield temp_path
-    try:
+    with contextlib.suppress(Exception):
         temp_path.unlink()
-    except Exception:
-        pass
+
 
 @pytest.mark.integration
 class TestAttachmentVersionsLive:
@@ -70,19 +72,19 @@ class TestAttachmentVersionsLive:
         result = confluence_client.upload_file(
             f"/rest/api/content/{test_page['id']}/child/attachment",
             test_file,
-            additional_data={'comment': 'Version 1'}
+            additional_data={"comment": "Version 1"},
         )
-        attachment = result['results'][0]
-        attachment_id = attachment['id']
+        attachment = result["results"][0]
+        attachment_id = attachment["id"]
 
         # Upload v2 - use update endpoint for existing attachment
-        with open(test_file, 'w') as f:
-            f.write('Version 2 content - updated.')
+        with open(test_file, "w") as f:
+            f.write("Version 2 content - updated.")
 
         updated = confluence_client.upload_file(
             f"/rest/api/content/{test_page['id']}/child/attachment/{attachment_id}/data",
             test_file,
-            additional_data={'comment': 'Version 2'}
+            additional_data={"comment": "Version 2"},
         )
 
         # Should update existing attachment
@@ -94,17 +96,16 @@ class TestAttachmentVersionsLive:
     def test_get_attachment_metadata(self, confluence_client, test_page, test_file):
         """Test getting attachment metadata."""
         result = confluence_client.upload_file(
-            f"/rest/api/content/{test_page['id']}/child/attachment",
-            test_file
+            f"/rest/api/content/{test_page['id']}/child/attachment", test_file
         )
-        attachment = result['results'][0]
-        attachment_id = attachment['id']
+        attachment = result["results"][0]
+        attachment_id = attachment["id"]
 
         # Get metadata using v2 API
         fetched = confluence_client.get(f"/api/v2/attachments/{attachment_id}")
 
-        assert 'title' in fetched
-        assert 'mediaType' in fetched
+        assert "title" in fetched
+        assert "mediaType" in fetched
 
         # Clean up using v1 API
         confluence_client.delete(f"/rest/api/content/{attachment_id}")

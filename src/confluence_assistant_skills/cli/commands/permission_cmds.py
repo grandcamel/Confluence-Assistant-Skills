@@ -24,7 +24,11 @@ def page_permission() -> None:
 @click.argument("page_id")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_page_restrictions(
@@ -55,7 +59,11 @@ def get_page_restrictions(
 )
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def add_page_restriction(
@@ -91,7 +99,9 @@ def add_page_restriction(
     required=True,
     help="Operation restriction to remove",
 )
-@click.option("--all", "remove_all", is_flag=True, help="Remove all restrictions of this type")
+@click.option(
+    "--all", "remove_all", is_flag=True, help="Remove all restrictions of this type"
+)
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
 def remove_page_restriction(
@@ -128,7 +138,11 @@ def space_permission() -> None:
 @click.argument("space_key")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_space_permissions(
@@ -158,7 +172,11 @@ def get_space_permissions(
 )
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def add_space_permission(

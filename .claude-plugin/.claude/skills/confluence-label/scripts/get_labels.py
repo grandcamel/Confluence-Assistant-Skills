@@ -8,30 +8,40 @@ Examples:
     python get_labels.py 12345 --profile production
 """
 
-import sys
 import argparse
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, validate_page_id, print_success,
-    format_label, format_json, print_info,
+    format_json,
+    format_label,
+    get_confluence_client,
+    handle_errors,
+    print_info,
+    print_success,
+    validate_page_id,
 )
 
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Get all labels on a Confluence page',
-        epilog='''
+        description="Get all labels on a Confluence page",
+        epilog="""
 Examples:
   python get_labels.py 12345
   python get_labels.py 12345 --output json
   python get_labels.py 12345 --profile production
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('page_id', help='Page or blog post ID')
-    parser.add_argument('--profile', '-p', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("page_id", help="Page or blog post ID")
+    parser.add_argument("--profile", "-p", help="Confluence profile to use")
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate page ID
@@ -41,15 +51,12 @@ Examples:
     client = get_confluence_client(profile=args.profile)
 
     # Get labels
-    response = client.get(
-        f'/api/v2/pages/{page_id}/labels',
-        operation='get labels'
-    )
+    response = client.get(f"/api/v2/pages/{page_id}/labels", operation="get labels")
 
-    labels = response.get('results', [])
+    labels = response.get("results", [])
 
     # Output
-    if args.output == 'json':
+    if args.output == "json":
         print(format_json(labels))
     else:
         if not labels:
@@ -60,5 +67,6 @@ Examples:
                 print(f"{i}. {format_label(label)}")
             print_success(f"Found {len(labels)} label(s)")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

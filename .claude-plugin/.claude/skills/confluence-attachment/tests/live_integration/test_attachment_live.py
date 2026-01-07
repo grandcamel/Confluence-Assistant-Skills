@@ -7,61 +7,65 @@ Usage:
     pytest test_attachment_live.py --profile development -v
 """
 
-import pytest
-import uuid
-import sys
+import contextlib
 import tempfile
+import uuid
 from pathlib import Path
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 def pytest_addoption(parser):
-    try:
-        parser.addoption("--profile", action="store", default=None, help="Confluence profile")
-    except ValueError:
-        pass
+    with contextlib.suppress(ValueError):
+        parser.addoption(
+            "--profile", action="store", default=None, help="Confluence profile"
+        )
+
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
 
+
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': f'Attachment Test Page {uuid.uuid4().hex[:8]}',
-            'body': {'representation': 'storage', 'value': '<p>Test.</p>'}
-        }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": f"Attachment Test Page {uuid.uuid4().hex[:8]}",
+            "body": {"representation": "storage", "value": "<p>Test.</p>"},
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.fixture
 def test_file():
     """Create a temporary test file."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-        f.write('Test file content for attachment tests.')
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        f.write("Test file content for attachment tests.")
         temp_path = Path(f.name)
     yield temp_path
-    try:
+    with contextlib.suppress(Exception):
         temp_path.unlink()
-    except Exception:
-        pass
+
 
 @pytest.mark.integration
 class TestUploadAttachmentLive:
@@ -70,20 +74,20 @@ class TestUploadAttachmentLive:
     def test_upload_text_file(self, confluence_client, test_page, test_file):
         """Test uploading a text file attachment."""
         result = confluence_client.upload_file(
-            f"/rest/api/content/{test_page['id']}/child/attachment",
-            test_file
+            f"/rest/api/content/{test_page['id']}/child/attachment", test_file
         )
-        assert 'results' in result
-        assert len(result['results']) >= 1
+        assert "results" in result
+        assert len(result["results"]) >= 1
 
     def test_upload_with_comment(self, confluence_client, test_page, test_file):
         """Test uploading with a version comment."""
         result = confluence_client.upload_file(
             f"/rest/api/content/{test_page['id']}/child/attachment",
             test_file,
-            additional_data={'comment': 'Test upload comment'}
+            additional_data={"comment": "Test upload comment"},
         )
-        assert 'results' in result
+        assert "results" in result
+
 
 @pytest.mark.integration
 class TestListAttachmentsLive:
@@ -93,8 +97,7 @@ class TestListAttachmentsLive:
         """Test listing attachments on a page."""
         # Upload first using v1 API
         confluence_client.upload_file(
-            f"/rest/api/content/{test_page['id']}/child/attachment",
-            test_file
+            f"/rest/api/content/{test_page['id']}/child/attachment", test_file
         )
 
         # List attachments
@@ -102,29 +105,33 @@ class TestListAttachmentsLive:
             f"/api/v2/pages/{test_page['id']}/attachments"
         )
 
-        assert 'results' in attachments
-        assert len(attachments['results']) >= 1
+        assert "results" in attachments
+        assert len(attachments["results"]) >= 1
 
     def test_list_attachments_empty(self, confluence_client, test_space):
         """Test listing attachments on page with none."""
         page = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': f'No Attachments {uuid.uuid4().hex[:8]}',
-                'body': {'representation': 'storage', 'value': '<p>No attachments.</p>'}
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": f"No Attachments {uuid.uuid4().hex[:8]}",
+                "body": {
+                    "representation": "storage",
+                    "value": "<p>No attachments.</p>",
+                },
+            },
         )
 
         try:
             attachments = confluence_client.get(
                 f"/api/v2/pages/{page['id']}/attachments"
             )
-            assert 'results' in attachments
-            assert len(attachments['results']) == 0
+            assert "results" in attachments
+            assert len(attachments["results"]) == 0
         finally:
             confluence_client.delete(f"/api/v2/pages/{page['id']}")
+
 
 @pytest.mark.integration
 class TestDeleteAttachmentLive:
@@ -134,11 +141,10 @@ class TestDeleteAttachmentLive:
         """Test deleting an attachment."""
         # Upload using v1 API
         result = confluence_client.upload_file(
-            f"/rest/api/content/{test_page['id']}/child/attachment",
-            test_file
+            f"/rest/api/content/{test_page['id']}/child/attachment", test_file
         )
 
-        attachment_id = result['results'][0]['id']
+        attachment_id = result["results"][0]["id"]
 
         # Delete using v1 API (more reliable)
         confluence_client.delete(f"/rest/api/content/{attachment_id}")
@@ -147,5 +153,5 @@ class TestDeleteAttachmentLive:
         attachments = confluence_client.get(
             f"/api/v2/pages/{test_page['id']}/attachments"
         )
-        attachment_ids = [a['id'] for a in attachments.get('results', [])]
+        attachment_ids = [a["id"] for a in attachments.get("results", [])]
         assert attachment_id not in attachment_ids

@@ -5,21 +5,21 @@ from __future__ import annotations
 import click
 
 from confluence_assistant_skills import __version__
+from confluence_assistant_skills.cli.commands.analytics_cmds import analytics
+from confluence_assistant_skills.cli.commands.attachment_cmds import attachment
+from confluence_assistant_skills.cli.commands.comment_cmds import comment
+from confluence_assistant_skills.cli.commands.hierarchy_cmds import hierarchy
+from confluence_assistant_skills.cli.commands.jira_cmds import jira
+from confluence_assistant_skills.cli.commands.label_cmds import label
 
 # Import command groups
 from confluence_assistant_skills.cli.commands.page_cmds import page
-from confluence_assistant_skills.cli.commands.space_cmds import space
-from confluence_assistant_skills.cli.commands.search_cmds import search
-from confluence_assistant_skills.cli.commands.comment_cmds import comment
-from confluence_assistant_skills.cli.commands.label_cmds import label
-from confluence_assistant_skills.cli.commands.attachment_cmds import attachment
-from confluence_assistant_skills.cli.commands.hierarchy_cmds import hierarchy
 from confluence_assistant_skills.cli.commands.permission_cmds import permission
-from confluence_assistant_skills.cli.commands.analytics_cmds import analytics
-from confluence_assistant_skills.cli.commands.watch_cmds import watch
-from confluence_assistant_skills.cli.commands.template_cmds import template
 from confluence_assistant_skills.cli.commands.property_cmds import property_cmd
-from confluence_assistant_skills.cli.commands.jira_cmds import jira
+from confluence_assistant_skills.cli.commands.search_cmds import search
+from confluence_assistant_skills.cli.commands.space_cmds import space
+from confluence_assistant_skills.cli.commands.template_cmds import template
+from confluence_assistant_skills.cli.commands.watch_cmds import watch
 
 
 class ContextObj:

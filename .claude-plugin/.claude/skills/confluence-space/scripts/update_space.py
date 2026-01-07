@@ -8,94 +8,103 @@ Examples:
     python update_space.py DOCS --homepage 12345
 """
 
-import sys
 import argparse
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, ValidationError, NotFoundError,
-    validate_space_key, validate_page_id, print_success, format_space,
+    NotFoundError,
+    ValidationError,
     format_json,
+    format_space,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+    validate_page_id,
+    validate_space_key,
 )
 
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Update Confluence space properties',
-        epilog='''
+        description="Update Confluence space properties",
+        epilog="""
 Examples:
   python update_space.py DOCS --name "New Name"
   python update_space.py DOCS --description "Updated description"
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('space_key', help='Space key')
-    parser.add_argument('--name', '-n', help='New space name')
-    parser.add_argument('--description', '-d', help='New description')
-    parser.add_argument('--homepage', help='Homepage page ID')
-    parser.add_argument('--profile', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("space_key", help="Space key")
+    parser.add_argument("--name", "-n", help="New space name")
+    parser.add_argument("--description", "-d", help="New description")
+    parser.add_argument("--homepage", help="Homepage page ID")
+    parser.add_argument("--profile", help="Confluence profile to use")
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate
     space_key = validate_space_key(args.space_key)
 
     if args.homepage:
-        homepage_id = validate_page_id(args.homepage, field_name='homepage')
+        homepage_id = validate_page_id(args.homepage, field_name="homepage")
     else:
         homepage_id = None
 
     # Check that at least one update is requested
     if not any([args.name, args.description, args.homepage]):
-        raise ValidationError("At least one of --name, --description, or --homepage is required")
+        raise ValidationError(
+            "At least one of --name, --description, or --homepage is required"
+        )
 
     # Get client
     client = get_confluence_client(profile=args.profile)
 
     # Get current space
-    spaces = list(client.paginate(
-        '/api/v2/spaces',
-        params={'keys': space_key},
-        operation='get space'
-    ))
+    spaces = list(
+        client.paginate(
+            "/api/v2/spaces", params={"keys": space_key}, operation="get space"
+        )
+    )
 
     if not spaces:
         raise NotFoundError(f"Space not found: {space_key}")
 
     current_space = spaces[0]
-    space_id = current_space['id']
+    current_space["id"]
 
     # Build update data using v1 API format (v2 API doesn't support PUT)
     update_data = {
-        'key': space_key,
-        'name': args.name.strip() if args.name else current_space.get('name')
+        "key": space_key,
+        "name": args.name.strip() if args.name else current_space.get("name"),
     }
 
     if args.description:
-        update_data['description'] = {
-            'plain': {
-                'value': args.description,
-                'representation': 'plain'
-            }
+        update_data["description"] = {
+            "plain": {"value": args.description, "representation": "plain"}
         }
 
     if homepage_id:
-        update_data['homepage'] = {'id': homepage_id}
+        update_data["homepage"] = {"id": homepage_id}
 
     # Update the space using v1 API
     result = client.put(
-        f'/rest/api/space/{space_key}',
-        json_data=update_data,
-        operation='update space'
+        f"/rest/api/space/{space_key}", json_data=update_data, operation="update space"
     )
 
     # Output
-    if args.output == 'json':
+    if args.output == "json":
         print(format_json(result))
     else:
         print(format_space(result))
 
     print_success(f"Updated space {space_key}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

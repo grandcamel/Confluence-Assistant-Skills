@@ -16,7 +16,9 @@ def jira() -> None:
 @jira.command(name="link")
 @click.argument("page_id")
 @click.argument("issue_key")
-@click.option("--jira-url", required=True, help="Base JIRA URL (e.g., https://jira.example.com)")
+@click.option(
+    "--jira-url", required=True, help="Base JIRA URL (e.g., https://jira.example.com)"
+)
 @click.option(
     "--relationship",
     default="relates to",
@@ -25,7 +27,11 @@ def jira() -> None:
 @click.option("--skip-if-exists", is_flag=True, help="Skip if link already exists")
 @click.option("--profile", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def link_to_jira(
@@ -57,7 +63,11 @@ def link_to_jira(
 @click.argument("page_id")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_linked_issues(
@@ -79,7 +89,9 @@ def get_linked_issues(
 @jira.command(name="embed")
 @click.argument("page_id")
 @click.option("--jql", help="JQL query to filter issues")
-@click.option("--issues", help="Comma-separated list of issue keys (e.g., PROJ-123,PROJ-456)")
+@click.option(
+    "--issues", help="Comma-separated list of issue keys (e.g., PROJ-123,PROJ-456)"
+)
 @click.option(
     "--mode",
     type=click.Choice(["append", "replace"]),
@@ -88,10 +100,16 @@ def get_linked_issues(
 )
 @click.option("--server-id", help="JIRA server ID (optional)")
 @click.option("--columns", help="Columns to display (comma-separated)")
-@click.option("--max-results", type=int, default=20, help="Maximum number of issues (default: 20)")
+@click.option(
+    "--max-results", type=int, default=20, help="Maximum number of issues (default: 20)"
+)
 @click.option("--profile", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def embed_jira_issues(
@@ -138,7 +156,9 @@ def embed_jira_issues(
 @jira.command(name="create-from-page")
 @click.argument("page_id")
 @click.option("--project", "-p", required=True, help="JIRA project key")
-@click.option("--type", "-t", "issue_type", default="Task", help="Issue type (default: Task)")
+@click.option(
+    "--type", "-t", "issue_type", default="Task", help="Issue type (default: Task)"
+)
 @click.option("--priority", help="Priority (e.g., High, Medium, Low)")
 @click.option("--assignee", help="Assignee username")
 @click.option("--jira-url", help="JIRA base URL (or set JIRA_URL env var)")
@@ -146,7 +166,11 @@ def embed_jira_issues(
 @click.option("--jira-token", help="JIRA API token (or set JIRA_API_TOKEN env var)")
 @click.option("--profile", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def create_jira_from_page(
@@ -196,7 +220,11 @@ def create_jira_from_page(
 )
 @click.option("--profile", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def sync_jira_macro(

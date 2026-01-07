@@ -17,7 +17,11 @@ def analytics() -> None:
 @click.argument("page_id")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_page_views(
@@ -40,7 +44,11 @@ def get_page_views(
 @click.argument("page_id")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_content_watchers(
@@ -62,12 +70,29 @@ def get_content_watchers(
 @analytics.command(name="popular")
 @click.option("--space", "-s", help="Limit to specific space")
 @click.option("--label", help="Filter by label")
-@click.option("--type", "content_type", type=click.Choice(["page", "blogpost", "all"]), default="all", help="Content type (default: all)")
-@click.option("--sort", type=click.Choice(["created", "modified"]), default="modified", help="Sort by created or modified date (default: modified)")
-@click.option("--limit", "-l", type=int, default=10, help="Maximum results (default: 10)")
+@click.option(
+    "--type",
+    "content_type",
+    type=click.Choice(["page", "blogpost", "all"]),
+    default="all",
+    help="Content type (default: all)",
+)
+@click.option(
+    "--sort",
+    type=click.Choice(["created", "modified"]),
+    default="modified",
+    help="Sort by created or modified date (default: modified)",
+)
+@click.option(
+    "--limit", "-l", type=int, default=10, help="Maximum results (default: 10)"
+)
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_popular_content(
@@ -105,7 +130,11 @@ def get_popular_content(
 @click.option("--days", type=int, help="Limit to content from last N days")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_space_analytics(

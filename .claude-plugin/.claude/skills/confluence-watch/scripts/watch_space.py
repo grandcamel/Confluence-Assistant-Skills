@@ -8,30 +8,38 @@ Examples:
     python watch_space.py TEST --output json
 """
 
-import sys
 import argparse
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, validate_space_key, print_success,
     format_json,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+    validate_space_key,
 )
 
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Start watching a Confluence space',
-        epilog='''
+        description="Start watching a Confluence space",
+        epilog="""
 Examples:
   python watch_space.py DOCS
   python watch_space.py kb --profile production
   python watch_space.py TEST --output json
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('space_key', help='Space key to watch')
-    parser.add_argument('--profile', '-p', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("space_key", help="Space key to watch")
+    parser.add_argument("--profile", "-p", help="Confluence profile to use")
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate
@@ -42,18 +50,11 @@ Examples:
 
     # Watch the space using v1 API
     # Note: Space watching uses the space key endpoint
-    result = client.post(
-        f'/rest/api/user/watch/space/{space_key}',
-        operation='watch space'
-    )
+    client.post(f"/rest/api/user/watch/space/{space_key}", operation="watch space")
 
     # Output
-    if args.output == 'json':
-        output = {
-            'success': True,
-            'space_key': space_key,
-            'watching': True
-        }
+    if args.output == "json":
+        output = {"success": True, "space_key": space_key, "watching": True}
         print(format_json(output))
     else:
         print(f"Now watching space {space_key}")
@@ -61,5 +62,6 @@ Examples:
 
     print_success(f"Started watching space {space_key}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

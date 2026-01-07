@@ -19,21 +19,25 @@ Examples:
     python set_property.py 12345 my-property --value "updated" --version 2
 """
 
-import sys
-import json
 import argparse
+import json
 from pathlib import Path
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, ValidationError, validate_page_id,
-    print_success, format_json,
+    ValidationError,
+    format_json,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+    validate_page_id,
 )
 
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Set or update a content property',
-        epilog='''
+        description="Set or update a content property",
+        epilog="""
 Examples:
   # Set simple string value
   python set_property.py 12345 my-property --value "text value"
@@ -46,20 +50,29 @@ Examples:
 
   # Update existing (auto-increments version)
   python set_property.py 12345 my-property --value "updated" --update
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('content_id', help='Content ID (page or blog post)')
-    parser.add_argument('key', help='Property key')
-    parser.add_argument('--value', '-v', help='Property value (string or JSON)')
-    parser.add_argument('--file', '-f', help='Read value from JSON file')
-    parser.add_argument('--update', action='store_true',
-                        help='Update existing property (fetches current version)')
-    parser.add_argument('--version', type=int,
-                        help='Version number for update (if known)')
-    parser.add_argument('--profile', '-p', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("content_id", help="Content ID (page or blog post)")
+    parser.add_argument("key", help="Property key")
+    parser.add_argument("--value", "-v", help="Property value (string or JSON)")
+    parser.add_argument("--file", "-f", help="Read value from JSON file")
+    parser.add_argument(
+        "--update",
+        action="store_true",
+        help="Update existing property (fetches current version)",
+    )
+    parser.add_argument(
+        "--version", type=int, help="Version number for update (if known)"
+    )
+    parser.add_argument("--profile", "-p", help="Confluence profile to use")
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate
@@ -83,7 +96,7 @@ Examples:
         if not file_path.exists():
             raise ValidationError(f"File not found: {args.file}")
 
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding="utf-8") as f:
             try:
                 property_value = json.load(f)
             except json.JSONDecodeError as e:
@@ -97,10 +110,7 @@ Examples:
             property_value = args.value
 
     # Prepare property data
-    property_data = {
-        'key': args.key,
-        'value': property_value
-    }
+    property_data = {"key": args.key, "value": property_value}
 
     # Handle update vs create
     if args.update or args.version:
@@ -109,51 +119,52 @@ Examples:
         if current_version is None:
             try:
                 current_prop = client.get(
-                    f'/rest/api/content/{content_id}/property/{args.key}',
-                    operation='get current property'
+                    f"/rest/api/content/{content_id}/property/{args.key}",
+                    operation="get current property",
                 )
-                current_version = current_prop.get('version', {}).get('number', 0)
+                current_version = current_prop.get("version", {}).get("number", 0)
             except Exception:
                 # Property doesn't exist yet, create it
                 current_version = None
 
         if current_version is not None:
             # Update existing property
-            property_data['version'] = {'number': current_version + 1}
+            property_data["version"] = {"number": current_version + 1}
 
             result = client.put(
-                f'/rest/api/content/{content_id}/property/{args.key}',
+                f"/rest/api/content/{content_id}/property/{args.key}",
                 json_data=property_data,
-                operation='update property'
+                operation="update property",
             )
             action = "Updated"
         else:
             # Create new property
             result = client.post(
-                f'/rest/api/content/{content_id}/property',
+                f"/rest/api/content/{content_id}/property",
                 json_data=property_data,
-                operation='create property'
+                operation="create property",
             )
             action = "Created"
     else:
         # Create new property
         result = client.post(
-            f'/rest/api/content/{content_id}/property',
+            f"/rest/api/content/{content_id}/property",
             json_data=property_data,
-            operation='create property'
+            operation="create property",
         )
         action = "Created"
 
     # Output
-    if args.output == 'json':
+    if args.output == "json":
         print(format_json(result))
     else:
         print(f"{action} property: {result.get('key', 'N/A')}")
         print(f"Value: {format_json(result.get('value', {}))}")
-        if 'version' in result:
+        if "version" in result:
             print(f"Version: {result['version'].get('number', 'N/A')}")
 
     print_success(f"{action} property '{args.key}' on content {content_id}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

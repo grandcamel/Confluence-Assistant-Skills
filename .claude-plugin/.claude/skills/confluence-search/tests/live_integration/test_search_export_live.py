@@ -5,30 +5,33 @@ Usage:
     pytest test_search_export_live.py --profile development -v
 """
 
+import contextlib
+
 import pytest
-import uuid
-import sys
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 def pytest_addoption(parser):
-    try:
+    with contextlib.suppress(ValueError):
         parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
+
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
 
+
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.mark.integration
 class TestSearchExportLive:
@@ -42,15 +45,15 @@ class TestSearchExportLive:
 
         while True:
             results = confluence_client.get(
-                '/rest/api/search',
+                "/rest/api/search",
                 params={
-                    'cql': f'space = "{test_space["key"]}" AND type = page',
-                    'limit': limit,
-                    'start': start
-                }
+                    "cql": f'space = "{test_space["key"]}" AND type = page',
+                    "limit": limit,
+                    "start": start,
+                },
             )
 
-            batch = results.get('results', [])
+            batch = results.get("results", [])
             all_results.extend(batch)
 
             if len(batch) < limit:
@@ -67,58 +70,58 @@ class TestSearchExportLive:
     def test_search_with_content_expansion(self, confluence_client, test_space):
         """Test searching with expanded content."""
         results = confluence_client.get(
-            '/rest/api/search',
+            "/rest/api/search",
             params={
-                'cql': f'space = "{test_space["key"]}" AND type = page',
-                'limit': 5,
-                'expand': 'content.body.storage,content.version'
-            }
+                "cql": f'space = "{test_space["key"]}" AND type = page',
+                "limit": 5,
+                "expand": "content.body.storage,content.version",
+            },
         )
 
-        assert 'results' in results
+        assert "results" in results
 
-        for result in results['results']:
-            content = result.get('content', {})
-            if 'body' in content:
-                assert 'storage' in content['body']
+        for result in results["results"]:
+            content = result.get("content", {})
+            if "body" in content:
+                assert "storage" in content["body"]
 
     def test_search_results_format(self, confluence_client, test_space):
         """Test search results contain expected fields."""
         results = confluence_client.get(
-            '/rest/api/search',
+            "/rest/api/search",
             params={
-                'cql': f'space = "{test_space["key"]}" AND type = page',
-                'limit': 5
-            }
+                "cql": f'space = "{test_space["key"]}" AND type = page',
+                "limit": 5,
+            },
         )
 
-        for result in results.get('results', []):
-            content = result.get('content', {})
-            assert 'id' in content
-            assert 'title' in content
-            assert 'type' in content
+        for result in results.get("results", []):
+            content = result.get("content", {})
+            assert "id" in content
+            assert "title" in content
+            assert "type" in content
 
     def test_search_order_by_modified(self, confluence_client, test_space):
         """Test searching with order by last modified."""
         results = confluence_client.get(
-            '/rest/api/search',
+            "/rest/api/search",
             params={
-                'cql': f'space = "{test_space["key"]}" ORDER BY lastModified DESC',
-                'limit': 10
-            }
+                "cql": f'space = "{test_space["key"]}" ORDER BY lastModified DESC',
+                "limit": 10,
+            },
         )
 
-        assert 'results' in results
+        assert "results" in results
         # Results should be in descending order by last modified
 
     def test_search_order_by_created(self, confluence_client, test_space):
         """Test searching with order by created date."""
         results = confluence_client.get(
-            '/rest/api/search',
+            "/rest/api/search",
             params={
-                'cql': f'space = "{test_space["key"]}" ORDER BY created DESC',
-                'limit': 10
-            }
+                "cql": f'space = "{test_space["key"]}" ORDER BY created DESC',
+                "limit": 10,
+            },
         )
 
-        assert 'results' in results
+        assert "results" in results

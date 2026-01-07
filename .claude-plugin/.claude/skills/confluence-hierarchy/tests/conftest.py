@@ -2,22 +2,22 @@
 Confluence Hierarchy Skill - Test Configuration
 """
 
-import sys
 import json
-import pytest
-from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from typing import Optional
+from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 
 
 @pytest.fixture
 def mock_response():
     """Factory for creating mock HTTP responses."""
+
     def _create_response(
         status_code: int = 200,
-        json_data: dict = None,
+        json_data: Optional[dict] = None,
         text: str = "",
-        headers: dict = None,
+        headers: Optional[dict] = None,
     ):
         response = Mock()
         response.status_code = status_code
@@ -40,11 +40,11 @@ def mock_client(mock_response):
     """Create a mock Confluence client."""
     from confluence_assistant_skills_lib import ConfluenceClient
 
-    with patch.object(ConfluenceClient, '_create_session'):
+    with patch.object(ConfluenceClient, "_create_session"):
         client = ConfluenceClient(
             base_url="https://test.atlassian.net",
             email="test@example.com",
-            api_token="test-token"
+            api_token="test-token",
         )
 
         client.session = MagicMock()
@@ -70,7 +70,7 @@ def sample_page():
         "body": {
             "storage": {"value": "<p>Test content</p>", "representation": "storage"}
         },
-        "_links": {"webui": "/wiki/spaces/TEST/pages/123456"}
+        "_links": {"webui": "/wiki/spaces/TEST/pages/123456"},
     }
 
 
@@ -85,18 +85,10 @@ def sample_page_with_ancestors():
         "parentId": "111",
         "version": {"number": 1},
         "ancestors": [
-            {
-                "id": "100",
-                "title": "Root Page",
-                "parentId": None
-            },
-            {
-                "id": "111",
-                "title": "Parent Page",
-                "parentId": "100"
-            }
+            {"id": "100", "title": "Root Page", "parentId": None},
+            {"id": "111", "title": "Parent Page", "parentId": "100"},
         ],
-        "_links": {"webui": "/wiki/spaces/TEST/pages/123456"}
+        "_links": {"webui": "/wiki/spaces/TEST/pages/123456"},
     }
 
 
@@ -109,16 +101,16 @@ def sample_children():
                 "id": "200",
                 "title": "Child 1",
                 "parentId": "123456",
-                "status": "current"
+                "status": "current",
             },
             {
                 "id": "201",
                 "title": "Child 2",
                 "parentId": "123456",
-                "status": "current"
-            }
+                "status": "current",
+            },
         ],
-        "_links": {}
+        "_links": {},
     }
 
 
@@ -133,18 +125,8 @@ def sample_page_tree():
             {
                 "id": "200",
                 "title": "Child 1",
-                "children": [
-                    {
-                        "id": "300",
-                        "title": "Grandchild 1",
-                        "children": []
-                    }
-                ]
+                "children": [{"id": "300", "title": "Grandchild 1", "children": []}],
             },
-            {
-                "id": "201",
-                "title": "Child 2",
-                "children": []
-            }
-        ]
+            {"id": "201", "title": "Child 2", "children": []},
+        ],
     }

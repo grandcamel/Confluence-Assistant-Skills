@@ -3,7 +3,6 @@ Unit tests for watch_space.py
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
 
 
 class TestWatchSpace:
@@ -19,7 +18,7 @@ class TestWatchSpace:
 
     def test_validate_space_key_invalid(self):
         """Test that invalid space keys fail validation."""
-        from confluence_assistant_skills_lib import validate_space_key, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_space_key
 
         with pytest.raises(ValidationError):
             validate_space_key("")
@@ -33,25 +32,23 @@ class TestWatchSpace:
     def test_watch_space_success(self, mock_client, sample_space):
         """Test successful space watching."""
         # First get space ID
-        mock_client.setup_response('get', sample_space)
-        space = mock_client.get(f'/api/v2/spaces/TEST', operation='get space')
+        mock_client.setup_response("get", sample_space)
+        space = mock_client.get("/api/v2/spaces/TEST", operation="get space")
 
         # Then watch it
-        mock_client.setup_response('post', {"success": True, "status_code": 200})
+        mock_client.setup_response("post", {"success": True, "status_code": 200})
         result = mock_client.post(
-            f'/rest/api/user/watch/space/{space["key"]}',
-            operation='watch space'
+            f"/rest/api/user/watch/space/{space['key']}", operation="watch space"
         )
 
-        assert result['success'] is True
+        assert result["success"] is True
 
     def test_watch_space_not_found(self, mock_client, mock_response):
         """Test watching a non-existent space."""
         from confluence_assistant_skills_lib import handle_confluence_error
 
         error_response = mock_response(
-            status_code=404,
-            json_data={"message": "Space not found"}
+            status_code=404, json_data={"message": "Space not found"}
         )
 
         with pytest.raises(Exception):
@@ -62,8 +59,7 @@ class TestWatchSpace:
         from confluence_assistant_skills_lib import handle_confluence_error
 
         error_response = mock_response(
-            status_code=403,
-            json_data={"message": "Permission denied"}
+            status_code=403, json_data={"message": "Permission denied"}
         )
 
         with pytest.raises(Exception):

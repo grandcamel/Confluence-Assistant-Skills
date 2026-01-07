@@ -17,12 +17,19 @@ def comment() -> None:
 @click.argument("page_id")
 @click.option("--limit", "-l", type=int, help="Maximum comments to return")
 @click.option(
-    "--sort", "-s", type=click.Choice(["created", "-created"]), default="-created",
-    help="Sort order (default: -created for newest first)"
+    "--sort",
+    "-s",
+    type=click.Choice(["created", "-created"]),
+    default="-created",
+    help="Sort order (default: -created for newest first)",
 )
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_comments(
@@ -50,10 +57,16 @@ def get_comments(
 @comment.command(name="add")
 @click.argument("page_id")
 @click.argument("body", required=False)
-@click.option("--file", "-f", type=click.Path(exists=True), help="Read comment body from file")
+@click.option(
+    "--file", "-f", type=click.Path(exists=True), help="Read comment body from file"
+)
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def add_comment(
@@ -89,7 +102,11 @@ def add_comment(
 @click.argument("body")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def add_inline_comment(
@@ -113,10 +130,16 @@ def add_inline_comment(
 @comment.command(name="update")
 @click.argument("comment_id")
 @click.argument("body", required=False)
-@click.option("--file", "-f", type=click.Path(exists=True), help="Read updated body from file")
+@click.option(
+    "--file", "-f", type=click.Path(exists=True), help="Read updated body from file"
+)
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def update_comment(
@@ -169,11 +192,23 @@ def delete_comment(
 
 @comment.command(name="resolve")
 @click.argument("comment_id")
-@click.option("--resolve", "-r", "action", flag_value="resolve", help="Mark comment as resolved")
-@click.option("--unresolve", "-u", "action", flag_value="unresolve", help="Mark comment as unresolved/open")
+@click.option(
+    "--resolve", "-r", "action", flag_value="resolve", help="Mark comment as resolved"
+)
+@click.option(
+    "--unresolve",
+    "-u",
+    "action",
+    flag_value="unresolve",
+    help="Mark comment as unresolved/open",
+)
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def resolve_comment(

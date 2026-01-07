@@ -5,30 +5,34 @@ Usage:
     pytest test_label_suggestions_live.py --profile development -v
 """
 
-import pytest
+import contextlib
 import uuid
-import sys
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 def pytest_addoption(parser):
-    try:
+    with contextlib.suppress(ValueError):
         parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
+
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
 
+
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.mark.integration
 class TestLabelSuggestionsLive:
@@ -38,22 +42,22 @@ class TestLabelSuggestionsLive:
         """Test getting popular labels in space."""
         # Search for content in space (label IS NOT NULL may not work in all versions)
         results = confluence_client.get(
-            '/rest/api/search',
+            "/rest/api/search",
             params={
-                'cql': f'space = "{test_space["key"]}" AND type = page',
-                'limit': 25
-            }
+                "cql": f'space = "{test_space["key"]}" AND type = page',
+                "limit": 25,
+            },
         )
 
-        assert 'results' in results
+        assert "results" in results
         # Collect labels from found pages
         labels_found = []
-        for r in results.get('results', [])[:5]:  # Check first 5 pages
-            content_id = r.get('content', {}).get('id')
+        for r in results.get("results", [])[:5]:  # Check first 5 pages
+            content_id = r.get("content", {}).get("id")
             if content_id:
                 try:
                     labels = confluence_client.get(f"/api/v2/pages/{content_id}/labels")
-                    labels_found.extend(labels.get('results', []))
+                    labels_found.extend(labels.get("results", []))
                 except Exception:
                     pass
         # Test passes if API calls work (may or may not find labels)
@@ -63,13 +67,13 @@ class TestLabelSuggestionsLive:
         """Test finding content with related labels."""
         # Create a page with labels
         page = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': f'Label Suggest Test {uuid.uuid4().hex[:8]}',
-                'body': {'representation': 'storage', 'value': '<p>Test.</p>'}
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": f"Label Suggest Test {uuid.uuid4().hex[:8]}",
+                "body": {"representation": "storage", "value": "<p>Test.</p>"},
+            },
         )
 
         try:
@@ -77,12 +81,12 @@ class TestLabelSuggestionsLive:
             # Use v1 API for adding labels
             confluence_client.post(
                 f"/rest/api/content/{page['id']}/label",
-                json_data=[{'prefix': 'global', 'name': label}]
+                json_data=[{"prefix": "global", "name": label}],
             )
 
             # Get page labels
             labels = confluence_client.get(f"/api/v2/pages/{page['id']}/labels")
-            assert 'results' in labels
+            assert "results" in labels
         finally:
             confluence_client.delete(f"/api/v2/pages/{page['id']}")
 
@@ -90,24 +94,19 @@ class TestLabelSuggestionsLive:
         """Test listing all labels used in a space."""
         # Search for labeled content
         results = confluence_client.get(
-            '/rest/api/search',
-            params={
-                'cql': f'space = "{test_space["key"]}"',
-                'limit': 50
-            }
+            "/rest/api/search",
+            params={"cql": f'space = "{test_space["key"]}"', "limit": 50},
         )
 
         # Collect unique labels from results
         all_labels = set()
-        for r in results.get('results', []):
-            content_id = r.get('content', {}).get('id')
+        for r in results.get("results", []):
+            content_id = r.get("content", {}).get("id")
             if content_id:
                 try:
-                    labels = confluence_client.get(
-                        f"/api/v2/pages/{content_id}/labels"
-                    )
-                    for l in labels.get('results', []):
-                        all_labels.add(l['name'])
+                    labels = confluence_client.get(f"/api/v2/pages/{content_id}/labels")
+                    for l in labels.get("results", []):
+                        all_labels.add(l["name"])
                 except Exception:
                     pass
 

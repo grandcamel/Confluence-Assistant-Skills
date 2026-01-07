@@ -3,7 +3,6 @@ Unit tests for delete_comment.py
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
 
 
 class TestDeleteComment:
@@ -12,22 +11,20 @@ class TestDeleteComment:
     def test_delete_comment_basic(self, mock_client):
         """Test deleting a comment."""
         # DELETE returns 204 No Content on success
-        mock_client.setup_response('delete', {}, status_code=204)
+        mock_client.setup_response("delete", {}, status_code=204)
 
         # Would verify DELETE /api/v2/footer-comments/{comment_id}
 
     def test_delete_comment_not_found(self, mock_client):
         """Test deleting non-existent comment."""
-        from confluence_assistant_skills_lib import NotFoundError
 
-        mock_client.setup_response('delete', {}, status_code=404)
+        mock_client.setup_response("delete", {}, status_code=404)
         # Would verify NotFoundError is raised
 
     def test_delete_comment_no_permission(self, mock_client):
         """Test deleting comment without permission."""
-        from confluence_assistant_skills_lib import PermissionError
 
-        mock_client.setup_response('delete', {}, status_code=403)
+        mock_client.setup_response("delete", {}, status_code=403)
         # Would verify PermissionError is raised
 
     def test_delete_comment_confirmation_prompt(self, mock_client):
@@ -37,7 +34,7 @@ class TestDeleteComment:
 
     def test_delete_comment_with_force(self, mock_client):
         """Test deleting with --force flag (no confirmation)."""
-        mock_client.setup_response('delete', {}, status_code=204)
+        mock_client.setup_response("delete", {}, status_code=204)
         # Would verify delete proceeds without prompt when --force is used
 
 
@@ -46,14 +43,14 @@ class TestDeleteValidation:
 
     def test_comment_id_required(self):
         """Test that comment ID is required."""
-        from confluence_assistant_skills_lib import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("", "comment_id")
 
     def test_comment_id_numeric(self):
         """Test that comment ID must be numeric."""
-        from confluence_assistant_skills_lib import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("abc", "comment_id")

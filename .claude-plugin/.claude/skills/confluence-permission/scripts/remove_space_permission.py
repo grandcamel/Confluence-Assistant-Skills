@@ -9,25 +9,34 @@ Examples:
     python remove_space_permission.py DOCS --group confluence-users --operation write
 """
 
-import sys
 import argparse
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, ValidationError, validate_space_key,
-    print_success, print_warning,
+    ValidationError,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+    print_warning,
+    validate_space_key,
 )
 
-
 VALID_OPERATIONS = [
-    'read', 'write', 'create', 'delete', 'export',
-    'administer', 'setpermissions', 'createattachment'
+    "read",
+    "write",
+    "create",
+    "delete",
+    "export",
+    "administer",
+    "setpermissions",
+    "createattachment",
 ]
 
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Remove permission from a Confluence space',
-        epilog='''
+        description="Remove permission from a Confluence space",
+        epilog="""
 Examples:
   python remove_space_permission.py DOCS --user john.doe@example.com --operation read
   python remove_space_permission.py DOCS --group confluence-users --operation write
@@ -37,15 +46,21 @@ Valid Operations:
 
 Note: This uses the v1 API. The v2 API does not support removing space permissions.
       You may need to use the Confluence UI for some permission management operations.
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('space_key', help='Space key')
-    parser.add_argument('--user', help='User permission to remove (email, username, or account-id:xxx)')
-    parser.add_argument('--group', help='Group permission to remove')
-    parser.add_argument('--operation', required=True, choices=VALID_OPERATIONS,
-                        help='Permission operation to revoke')
-    parser.add_argument('--profile', help='Confluence profile to use')
+    parser.add_argument("space_key", help="Space key")
+    parser.add_argument(
+        "--user", help="User permission to remove (email, username, or account-id:xxx)"
+    )
+    parser.add_argument("--group", help="Group permission to remove")
+    parser.add_argument(
+        "--operation",
+        required=True,
+        choices=VALID_OPERATIONS,
+        help="Permission operation to revoke",
+    )
+    parser.add_argument("--profile", help="Confluence profile to use")
     args = parser.parse_args(argv)
 
     # Validate inputs
@@ -59,10 +74,10 @@ Note: This uses the v1 API. The v2 API does not support removing space permissio
 
     # Determine principal type and identifier
     if args.user:
-        principal_type = 'user'
+        principal_type = "user"
         identifier = args.user
     else:
-        principal_type = 'group'
+        principal_type = "group"
         identifier = args.group
 
     operation = args.operation
@@ -75,21 +90,25 @@ Note: This uses the v1 API. The v2 API does not support removing space permissio
 
     # First, get current permissions to find the ID
     permissions_result = client.get(
-        f'/rest/api/space/{space_key}/permission',
-        operation='get space permissions for deletion'
+        f"/rest/api/space/{space_key}/permission",
+        operation="get space permissions for deletion",
     )
 
     # Find matching permission
     permission_id = None
-    if 'results' in permissions_result:
-        for perm in permissions_result['results']:
-            perm_op = perm.get('operation', {}).get('key', '')
-            principal_data = perm.get('subjects', {}).get(principal_type, {}).get('results', [])
+    if "results" in permissions_result:
+        for perm in permissions_result["results"]:
+            perm_op = perm.get("operation", {}).get("key", "")
+            principal_data = (
+                perm.get("subjects", {}).get(principal_type, {}).get("results", [])
+            )
 
             for principal in principal_data:
-                principal_name = principal.get('username' if principal_type == 'user' else 'name', '')
+                principal_name = principal.get(
+                    "username" if principal_type == "user" else "name", ""
+                )
                 if principal_name == identifier and perm_op == operation:
-                    permission_id = perm.get('id')
+                    permission_id = perm.get("id")
                     break
 
             if permission_id:
@@ -102,12 +121,15 @@ Note: This uses the v1 API. The v2 API does not support removing space permissio
 
     # Delete the permission
     client.delete(
-        f'/rest/api/space/{space_key}/permission/{permission_id}',
-        operation='remove space permission'
+        f"/rest/api/space/{space_key}/permission/{permission_id}",
+        operation="remove space permission",
     )
 
-    print(f"\nRemoved {operation} permission from {principal_type} '{identifier}' for space {space_key}")
+    print(
+        f"\nRemoved {operation} permission from {principal_type} '{identifier}' for space {space_key}"
+    )
     print_success("Permission removed successfully")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

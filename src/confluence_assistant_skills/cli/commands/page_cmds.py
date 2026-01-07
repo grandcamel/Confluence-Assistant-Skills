@@ -25,7 +25,11 @@ def page() -> None:
 )
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_page(
@@ -54,12 +58,27 @@ def get_page(
 @click.option("--space", "-s", required=True, help="Space key")
 @click.option("--title", "-t", required=True, help="Page title")
 @click.option("--body", "-b", help="Page body content (Markdown or XHTML)")
-@click.option("--file", "-f", "body_file", type=click.Path(exists=True), help="Read body from file")
+@click.option(
+    "--file",
+    "-f",
+    "body_file",
+    type=click.Path(exists=True),
+    help="Read body from file",
+)
 @click.option("--parent", "-p", "parent_id", help="Parent page ID")
-@click.option("--status", type=click.Choice(["current", "draft"]), default="current", help="Page status")
+@click.option(
+    "--status",
+    type=click.Choice(["current", "draft"]),
+    default="current",
+    help="Page status",
+)
 @click.option("--profile", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def create_page(
@@ -95,12 +114,24 @@ def create_page(
 @click.argument("page_id")
 @click.option("--title", "-t", help="New page title")
 @click.option("--body", "-b", help="New page body content")
-@click.option("--file", "-f", "body_file", type=click.Path(exists=True), help="Read body from file")
+@click.option(
+    "--file",
+    "-f",
+    "body_file",
+    type=click.Path(exists=True),
+    help="Read body from file",
+)
 @click.option("--message", "-m", "version_message", help="Version change message")
-@click.option("--status", type=click.Choice(["current", "draft"]), help="Change page status")
+@click.option(
+    "--status", type=click.Choice(["current", "draft"]), help="Change page status"
+)
 @click.option("--profile", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def update_page(
@@ -137,7 +168,9 @@ def update_page(
 @page.command(name="delete")
 @click.argument("page_id")
 @click.option("--force", "-f", is_flag=True, help="Skip confirmation prompt")
-@click.option("--permanent", is_flag=True, help="Permanently delete (cannot be recovered)")
+@click.option(
+    "--permanent", is_flag=True, help="Permanently delete (cannot be recovered)"
+)
 @click.option("--profile", help="Confluence profile to use")
 @click.pass_context
 def delete_page(
@@ -167,7 +200,11 @@ def delete_page(
 @click.option("--include-children", is_flag=True, help="Copy child pages recursively")
 @click.option("--profile", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def copy_page(
@@ -205,7 +242,11 @@ def copy_page(
 @click.option("--root", is_flag=True, help="Move to space root (no parent)")
 @click.option("--profile", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def move_page(
@@ -235,11 +276,21 @@ def move_page(
 
 @page.command(name="versions")
 @click.argument("page_id")
-@click.option("--limit", "-l", type=int, default=25, help="Maximum versions to return (default: 25)")
+@click.option(
+    "--limit",
+    "-l",
+    type=int,
+    default=25,
+    help="Maximum versions to return (default: 25)",
+)
 @click.option("--detailed", is_flag=True, help="Show full version details")
 @click.option("--profile", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_page_versions(
@@ -266,11 +317,17 @@ def get_page_versions(
 
 @page.command(name="restore")
 @click.argument("page_id")
-@click.option("--version", "-v", type=int, required=True, help="Version number to restore")
+@click.option(
+    "--version", "-v", type=int, required=True, help="Version number to restore"
+)
 @click.option("--message", "-m", help="Version message for the restoration")
 @click.option("--profile", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def restore_version(
@@ -312,7 +369,11 @@ def blog() -> None:
 )
 @click.option("--profile", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_blogpost(
@@ -341,11 +402,26 @@ def get_blogpost(
 @click.option("--space", "-s", required=True, help="Space key")
 @click.option("--title", "-t", required=True, help="Blog post title")
 @click.option("--body", "-b", help="Blog post body content")
-@click.option("--file", "-f", "body_file", type=click.Path(exists=True), help="Read body from file")
-@click.option("--status", type=click.Choice(["current", "draft"]), default="current", help="Blog post status")
+@click.option(
+    "--file",
+    "-f",
+    "body_file",
+    type=click.Path(exists=True),
+    help="Read body from file",
+)
+@click.option(
+    "--status",
+    type=click.Choice(["current", "draft"]),
+    default="current",
+    help="Blog post status",
+)
 @click.option("--profile", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def create_blogpost(

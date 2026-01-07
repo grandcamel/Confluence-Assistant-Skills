@@ -5,47 +5,50 @@ Usage:
     pytest test_comment_count_live.py --profile development -v
 """
 
-import pytest
+import contextlib
 import uuid
-import sys
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 def pytest_addoption(parser):
-    try:
+    with contextlib.suppress(ValueError):
         parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
+
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
 
+
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': f'Comment Count Test {uuid.uuid4().hex[:8]}',
-            'body': {'representation': 'storage', 'value': '<p>Test.</p>'}
-        }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": f"Comment Count Test {uuid.uuid4().hex[:8]}",
+            "body": {"representation": "storage", "value": "<p>Test.</p>"},
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.mark.integration
 class TestCommentCountLive:
@@ -57,7 +60,7 @@ class TestCommentCountLive:
             f"/api/v2/pages/{test_page['id']}/footer-comments"
         )
 
-        count = len(comments.get('results', []))
+        count = len(comments.get("results", []))
         assert count == 0
 
     def test_count_after_adding_comments(self, confluence_client, test_page):
@@ -67,55 +70,53 @@ class TestCommentCountLive:
         # Add 3 comments using v1 API
         for i in range(3):
             comment = confluence_client.post(
-                '/rest/api/content',
+                "/rest/api/content",
                 json_data={
-                    'type': 'comment',
-                    'container': {'id': test_page['id'], 'type': 'page'},
-                    'body': {
-                        'storage': {
-                            'representation': 'storage',
-                            'value': f'<p>Comment {i}.</p>'
+                    "type": "comment",
+                    "container": {"id": test_page["id"], "type": "page"},
+                    "body": {
+                        "storage": {
+                            "representation": "storage",
+                            "value": f"<p>Comment {i}.</p>",
                         }
-                    }
-                }
+                    },
+                },
             )
-            comment_ids.append(comment['id'])
+            comment_ids.append(comment["id"])
 
         try:
             comments = confluence_client.get(
                 f"/api/v2/pages/{test_page['id']}/footer-comments"
             )
-            count = len(comments.get('results', []))
+            count = len(comments.get("results", []))
             assert count >= 3
         finally:
             for cid in comment_ids:
-                try:
+                with contextlib.suppress(Exception):
                     confluence_client.delete(f"/rest/api/content/{cid}")
-                except Exception:
-                    pass
 
     def test_count_after_deleting_comment(self, confluence_client, test_page):
         """Test count updates after deleting a comment."""
         # Add a comment using v1 API
         comment = confluence_client.post(
-            '/rest/api/content',
+            "/rest/api/content",
             json_data={
-                'type': 'comment',
-                'container': {'id': test_page['id'], 'type': 'page'},
-                'body': {
-                    'storage': {
-                        'representation': 'storage',
-                        'value': '<p>To delete.</p>'
+                "type": "comment",
+                "container": {"id": test_page["id"], "type": "page"},
+                "body": {
+                    "storage": {
+                        "representation": "storage",
+                        "value": "<p>To delete.</p>",
                     }
-                }
-            }
+                },
+            },
         )
 
         # Verify added
         comments = confluence_client.get(
             f"/api/v2/pages/{test_page['id']}/footer-comments"
         )
-        initial_count = len(comments.get('results', []))
+        initial_count = len(comments.get("results", []))
 
         # Delete using v1 API
         confluence_client.delete(f"/rest/api/content/{comment['id']}")
@@ -124,6 +125,6 @@ class TestCommentCountLive:
         comments = confluence_client.get(
             f"/api/v2/pages/{test_page['id']}/footer-comments"
         )
-        final_count = len(comments.get('results', []))
+        final_count = len(comments.get("results", []))
 
         assert final_count == initial_count - 1

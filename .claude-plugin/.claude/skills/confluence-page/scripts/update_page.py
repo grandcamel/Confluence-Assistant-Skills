@@ -9,13 +9,19 @@ Examples:
     python update_page.py 12345 --body "Fixed" --message "Fixed typos"
 """
 
-import sys
 import argparse
 from pathlib import Path
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, ValidationError, validate_page_id,
-    validate_title, print_success, format_page, format_json,
+    ValidationError,
+    format_json,
+    format_page,
+    get_confluence_client,
+    handle_errors,
     markdown_to_xhtml,
+    print_success,
+    validate_page_id,
+    validate_title,
 )
 
 
@@ -23,34 +29,42 @@ def read_body_from_file(file_path: Path) -> str:
     """Read body content from a file."""
     if not file_path.exists():
         raise ValidationError(f"File not found: {file_path}")
-    return file_path.read_text(encoding='utf-8')
+    return file_path.read_text(encoding="utf-8")
+
 
 def is_markdown_file(file_path: Path) -> bool:
     """Check if file is a Markdown file."""
-    return file_path.suffix.lower() in ('.md', '.markdown')
+    return file_path.suffix.lower() in (".md", ".markdown")
+
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Update a Confluence page',
-        epilog='''
+        description="Update a Confluence page",
+        epilog="""
 Examples:
   python update_page.py 12345 --title "New Title"
   python update_page.py 12345 --body "Updated content"
   python update_page.py 12345 --file content.md --message "Updated from file"
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('page_id', help='Page ID to update')
-    parser.add_argument('--title', '-t', help='New page title')
-    parser.add_argument('--body', '-b', help='New page body content')
-    parser.add_argument('--file', '-f', type=Path, help='Read body from file')
-    parser.add_argument('--message', '-m', help='Version message')
-    parser.add_argument('--status', choices=['current', 'draft'],
-                        help='Change page status')
-    parser.add_argument('--profile', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("page_id", help="Page ID to update")
+    parser.add_argument("--title", "-t", help="New page title")
+    parser.add_argument("--body", "-b", help="New page body content")
+    parser.add_argument("--file", "-f", type=Path, help="Read body from file")
+    parser.add_argument("--message", "-m", help="Version message")
+    parser.add_argument(
+        "--status", choices=["current", "draft"], help="Change page status"
+    )
+    parser.add_argument("--profile", help="Confluence profile to use")
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate
@@ -63,7 +77,9 @@ Examples:
 
     # Check that at least one update is requested
     if not any([args.title, args.body, args.file, args.status]):
-        raise ValidationError("At least one of --title, --body, --file, or --status is required")
+        raise ValidationError(
+            "At least one of --title, --body, --file, or --status is required"
+        )
 
     # Get body content
     body_content = None
@@ -79,51 +95,42 @@ Examples:
     client = get_confluence_client(profile=args.profile)
 
     # First, get the current page to get version number
-    current_page = client.get(
-        f'/api/v2/pages/{page_id}',
-        operation='get current page'
-    )
+    current_page = client.get(f"/api/v2/pages/{page_id}", operation="get current page")
 
-    current_version = current_page.get('version', {}).get('number', 1)
+    current_version = current_page.get("version", {}).get("number", 1)
 
     # Build update data
     update_data = {
-        'id': page_id,
-        'status': args.status or current_page.get('status', 'current'),
-        'title': title or current_page.get('title'),
-        'version': {
-            'number': current_version + 1
-        }
+        "id": page_id,
+        "status": args.status or current_page.get("status", "current"),
+        "title": title or current_page.get("title"),
+        "version": {"number": current_version + 1},
     }
 
     # Add version message if provided
     if args.message:
-        update_data['version']['message'] = args.message
+        update_data["version"]["message"] = args.message
 
     # Add body if updating content
     if body_content:
         if is_markdown:
             body_content = markdown_to_xhtml(body_content)
 
-        update_data['body'] = {
-            'representation': 'storage',
-            'value': body_content
-        }
+        update_data["body"] = {"representation": "storage", "value": body_content}
 
     # Update the page
     result = client.put(
-        f'/api/v2/pages/{page_id}',
-        json_data=update_data,
-        operation='update page'
+        f"/api/v2/pages/{page_id}", json_data=update_data, operation="update page"
     )
 
     # Output
-    if args.output == 'json':
+    if args.output == "json":
         print(format_json(result))
     else:
         print(format_page(result))
 
     print_success(f"Updated page {page_id} to version {current_version + 1}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

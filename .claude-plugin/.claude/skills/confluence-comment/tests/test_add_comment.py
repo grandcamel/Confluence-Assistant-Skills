@@ -3,7 +3,6 @@ Unit tests for add_comment.py
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
 
 
 class TestAddComment:
@@ -19,7 +18,7 @@ class TestAddComment:
 
     def test_validate_comment_id_invalid(self):
         """Test that invalid comment IDs fail validation."""
-        from confluence_assistant_skills_lib import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("", "comment_id")
@@ -40,7 +39,7 @@ class TestAddComment:
     def test_add_comment_basic(self, mock_client, sample_comment):
         """Test adding a basic comment to a page."""
         # Setup mock response
-        mock_client.setup_response('post', sample_comment)
+        mock_client.setup_response("post", sample_comment)
 
         # Would verify comment is created with correct data structure
         # Expected API call: POST /api/v2/pages/{page_id}/footer-comments
@@ -48,25 +47,25 @@ class TestAddComment:
     def test_add_comment_with_html(self, mock_client, sample_comment):
         """Test adding a comment with HTML content."""
         comment_with_html = sample_comment.copy()
-        comment_with_html['body']['storage']['value'] = "<p>Bold text: <strong>important</strong></p>"
+        comment_with_html["body"]["storage"]["value"] = (
+            "<p>Bold text: <strong>important</strong></p>"
+        )
 
-        mock_client.setup_response('post', comment_with_html)
+        mock_client.setup_response("post", comment_with_html)
 
         # Would verify HTML is preserved in storage format
 
     def test_add_comment_page_not_found(self, mock_client):
         """Test adding comment to non-existent page."""
-        from confluence_assistant_skills_lib import NotFoundError
 
-        mock_client.setup_response('post', {}, status_code=404)
+        mock_client.setup_response("post", {}, status_code=404)
 
         # Would verify NotFoundError is raised with appropriate message
 
     def test_add_comment_no_permission(self, mock_client):
         """Test adding comment without permission."""
-        from confluence_assistant_skills_lib import PermissionError
 
-        mock_client.setup_response('post', {}, status_code=403)
+        mock_client.setup_response("post", {}, status_code=403)
 
         # Would verify PermissionError is raised
 

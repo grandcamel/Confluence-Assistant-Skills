@@ -5,33 +5,38 @@ Usage:
     pytest test_space_permission_live.py --profile development -v
 """
 
+import contextlib
+
 import pytest
-import sys
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 def pytest_addoption(parser):
-    try:
+    with contextlib.suppress(ValueError):
         parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
+
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
 
+
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def current_user(confluence_client):
-    return confluence_client.get('/rest/api/user/current')
+    return confluence_client.get("/rest/api/user/current")
+
 
 @pytest.mark.integration
 class TestSpacePermissionLive:
@@ -53,24 +58,26 @@ class TestSpacePermissionLive:
         """Test that current user can access the space."""
         # If we can get the space, we have access
         space = confluence_client.get(f"/api/v2/spaces/{test_space['id']}")
-        assert space['id'] == test_space['id']
+        assert space["id"] == test_space["id"]
 
-    def test_current_user_can_create_content(self, confluence_client, test_space, current_user):
+    def test_current_user_can_create_content(
+        self, confluence_client, test_space, current_user
+    ):
         """Test that current user can create content in space."""
         import uuid
 
         page = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': f'Permission Test {uuid.uuid4().hex[:8]}',
-                'body': {'representation': 'storage', 'value': '<p>Test.</p>'}
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": f"Permission Test {uuid.uuid4().hex[:8]}",
+                "body": {"representation": "storage", "value": "<p>Test.</p>"},
+            },
         )
 
         try:
-            assert page['id'] is not None
+            assert page["id"] is not None
         finally:
             confluence_client.delete(f"/api/v2/pages/{page['id']}")
 
@@ -79,10 +86,9 @@ class TestSpacePermissionLive:
         try:
             # Try to get space permissions
             perms = confluence_client.get(
-                f"/rest/api/space/{test_space['key']}",
-                params={'expand': 'permissions'}
+                f"/rest/api/space/{test_space['key']}", params={"expand": "permissions"}
             )
-            assert 'key' in perms
+            assert "key" in perms
         except Exception:
             # May not have permission to view admins
             pass

@@ -10,12 +10,16 @@ Examples:
     python create_jira_from_page.py 12345 --project PROJ --type Bug --priority High
 """
 
-import sys
 import argparse
-from typing import Optional, Dict, Any
+from typing import Any, Optional
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, ValidationError, validate_page_id,
-    print_success, format_json,
+    ValidationError,
+    format_json,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+    validate_page_id,
 )
 
 
@@ -42,6 +46,7 @@ def validate_jira_project_key(project_key: str) -> str:
 
     return project_key
 
+
 def validate_issue_type(issue_type: str) -> str:
     """
     Validate JIRA issue type.
@@ -56,8 +61,13 @@ def validate_issue_type(issue_type: str) -> str:
         ValidationError: If invalid
     """
     valid_types = [
-        "Task", "Story", "Bug", "Epic", "Subtask",
-        "Improvement", "New Feature"
+        "Task",
+        "Story",
+        "Bug",
+        "Epic",
+        "Subtask",
+        "Improvement",
+        "New Feature",
     ]
 
     issue_type = issue_type.strip()
@@ -67,9 +77,8 @@ def validate_issue_type(issue_type: str) -> str:
         if issue_type.lower() == vtype.lower():
             return vtype
 
-    raise ValidationError(
-        f"Issue type must be one of: {', '.join(valid_types)}"
-    )
+    raise ValidationError(f"Issue type must be one of: {', '.join(valid_types)}")
+
 
 def create_jira_issue_data(
     project_key: str,
@@ -78,7 +87,7 @@ def create_jira_issue_data(
     issue_type: str = "Task",
     priority: Optional[str] = None,
     assignee: Optional[str] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Create JIRA issue data structure.
 
@@ -94,14 +103,10 @@ def create_jira_issue_data(
         JIRA issue data
     """
     fields = {
-        "project": {
-            "key": project_key
-        },
+        "project": {"key": project_key},
         "summary": summary,
         "description": description,
-        "issuetype": {
-            "name": issue_type
-        }
+        "issuetype": {"name": issue_type},
     }
 
     if priority:
@@ -111,6 +116,7 @@ def create_jira_issue_data(
         fields["assignee"] = {"name": assignee}
 
     return {"fields": fields}
+
 
 def extract_plain_text_from_xhtml(xhtml: str) -> str:
     """
@@ -123,13 +129,15 @@ def extract_plain_text_from_xhtml(xhtml: str) -> str:
         Plain text
     """
     from confluence_assistant_skills_lib import extract_text_from_xhtml
+
     return extract_text_from_xhtml(xhtml)
+
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Create a JIRA issue from Confluence page content',
-        epilog='''
+        description="Create a JIRA issue from Confluence page content",
+        epilog="""
 Examples:
   python create_jira_from_page.py 12345 --project PROJ --type Task
   python create_jira_from_page.py 12345 --project PROJ --type Bug --priority High
@@ -138,20 +146,29 @@ Note: This script requires JIRA API access. Set JIRA credentials:
   export JIRA_URL="https://jira.example.com"
   export JIRA_EMAIL="your-email@example.com"
   export JIRA_API_TOKEN="your-jira-token"
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('page_id', help='Confluence page ID to convert')
-    parser.add_argument('--project', '-p', required=True, help='JIRA project key')
-    parser.add_argument('--type', '-t', default='Task', help='Issue type (default: Task)')
-    parser.add_argument('--priority', help='Priority (e.g., High, Medium, Low)')
-    parser.add_argument('--assignee', help='Assignee username')
-    parser.add_argument('--jira-url', help='JIRA base URL (or set JIRA_URL env var)')
-    parser.add_argument('--jira-email', help='JIRA email (or set JIRA_EMAIL env var)')
-    parser.add_argument('--jira-token', help='JIRA API token (or set JIRA_API_TOKEN env var)')
-    parser.add_argument('--profile', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("page_id", help="Confluence page ID to convert")
+    parser.add_argument("--project", "-p", required=True, help="JIRA project key")
+    parser.add_argument(
+        "--type", "-t", default="Task", help="Issue type (default: Task)"
+    )
+    parser.add_argument("--priority", help="Priority (e.g., High, Medium, Low)")
+    parser.add_argument("--assignee", help="Assignee username")
+    parser.add_argument("--jira-url", help="JIRA base URL (or set JIRA_URL env var)")
+    parser.add_argument("--jira-email", help="JIRA email (or set JIRA_EMAIL env var)")
+    parser.add_argument(
+        "--jira-token", help="JIRA API token (or set JIRA_API_TOKEN env var)"
+    )
+    parser.add_argument("--profile", help="Confluence profile to use")
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate inputs
@@ -161,9 +178,10 @@ Note: This script requires JIRA API access. Set JIRA credentials:
 
     # Get JIRA credentials
     import os
-    jira_url = args.jira_url or os.getenv('JIRA_URL')
-    jira_email = args.jira_email or os.getenv('JIRA_EMAIL')
-    jira_token = args.jira_token or os.getenv('JIRA_API_TOKEN')
+
+    jira_url = args.jira_url or os.getenv("JIRA_URL")
+    jira_email = args.jira_email or os.getenv("JIRA_EMAIL")
+    jira_token = args.jira_token or os.getenv("JIRA_API_TOKEN")
 
     if not all([jira_url, jira_email, jira_token]):
         raise ValidationError(
@@ -176,21 +194,21 @@ Note: This script requires JIRA API access. Set JIRA credentials:
 
     # Get page content
     page = confluence_client.get(
-        f'/rest/api/content/{page_id}',
-        params={'expand': 'body.storage'},
-        operation='get page'
+        f"/rest/api/content/{page_id}",
+        params={"expand": "body.storage"},
+        operation="get page",
     )
 
-    page_title = page['title']
-    page_content = page['body']['storage']['value']
+    page_title = page["title"]
+    page_content = page["body"]["storage"]["value"]
 
     # Extract plain text for JIRA description
     description = extract_plain_text_from_xhtml(page_content)
 
     # Add reference to Confluence page
-    page_url = page.get('_links', {}).get('webui', '')
+    page_url = page.get("_links", {}).get("webui", "")
     if page_url:
-        full_url = jira_url.rstrip('/') + page_url
+        full_url = jira_url.rstrip("/") + page_url
         description += f"\n\nSource: {full_url}"
 
     # Create JIRA issue data
@@ -200,40 +218,40 @@ Note: This script requires JIRA API access. Set JIRA credentials:
         description=description,
         issue_type=issue_type,
         priority=args.priority,
-        assignee=args.assignee
+        assignee=args.assignee,
     )
 
     # Create JIRA client
     import requests
     from requests.auth import HTTPBasicAuth
 
-    jira_api_url = jira_url.rstrip('/') + '/rest/api/2/issue'
+    jira_api_url = jira_url.rstrip("/") + "/rest/api/2/issue"
 
     response = requests.post(
         jira_api_url,
         json=issue_data,
         auth=HTTPBasicAuth(jira_email, jira_token),
-        headers={'Content-Type': 'application/json'},
-        timeout=30
+        headers={"Content-Type": "application/json"},
+        timeout=30,
     )
 
     if not response.ok:
         error_msg = response.text
         try:
             error_json = response.json()
-            error_msg = error_json.get('errorMessages', [error_msg])[0]
+            error_msg = error_json.get("errorMessages", [error_msg])[0]
         except:
             pass
         raise ValidationError(f"Failed to create JIRA issue: {error_msg}")
 
     result = response.json()
-    issue_key = result['key']
+    issue_key = result["key"]
 
     # Output
-    if args.output == 'json':
+    if args.output == "json":
         print(format_json(result))
     else:
-        print(f"Created JIRA issue:")
+        print("Created JIRA issue:")
         print(f"  Issue Key: {issue_key}")
         print(f"  Project: {project_key}")
         print(f"  Type: {issue_type}")
@@ -244,5 +262,6 @@ Note: This script requires JIRA API access. Set JIRA credentials:
 
     print_success(f"Created JIRA issue {issue_key} from page {page_id}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

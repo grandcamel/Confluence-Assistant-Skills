@@ -8,30 +8,38 @@ Examples:
     python am_i_watching.py 123456 --output json
 """
 
-import sys
 import argparse
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, validate_page_id, print_success,
     format_json,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+    validate_page_id,
 )
 
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Check if current user is watching a page',
-        epilog='''
+        description="Check if current user is watching a page",
+        epilog="""
 Examples:
   python am_i_watching.py 123456
   python am_i_watching.py 123456 --profile production
   python am_i_watching.py 123456 --output json
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('page_id', help='Page ID to check')
-    parser.add_argument('--profile', '-p', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("page_id", help="Page ID to check")
+    parser.add_argument("--profile", "-p", help="Confluence profile to use")
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate
@@ -41,41 +49,36 @@ Examples:
     client = get_confluence_client(profile=args.profile)
 
     # Get current user
-    current_user = client.get(
-        '/rest/api/user/current',
-        operation='get current user'
-    )
+    current_user = client.get("/rest/api/user/current", operation="get current user")
 
-    current_account_id = current_user.get('accountId')
+    current_account_id = current_user.get("accountId")
 
     # Get watchers for the page
     watchers_result = client.get(
-        f'/rest/api/content/{page_id}/notification/created',
-        operation='get watchers'
+        f"/rest/api/content/{page_id}/notification/created", operation="get watchers"
     )
 
-    watchers = watchers_result.get('results', [])
+    watchers = watchers_result.get("results", [])
 
     # Check if current user is in watchers list
     is_watching = any(
-        watcher.get('accountId') == current_account_id
-        for watcher in watchers
+        watcher.get("accountId") == current_account_id for watcher in watchers
     )
 
     # Output
-    if args.output == 'json':
+    if args.output == "json":
         output = {
-            'page_id': page_id,
-            'watching': is_watching,
-            'user': {
-                'accountId': current_account_id,
-                'displayName': current_user.get('displayName', ''),
-                'email': current_user.get('email', '')
-            }
+            "page_id": page_id,
+            "watching": is_watching,
+            "user": {
+                "accountId": current_account_id,
+                "displayName": current_user.get("displayName", ""),
+                "email": current_user.get("email", ""),
+            },
         }
         print(format_json(output))
     else:
-        user_name = current_user.get('displayName', current_user.get('username', 'You'))
+        user_name = current_user.get("displayName", current_user.get("username", "You"))
 
         if is_watching:
             print(f"Yes - {user_name} is watching page {page_id}")
@@ -89,5 +92,6 @@ Examples:
     else:
         print_success("Not watching")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

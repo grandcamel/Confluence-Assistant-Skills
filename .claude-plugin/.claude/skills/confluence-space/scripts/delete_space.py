@@ -7,11 +7,15 @@ Examples:
     python delete_space.py TEST --force
 """
 
-import sys
 import argparse
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, NotFoundError, validate_space_key,
-    print_success, print_warning,
+    NotFoundError,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+    print_warning,
+    validate_space_key,
 )
 
 
@@ -24,21 +28,23 @@ def confirm_delete(space_name: str, space_key: str) -> bool:
     response = input("\nAre you sure? Type the space key to confirm: ").strip().upper()
     return response == space_key.upper()
 
+
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Delete a Confluence space',
-        epilog='''
+        description="Delete a Confluence space",
+        epilog="""
 Examples:
   python delete_space.py TEST
   python delete_space.py TEST --force
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('space_key', help='Space key to delete')
-    parser.add_argument('--force', '-f', action='store_true',
-                        help='Skip confirmation prompt')
-    parser.add_argument('--profile', help='Confluence profile to use')
+    parser.add_argument("space_key", help="Space key to delete")
+    parser.add_argument(
+        "--force", "-f", action="store_true", help="Skip confirmation prompt"
+    )
+    parser.add_argument("--profile", help="Confluence profile to use")
     args = parser.parse_args(argv)
 
     # Validate
@@ -48,32 +54,29 @@ Examples:
     client = get_confluence_client(profile=args.profile)
 
     # Get space info for confirmation
-    spaces = list(client.paginate(
-        '/api/v2/spaces',
-        params={'keys': space_key},
-        operation='get space'
-    ))
+    spaces = list(
+        client.paginate(
+            "/api/v2/spaces", params={"keys": space_key}, operation="get space"
+        )
+    )
 
     if not spaces:
         raise NotFoundError(f"Space not found: {space_key}")
 
     space = spaces[0]
-    space_name = space.get('name', 'Unknown')
-    space_id = space['id']
+    space_name = space.get("name", "Unknown")
+    space_id = space["id"]
 
     # Confirm if not forced
-    if not args.force:
-        if not confirm_delete(space_name, space_key):
-            print("Delete cancelled.")
-            return
+    if not args.force and not confirm_delete(space_name, space_key):
+        print("Delete cancelled.")
+        return
 
     # Delete the space
-    client.delete(
-        f'/api/v2/spaces/{space_id}',
-        operation='delete space'
-    )
+    client.delete(f"/api/v2/spaces/{space_id}", operation="delete space")
 
     print_success(f"Deleted space '{space_name}' ({space_key})")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

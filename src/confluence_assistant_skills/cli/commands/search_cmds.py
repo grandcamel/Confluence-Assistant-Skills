@@ -15,13 +15,19 @@ def search() -> None:
 
 @search.command(name="cql")
 @click.argument("cql")
-@click.option("--limit", "-l", type=int, default=25, help="Maximum results (default: 25)")
+@click.option(
+    "--limit", "-l", type=int, default=25, help="Maximum results (default: 25)"
+)
 @click.option("--show-excerpts", is_flag=True, help="Show content excerpts")
 @click.option("--show-labels", is_flag=True, help="Show content labels")
 @click.option("--show-ancestors", is_flag=True, help="Show ancestor pages")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def cql_search(
@@ -59,7 +65,11 @@ def cql_search(
 @click.option("--limit", "-l", type=int, default=25, help="Maximum results")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def search_content(
@@ -111,7 +121,11 @@ def cql_validate(
 @click.option("--functions", is_flag=True, help="List all CQL functions")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def cql_suggest(
@@ -143,7 +157,14 @@ def cql_suggest(
 
 @search.command(name="export")
 @click.argument("cql")
-@click.option("--format", "-f", "export_format", type=click.Choice(["csv", "json"]), default="csv", help="Export format")
+@click.option(
+    "--format",
+    "-f",
+    "export_format",
+    type=click.Choice(["csv", "json"]),
+    default="csv",
+    help="Export format",
+)
 @click.option("--output", "-o", required=True, help="Output file path")
 @click.option("--columns", help="Columns to include (comma-separated)")
 @click.option("--limit", "-l", type=int, help="Maximum results to export")
@@ -176,10 +197,18 @@ def export_results(
 
 @search.command(name="stream-export")
 @click.argument("cql")
-@click.option("--format", "-f", "export_format", type=click.Choice(["csv", "json"]), help="Export format (inferred from extension if not specified)")
+@click.option(
+    "--format",
+    "-f",
+    "export_format",
+    type=click.Choice(["csv", "json"]),
+    help="Export format (inferred from extension if not specified)",
+)
 @click.option("--output", "-o", required=True, help="Output file path")
 @click.option("--columns", help="Columns to include (comma-separated)")
-@click.option("--batch-size", type=int, default=100, help="Records per batch (default: 100)")
+@click.option(
+    "--batch-size", type=int, default=100, help="Records per batch (default: 100)"
+)
 @click.option("--resume", is_flag=True, help="Resume from last checkpoint")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
@@ -220,7 +249,11 @@ def history_group() -> None:
 @history_group.command(name="list")
 @click.option("--limit", "-l", type=int, help="Number of recent queries")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def history_list(
@@ -241,7 +274,11 @@ def history_list(
 @history_group.command(name="search")
 @click.argument("keyword")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def history_search(
@@ -260,7 +297,11 @@ def history_search(
 @history_group.command(name="show")
 @click.argument("index", type=int)
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def history_show(
@@ -288,7 +329,14 @@ def history_clear(
 
 @history_group.command(name="export")
 @click.argument("output_file")
-@click.option("--format", "-f", "export_format", type=click.Choice(["csv", "json"]), default="csv", help="Export format")
+@click.option(
+    "--format",
+    "-f",
+    "export_format",
+    type=click.Choice(["csv", "json"]),
+    default="csv",
+    help="Export format",
+)
 @click.pass_context
 def history_export(
     ctx: click.Context,
@@ -320,8 +368,15 @@ def history_cleanup(
 
 @search.command(name="interactive")
 @click.option("--space", help="Pre-filter by space key")
-@click.option("--type", "content_type", type=click.Choice(["page", "blogpost", "comment", "attachment"]), help="Pre-filter by content type")
-@click.option("--limit", "-l", type=int, default=25, help="Maximum results (default: 25)")
+@click.option(
+    "--type",
+    "content_type",
+    type=click.Choice(["page", "blogpost", "comment", "attachment"]),
+    help="Pre-filter by content type",
+)
+@click.option(
+    "--limit", "-l", type=int, default=25, help="Maximum results (default: 25)"
+)
 @click.option("--execute", is_flag=True, help="Execute query after building")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context

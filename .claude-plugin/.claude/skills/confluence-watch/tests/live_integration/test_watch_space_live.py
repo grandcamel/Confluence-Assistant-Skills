@@ -5,33 +5,38 @@ Usage:
     pytest test_watch_space_live.py --profile development -v
 """
 
+import contextlib
+
 import pytest
-import sys
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 def pytest_addoption(parser):
-    try:
+    with contextlib.suppress(ValueError):
         parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
+
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
 
+
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def current_user(confluence_client):
-    return confluence_client.get('/rest/api/user/current')
+    return confluence_client.get("/rest/api/user/current")
+
 
 @pytest.mark.integration
 class TestWatchSpaceLive:
@@ -41,8 +46,7 @@ class TestWatchSpaceLive:
         """Test watching a space."""
         try:
             confluence_client.post(
-                f"/rest/api/user/watch/space/{test_space['key']}",
-                json_data={}
+                f"/rest/api/user/watch/space/{test_space['key']}", json_data={}
             )
             # If no error, watch succeeded or already watching
         except Exception:
@@ -54,26 +58,23 @@ class TestWatchSpaceLive:
         try:
             # First watch
             confluence_client.post(
-                f"/rest/api/user/watch/space/{test_space['key']}",
-                json_data={}
+                f"/rest/api/user/watch/space/{test_space['key']}", json_data={}
             )
 
             # Then unwatch
-            confluence_client.delete(
-                f"/rest/api/user/watch/space/{test_space['key']}"
-            )
+            confluence_client.delete(f"/rest/api/user/watch/space/{test_space['key']}")
         except Exception:
             # API may differ between instances
             pass
 
-    def test_check_space_watch_status(self, confluence_client, test_space, current_user):
+    def test_check_space_watch_status(
+        self, confluence_client, test_space, current_user
+    ):
         """Test checking if user is watching a space."""
         try:
-            result = confluence_client.get(
-                f"/rest/api/user/watch/space/{test_space['key']}"
-            )
+            confluence_client.get(f"/rest/api/user/watch/space/{test_space['key']}")
             # Result varies by instance
-            assert result is not None or True
+            assert True
         except Exception:
             # 404 means not watching, which is valid
             pass
@@ -81,4 +82,4 @@ class TestWatchSpaceLive:
     def test_space_still_accessible(self, confluence_client, test_space):
         """Test that space is accessible after watch operations."""
         space = confluence_client.get(f"/api/v2/spaces/{test_space['id']}")
-        assert space['id'] == test_space['id']
+        assert space["id"] == test_space["id"]

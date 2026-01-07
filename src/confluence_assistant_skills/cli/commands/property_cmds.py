@@ -18,13 +18,20 @@ def property_cmd() -> None:
 @click.option("--prefix", help="Filter properties by key prefix")
 @click.option("--pattern", help="Filter properties by regex pattern")
 @click.option(
-    "--sort", type=click.Choice(["key", "version"]), default="key", help="Sort properties by field"
+    "--sort",
+    type=click.Choice(["key", "version"]),
+    default="key",
+    help="Sort properties by field",
 )
 @click.option("--expand", help="Comma-separated fields to expand (e.g., version)")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed information")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def list_properties(
@@ -64,7 +71,11 @@ def list_properties(
 @click.option("--expand", help="Comma-separated fields to expand (e.g., version)")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_properties(
@@ -94,11 +105,17 @@ def get_properties(
 @click.argument("key")
 @click.option("--value", "-v", help="Property value (string or JSON)")
 @click.option("--file", "-f", "file_path", help="Read value from JSON file")
-@click.option("--update", is_flag=True, help="Update existing property (fetches current version)")
+@click.option(
+    "--update", is_flag=True, help="Update existing property (fetches current version)"
+)
 @click.option("--version", type=int, help="Explicit version number for update")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def set_property(

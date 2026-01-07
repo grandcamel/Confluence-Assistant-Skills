@@ -5,30 +5,34 @@ Usage:
     pytest test_template_content_live.py --profile development -v
 """
 
-import pytest
+import contextlib
 import uuid
-import sys
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 def pytest_addoption(parser):
-    try:
+    with contextlib.suppress(ValueError):
         parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
+
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
 
+
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.mark.integration
 class TestTemplateContentLive:
@@ -38,7 +42,7 @@ class TestTemplateContentLive:
         """Test creating a decision document template."""
         title = f"Decision {uuid.uuid4().hex[:8]}"
 
-        content = '''<h2>Decision</h2>
+        content = """<h2>Decision</h2>
         <p><ac:placeholder>Describe the decision</ac:placeholder></p>
         <h2>Context</h2>
         <p><ac:placeholder>Background information</ac:placeholder></p>
@@ -48,20 +52,20 @@ class TestTemplateContentLive:
             <li>Option B</li>
         </ol>
         <h2>Outcome</h2>
-        <p><ac:placeholder>Final decision and rationale</ac:placeholder></p>'''
+        <p><ac:placeholder>Final decision and rationale</ac:placeholder></p>"""
 
         page = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': title,
-                'body': {'representation': 'storage', 'value': content}
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": title,
+                "body": {"representation": "storage", "value": content},
+            },
         )
 
         try:
-            assert page['id'] is not None
+            assert page["id"] is not None
         finally:
             confluence_client.delete(f"/api/v2/pages/{page['id']}")
 
@@ -69,7 +73,7 @@ class TestTemplateContentLive:
         """Test creating a meeting notes template."""
         title = f"Meeting Notes {uuid.uuid4().hex[:8]}"
 
-        content = '''<h2>Meeting Information</h2>
+        content = """<h2>Meeting Information</h2>
         <p><strong>Date:</strong> <ac:placeholder>Date</ac:placeholder></p>
         <p><strong>Attendees:</strong> <ac:placeholder>List attendees</ac:placeholder></p>
         <h2>Agenda</h2>
@@ -85,19 +89,19 @@ class TestTemplateContentLive:
                 <ac:task-status>incomplete</ac:task-status>
                 <ac:task-body><ac:placeholder>Action item</ac:placeholder></ac:task-body>
             </ac:task>
-        </ac:task-list>'''
+        </ac:task-list>"""
 
         page = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': title,
-                'body': {'representation': 'storage', 'value': content}
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": title,
+                "body": {"representation": "storage", "value": content},
+            },
         )
 
         try:
-            assert page['id'] is not None
+            assert page["id"] is not None
         finally:
             confluence_client.delete(f"/api/v2/pages/{page['id']}")

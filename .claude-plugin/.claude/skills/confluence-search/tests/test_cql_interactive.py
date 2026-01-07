@@ -5,8 +5,6 @@ Tests interactive CQL query builder functionality.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock, call
-from io import StringIO
 
 
 class TestQueryBuilder:
@@ -58,11 +56,7 @@ class TestQueryBuilder:
         # User selects: created >= '2024-01-01' AND created < '2024-02-01'
         expected = "created >= '2024-01-01' AND created < '2024-02-01'"
 
-        parts = [
-            "created >= '2024-01-01'",
-            "AND",
-            "created < '2024-02-01'"
-        ]
+        parts = ["created >= '2024-01-01'", "AND", "created < '2024-02-01'"]
         result = " ".join(parts)
 
         assert result == expected
@@ -83,7 +77,6 @@ class TestQueryValidation:
     def test_validate_incomplete_query(self):
         """Test handling incomplete query."""
         # Query like "space = " should be caught
-        incomplete = "space = "
 
         # In interactive mode, this should prompt for value
         # Not raise an error immediately
@@ -91,7 +84,7 @@ class TestQueryValidation:
 
     def test_validate_unbalanced_quotes(self):
         """Test handling unbalanced quotes."""
-        from confluence_assistant_skills_lib import validate_cql, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_cql
 
         query = "space = 'DOCS"  # Missing closing quote
 
@@ -100,7 +93,7 @@ class TestQueryValidation:
 
     def test_validate_unbalanced_parens(self):
         """Test handling unbalanced parentheses."""
-        from confluence_assistant_skills_lib import validate_cql, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_cql
 
         query = "(space = 'DOCS' AND type = page"
 
@@ -116,7 +109,7 @@ class TestInteractiveMenus:
         # Would display numbered list of fields
         fields = sample_cql_fields[:5]
 
-        menu_items = [f"{i+1}. {f['name']}" for i, f in enumerate(fields)]
+        menu_items = [f"{i + 1}. {f['name']}" for i, f in enumerate(fields)]
 
         assert len(menu_items) == 5
         assert "1. space" in menu_items
@@ -126,7 +119,7 @@ class TestInteractiveMenus:
         # After selecting 'space', show valid operators
         operators = ["=", "!=", "in", "not in"]
 
-        menu_items = [f"{i+1}. {op}" for i, op in enumerate(operators)]
+        menu_items = [f"{i + 1}. {op}" for i, op in enumerate(operators)]
 
         assert len(menu_items) == 4
         assert "1. =" in menu_items
@@ -134,11 +127,11 @@ class TestInteractiveMenus:
     def test_display_value_suggestions(self, sample_spaces_for_suggestion):
         """Test displaying value suggestions."""
         # After selecting space =, show space keys
-        spaces = sample_spaces_for_suggestion['results']
-        suggestions = [s['key'] for s in spaces]
+        spaces = sample_spaces_for_suggestion["results"]
+        suggestions = [s["key"] for s in spaces]
 
-        assert 'DOCS' in suggestions
-        assert 'KB' in suggestions
+        assert "DOCS" in suggestions
+        assert "KB" in suggestions
 
     def test_display_continue_menu(self):
         """Test displaying continue/finish menu."""
@@ -148,7 +141,7 @@ class TestInteractiveMenus:
             "2. Add OR condition",
             "3. Add ORDER BY",
             "4. Finish and execute",
-            "5. Cancel"
+            "5. Cancel",
         ]
 
         assert len(options) == 5
@@ -160,30 +153,29 @@ class TestQueryExecution:
 
     def test_execute_query_success(self, mock_client, sample_search_results):
         """Test executing a successfully built query."""
-        mock_client.setup_response('get', sample_search_results)
+        mock_client.setup_response("get", sample_search_results)
 
         query = "space = 'DOCS' AND type = page"
 
         # Would execute via client
-        result = mock_client.get('/rest/api/search', params={'cql': query, 'limit': 25})
+        result = mock_client.get("/rest/api/search", params={"cql": query, "limit": 25})
 
-        assert 'results' in result
-        assert len(result['results']) > 0
+        assert "results" in result
+        assert len(result["results"]) > 0
 
     def test_execute_query_no_results(self, mock_client):
         """Test executing query that returns no results."""
-        mock_client.setup_response('get', {'results': [], 'size': 0})
+        mock_client.setup_response("get", {"results": [], "size": 0})
 
         query = "label = 'nonexistent'"
 
-        result = mock_client.get('/rest/api/search', params={'cql': query, 'limit': 25})
+        result = mock_client.get("/rest/api/search", params={"cql": query, "limit": 25})
 
-        assert result['results'] == []
-        assert result['size'] == 0
+        assert result["results"] == []
+        assert result["size"] == 0
 
     def test_save_query_option(self):
         """Test option to save query after building."""
-        query = "space = 'DOCS' AND type = page"
 
         # User should be prompted to save
         # Would write to history file

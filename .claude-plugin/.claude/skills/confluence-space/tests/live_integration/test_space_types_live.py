@@ -5,22 +5,25 @@ Usage:
     pytest test_space_types_live.py --profile development -v
 """
 
+import contextlib
+
 import pytest
-import sys
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 def pytest_addoption(parser):
-    try:
+    with contextlib.suppress(ValueError):
         parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
+
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
+
 
 @pytest.mark.integration
 class TestSpaceTypesLive:
@@ -29,33 +32,30 @@ class TestSpaceTypesLive:
     def test_list_global_spaces(self, confluence_client):
         """Test listing global spaces."""
         spaces = confluence_client.get(
-            '/api/v2/spaces',
-            params={'type': 'global', 'limit': 10}
+            "/api/v2/spaces", params={"type": "global", "limit": 10}
         )
 
-        assert 'results' in spaces
+        assert "results" in spaces
 
     def test_list_personal_spaces(self, confluence_client):
         """Test listing personal spaces."""
         spaces = confluence_client.get(
-            '/api/v2/spaces',
-            params={'type': 'personal', 'limit': 10}
+            "/api/v2/spaces", params={"type": "personal", "limit": 10}
         )
 
-        assert 'results' in spaces
+        assert "results" in spaces
 
     def test_space_has_type_field(self, confluence_client):
         """Test that spaces have type field."""
-        spaces = confluence_client.get('/api/v2/spaces', params={'limit': 5})
+        spaces = confluence_client.get("/api/v2/spaces", params={"limit": 5})
 
-        for space in spaces.get('results', []):
-            assert 'type' in space
+        for space in spaces.get("results", []):
+            assert "type" in space
 
     def test_filter_spaces_by_status(self, confluence_client):
         """Test filtering spaces by status."""
         spaces = confluence_client.get(
-            '/api/v2/spaces',
-            params={'status': 'current', 'limit': 10}
+            "/api/v2/spaces", params={"status": "current", "limit": 10}
         )
 
-        assert 'results' in spaces
+        assert "results" in spaces

@@ -2,11 +2,9 @@
 Unit tests for delete_attachment.py
 """
 
-import pytest
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
+import pytest
 
 
 class TestDeleteAttachment:
@@ -19,8 +17,7 @@ class TestDeleteAttachment:
         mock_client.delete = MagicMock(return_value={})
 
         result = mock_client.delete(
-            f"/api/v2/attachments/{attachment_id}",
-            operation="delete attachment"
+            f"/api/v2/attachments/{attachment_id}", operation="delete attachment"
         )
 
         # DELETE returns empty response on success
@@ -29,32 +26,22 @@ class TestDeleteAttachment:
 
     def test_delete_attachment_not_found(self, mock_client):
         """Test deleting non-existent attachment."""
-        from confluence_assistant_skills_lib import NotFoundError
-
-        attachment_id = "nonexistent"
 
         mock_response = Mock()
         mock_response.status_code = 404
         mock_response.ok = False
-        mock_response.json.return_value = {
-            "message": "Attachment not found"
-        }
+        mock_response.json.return_value = {"message": "Attachment not found"}
 
         # Would raise NotFoundError in actual implementation
         assert mock_response.status_code == 404
 
     def test_delete_attachment_no_permission(self, mock_client):
         """Test deleting attachment without permission."""
-        from confluence_assistant_skills_lib import PermissionError
-
-        attachment_id = "att123456"
 
         mock_response = Mock()
         mock_response.status_code = 403
         mock_response.ok = False
-        mock_response.json.return_value = {
-            "message": "Insufficient permissions"
-        }
+        mock_response.json.return_value = {"message": "Insufficient permissions"}
 
         # Would raise PermissionError in actual implementation
         assert mock_response.status_code == 403
@@ -80,6 +67,7 @@ class TestDeleteAttachment:
 
         # Invalid IDs should fail
         from confluence_assistant_skills_lib import ValidationError
+
         with pytest.raises(ValidationError):
             validate_page_id("")
 
@@ -99,8 +87,7 @@ class TestDeleteBulkAttachments:
         results = []
         for att_id in attachment_ids:
             result = mock_client.delete(
-                f"/api/v2/attachments/{att_id}",
-                operation="delete attachment"
+                f"/api/v2/attachments/{att_id}", operation="delete attachment"
             )
             results.append(result)
 
@@ -115,22 +102,17 @@ class TestDeleteBulkAttachments:
         ]
 
         # First get all attachments
-        mock_client.get = MagicMock(return_value={
-            "results": attachments,
-            "_links": {}
-        })
+        mock_client.get = MagicMock(return_value={"results": attachments, "_links": {}})
 
         result = mock_client.get(
-            "/api/v2/pages/123456/attachments",
-            operation="list attachments"
+            "/api/v2/pages/123456/attachments", operation="list attachments"
         )
 
         # Then delete each
         mock_client.delete = MagicMock(return_value={})
         for att in result["results"]:
             mock_client.delete(
-                f"/api/v2/attachments/{att['id']}",
-                operation="delete attachment"
+                f"/api/v2/attachments/{att['id']}", operation="delete attachment"
             )
 
         assert mock_client.delete.call_count == 2
@@ -156,9 +138,8 @@ class TestDeleteBulkAttachments:
 
         for att_id in attachment_ids:
             try:
-                result = mock_client.delete(
-                    f"/api/v2/attachments/{att_id}",
-                    operation="delete attachment"
+                mock_client.delete(
+                    f"/api/v2/attachments/{att_id}", operation="delete attachment"
                 )
                 successful.append(att_id)
             except Exception:

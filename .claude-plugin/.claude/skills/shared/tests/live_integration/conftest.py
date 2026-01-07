@@ -10,18 +10,24 @@ Usage:
     pytest --space-key EXISTING -v  # Use existing space
 """
 
+import contextlib
 import os
 import uuid
+from collections.abc import Generator
+from typing import Any, Optional
+
 import pytest
-from typing import Any, Dict, Generator, Optional
+
 from confluence_assistant_skills_lib import (
-    ConfluenceClient, get_confluence_client,
+    ConfluenceClient,
+    get_confluence_client,
 )
 
 # =============================================================================
 # Pytest Configuration (extends root conftest.py)
 # Note: --profile and --live options are defined in root conftest.py
 # =============================================================================
+
 
 def pytest_addoption(parser):
     """Add live integration test specific options."""
@@ -30,7 +36,7 @@ def pytest_addoption(parser):
             "--keep-space",
             action="store_true",
             default=False,
-            help="Keep the test space after tests complete (for debugging)"
+            help="Keep the test space after tests complete (for debugging)",
         )
     except ValueError:
         pass  # Option already added
@@ -39,7 +45,7 @@ def pytest_addoption(parser):
             "--space-key",
             action="store",
             default=None,
-            help="Use an existing space instead of creating a new one"
+            help="Use an existing space instead of creating a new one",
         )
     except ValueError:
         pass  # Option already added
@@ -55,9 +61,11 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "attachments: mark test as attachment-related")
     config.addinivalue_line("markers", "labels: mark test as label-related")
 
+
 # =============================================================================
 # Session-Scoped Fixtures (created once per test session)
 # =============================================================================
+
 
 @pytest.fixture(scope="session")
 def confluence_profile(request) -> str:
@@ -66,15 +74,18 @@ def confluence_profile(request) -> str:
     # Default to development if not specified
     return profile or os.environ.get("CONFLUENCE_PROFILE", "development")
 
+
 @pytest.fixture(scope="session")
 def keep_space(request) -> bool:
     """Check if we should keep the test space after tests."""
     return request.config.getoption("--keep-space")
 
+
 @pytest.fixture(scope="session")
 def existing_space_key(request) -> Optional[str]:
     """Get existing space key if provided."""
     return request.config.getoption("--space-key")
+
 
 @pytest.fixture(scope="session")
 def confluence_client(confluence_profile) -> Generator[ConfluenceClient, None, None]:
@@ -88,19 +99,20 @@ def confluence_client(confluence_profile) -> Generator[ConfluenceClient, None, N
 
     # Verify connection
     test_result = client.test_connection()
-    if not test_result.get('success'):
+    if not test_result.get("success"):
         pytest.fail(f"Failed to connect to Confluence: {test_result.get('error')}")
 
     print(f"\nConnected to Confluence as: {test_result.get('user')}")
 
     yield client
 
+
 @pytest.fixture(scope="session")
 def test_space(
     confluence_client: ConfluenceClient,
     keep_space: bool,
-    existing_space_key: Optional[str]
-) -> Generator[Dict[str, Any], None, None]:
+    existing_space_key: Optional[str],
+) -> Generator[dict[str, Any], None, None]:
     """
     Create a unique test space for the session.
 
@@ -112,22 +124,24 @@ def test_space(
     """
     # Use existing space if provided
     if existing_space_key:
-        spaces = list(confluence_client.paginate(
-            '/api/v2/spaces',
-            params={'keys': existing_space_key},
-            operation='get existing space'
-        ))
+        spaces = list(
+            confluence_client.paginate(
+                "/api/v2/spaces",
+                params={"keys": existing_space_key},
+                operation="get existing space",
+            )
+        )
         if not spaces:
             pytest.fail(f"Existing space not found: {existing_space_key}")
 
         space = spaces[0]
         print(f"\nUsing existing space: {space['key']} ({space['name']})")
         yield {
-            'id': space['id'],
-            'key': space['key'],
-            'name': space['name'],
-            'homepageId': space.get('homepageId'),
-            'is_temporary': False
+            "id": space["id"],
+            "key": space["key"],
+            "name": space["name"],
+            "homepageId": space.get("homepageId"),
+            "is_temporary": False,
         }
         return
 
@@ -139,20 +153,17 @@ def test_space(
 
     # Create the space (omit description as it can cause 500 errors in some configurations)
     space = confluence_client.post(
-        '/api/v2/spaces',
-        json_data={
-            'key': space_key,
-            'name': space_name
-        },
-        operation='create test space'
+        "/api/v2/spaces",
+        json_data={"key": space_key, "name": space_name},
+        operation="create test space",
     )
 
     test_space_data = {
-        'id': space['id'],
-        'key': space['key'],
-        'name': space['name'],
-        'homepageId': space.get('homepageId'),
-        'is_temporary': True
+        "id": space["id"],
+        "key": space["key"],
+        "name": space["name"],
+        "homepageId": space.get("homepageId"),
+        "is_temporary": True,
     }
 
     print(f"Created test space: {space_key} (ID: {space['id']})")
@@ -160,25 +171,26 @@ def test_space(
     yield test_space_data
 
     # Cleanup
-    if not keep_space and test_space_data['is_temporary']:
+    if not keep_space and test_space_data["is_temporary"]:
         print(f"\nCleaning up test space: {space_key}")
         try:
-            cleanup_space(confluence_client, space['id'], space_key)
+            cleanup_space(confluence_client, space["id"], space_key)
             print(f"Deleted test space: {space_key}")
         except Exception as e:
             print(f"Warning: Failed to delete test space {space_key}: {e}")
     else:
         print(f"\nKeeping test space: {space_key}")
 
+
 # =============================================================================
 # Function-Scoped Fixtures (created fresh for each test)
 # =============================================================================
 
+
 @pytest.fixture(scope="function")
 def test_page(
-    confluence_client: ConfluenceClient,
-    test_space: Dict[str, Any]
-) -> Generator[Dict[str, Any], None, None]:
+    confluence_client: ConfluenceClient, test_space: dict[str, Any]
+) -> Generator[dict[str, Any], None, None]:
     """
     Create a test page for individual tests.
 
@@ -188,17 +200,17 @@ def test_page(
     page_title = f"Test Page {uuid.uuid4().hex[:8]}"
 
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': page_title,
-            'body': {
-                'representation': 'storage',
-                'value': '<p>Test page content for integration tests.</p>'
-            }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": page_title,
+            "body": {
+                "representation": "storage",
+                "value": "<p>Test page content for integration tests.</p>",
+            },
         },
-        operation='create test page'
+        operation="create test page",
     )
 
     yield page
@@ -206,17 +218,16 @@ def test_page(
     # Cleanup
     try:
         confluence_client.delete(
-            f"/api/v2/pages/{page['id']}",
-            operation='delete test page'
+            f"/api/v2/pages/{page['id']}", operation="delete test page"
         )
     except Exception:
         pass  # Ignore cleanup errors
 
+
 @pytest.fixture(scope="function")
 def test_page_with_content(
-    confluence_client: ConfluenceClient,
-    test_space: Dict[str, Any]
-) -> Generator[Dict[str, Any], None, None]:
+    confluence_client: ConfluenceClient, test_space: dict[str, Any]
+) -> Generator[dict[str, Any], None, None]:
     """
     Create a test page with rich content.
 
@@ -241,36 +252,31 @@ def test_page_with_content(
     """
 
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': page_title,
-            'body': {
-                'representation': 'storage',
-                'value': content
-            }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": page_title,
+            "body": {"representation": "storage", "value": content},
         },
-        operation='create test page with content'
+        operation="create test page with content",
     )
 
     yield page
 
     # Cleanup
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(
-            f"/api/v2/pages/{page['id']}",
-            operation='delete test page'
+            f"/api/v2/pages/{page['id']}", operation="delete test page"
         )
-    except Exception:
-        pass
+
 
 @pytest.fixture(scope="function")
 def test_child_page(
     confluence_client: ConfluenceClient,
-    test_space: Dict[str, Any],
-    test_page: Dict[str, Any]
-) -> Generator[Dict[str, Any], None, None]:
+    test_space: dict[str, Any],
+    test_page: dict[str, Any],
+) -> Generator[dict[str, Any], None, None]:
     """
     Create a child page under test_page.
 
@@ -280,36 +286,33 @@ def test_child_page(
     child_title = f"Child Page {uuid.uuid4().hex[:8]}"
 
     child = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'parentId': test_page['id'],
-            'status': 'current',
-            'title': child_title,
-            'body': {
-                'representation': 'storage',
-                'value': '<p>Child page content.</p>'
-            }
+            "spaceId": test_space["id"],
+            "parentId": test_page["id"],
+            "status": "current",
+            "title": child_title,
+            "body": {
+                "representation": "storage",
+                "value": "<p>Child page content.</p>",
+            },
         },
-        operation='create child page'
+        operation="create child page",
     )
 
     yield child
 
     # Cleanup
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(
-            f"/api/v2/pages/{child['id']}",
-            operation='delete child page'
+            f"/api/v2/pages/{child['id']}", operation="delete child page"
         )
-    except Exception:
-        pass
+
 
 @pytest.fixture(scope="function")
 def test_blogpost(
-    confluence_client: ConfluenceClient,
-    test_space: Dict[str, Any]
-) -> Generator[Dict[str, Any], None, None]:
+    confluence_client: ConfluenceClient, test_space: dict[str, Any]
+) -> Generator[dict[str, Any], None, None]:
     """
     Create a test blog post.
 
@@ -319,38 +322,38 @@ def test_blogpost(
     post_title = f"Test Blog Post {uuid.uuid4().hex[:8]}"
 
     blogpost = confluence_client.post(
-        '/api/v2/blogposts',
+        "/api/v2/blogposts",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': post_title,
-            'body': {
-                'representation': 'storage',
-                'value': '<p>Test blog post content.</p>'
-            }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": post_title,
+            "body": {
+                "representation": "storage",
+                "value": "<p>Test blog post content.</p>",
+            },
         },
-        operation='create test blogpost'
+        operation="create test blogpost",
     )
 
     yield blogpost
 
     # Cleanup
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(
-            f"/api/v2/blogposts/{blogpost['id']}",
-            operation='delete test blogpost'
+            f"/api/v2/blogposts/{blogpost['id']}", operation="delete test blogpost"
         )
-    except Exception:
-        pass
+
 
 @pytest.fixture(scope="function")
 def test_label() -> str:
     """Generate a unique test label."""
     return f"test-label-{uuid.uuid4().hex[:8]}"
 
+
 # =============================================================================
 # Cleanup Utilities
 # =============================================================================
+
 
 def delete_space_by_key(client: ConfluenceClient, space_key: str) -> None:
     """
@@ -380,9 +383,14 @@ def delete_space_by_key(client: ConfluenceClient, space_key: str) -> None:
         # Already deleted
         pass
     else:
-        raise Exception(f"Failed to delete space: {response.status_code} - {response.text}")
+        raise Exception(
+            f"Failed to delete space: {response.status_code} - {response.text}"
+        )
 
-def cleanup_space(client: ConfluenceClient, space_id: str, space_key: str = None) -> None:
+
+def cleanup_space(
+    client: ConfluenceClient, space_id: str, space_key: Optional[str] = None
+) -> None:
     """
     Clean up all resources in a space before deletion.
 
@@ -393,41 +401,41 @@ def cleanup_space(client: ConfluenceClient, space_id: str, space_key: str = None
     """
     # Step 1: Delete all pages (children first, then parents)
     try:
-        pages = list(client.paginate(
-            '/api/v2/pages',
-            params={'space-id': space_id, 'limit': 50},
-            operation='list pages for cleanup'
-        ))
+        pages = list(
+            client.paginate(
+                "/api/v2/pages",
+                params={"space-id": space_id, "limit": 50},
+                operation="list pages for cleanup",
+            )
+        )
 
         # Sort by depth (delete deepest first)
         # Simple approach: delete in reverse creation order
         for page in reversed(pages):
             try:
-                client.delete(
-                    f"/api/v2/pages/{page['id']}",
-                    operation='cleanup page'
-                )
+                client.delete(f"/api/v2/pages/{page['id']}", operation="cleanup page")
             except Exception as e:
-                print(f"  Warning: Could not delete page {page.get('title', page['id'])}: {e}")
+                print(
+                    f"  Warning: Could not delete page {page.get('title', page['id'])}: {e}"
+                )
     except Exception as e:
         print(f"  Warning: Could not list pages for cleanup: {e}")
 
     # Step 2: Delete all blog posts
     try:
-        blogposts = list(client.paginate(
-            '/api/v2/blogposts',
-            params={'space-id': space_id, 'limit': 50},
-            operation='list blogposts for cleanup'
-        ))
+        blogposts = list(
+            client.paginate(
+                "/api/v2/blogposts",
+                params={"space-id": space_id, "limit": 50},
+                operation="list blogposts for cleanup",
+            )
+        )
 
         for post in blogposts:
-            try:
+            with contextlib.suppress(Exception):
                 client.delete(
-                    f"/api/v2/blogposts/{post['id']}",
-                    operation='cleanup blogpost'
+                    f"/api/v2/blogposts/{post['id']}", operation="cleanup blogpost"
                 )
-            except Exception:
-                pass
     except Exception:
         pass
 
@@ -437,14 +445,17 @@ def cleanup_space(client: ConfluenceClient, space_id: str, space_key: str = None
     else:
         raise Exception("Space key required for deletion")
 
+
 # =============================================================================
 # Helper Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def unique_title() -> str:
     """Generate a unique page title."""
     return f"Test Page {uuid.uuid4().hex[:8]}"
+
 
 @pytest.fixture
 def unique_space_key() -> str:

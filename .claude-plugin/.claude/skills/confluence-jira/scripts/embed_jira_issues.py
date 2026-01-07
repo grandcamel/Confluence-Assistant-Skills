@@ -12,13 +12,19 @@ Examples:
     python embed_jira_issues.py 12345 --issues PROJ-123 --mode replace
 """
 
-import sys
 import argparse
 import html
-from typing import List, Optional
+from typing import Optional
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, ValidationError, validate_page_id,
-    validate_issue_key, validate_jql_query, print_success, format_json,
+    ValidationError,
+    format_json,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+    validate_issue_key,
+    validate_jql_query,
+    validate_page_id,
 )
 
 
@@ -35,18 +41,21 @@ def create_jira_macro(issue_key: str, server_id: Optional[str] = None) -> str:
     """
     server_param = ""
     if server_id:
-        server_param = f'<ac:parameter ac:name="serverId">{html.escape(server_id)}</ac:parameter>'
+        server_param = (
+            f'<ac:parameter ac:name="serverId">{html.escape(server_id)}</ac:parameter>'
+        )
 
-    return f'''<ac:structured-macro ac:name="jira" ac:schema-version="1">
+    return f"""<ac:structured-macro ac:name="jira" ac:schema-version="1">
     {server_param}
     <ac:parameter ac:name="key">{html.escape(issue_key)}</ac:parameter>
-</ac:structured-macro>'''
+</ac:structured-macro>"""
+
 
 def create_jira_issues_macro(
     jql: Optional[str] = None,
-    issue_keys: Optional[List[str]] = None,
+    issue_keys: Optional[list[str]] = None,
     server_id: Optional[str] = None,
-    columns: Optional[List[str]] = None,
+    columns: Optional[list[str]] = None,
     max_results: int = 20,
 ) -> str:
     """
@@ -71,26 +80,31 @@ def create_jira_issues_macro(
 
     server_param = ""
     if server_id:
-        server_param = f'<ac:parameter ac:name="serverId">{html.escape(server_id)}</ac:parameter>'
+        server_param = (
+            f'<ac:parameter ac:name="serverId">{html.escape(server_id)}</ac:parameter>'
+        )
 
     columns_param = ""
     if columns:
         columns_str = ";".join(columns)
-        columns_param = f'<ac:parameter ac:name="columns">{html.escape(columns_str)}</ac:parameter>'
+        columns_param = (
+            f'<ac:parameter ac:name="columns">{html.escape(columns_str)}</ac:parameter>'
+        )
 
     count_param = f'<ac:parameter ac:name="maximumIssues">{max_results}</ac:parameter>'
 
     # Escape JQL for URL parameter
     jql_escaped = html.escape(jql)
 
-    return f'''<ac:structured-macro ac:name="jira" ac:schema-version="1">
+    return f"""<ac:structured-macro ac:name="jira" ac:schema-version="1">
     {server_param}
     <ac:parameter ac:name="jqlQuery">{jql_escaped}</ac:parameter>
     {columns_param}
     {count_param}
-</ac:structured-macro>'''
+</ac:structured-macro>"""
 
-def build_jql_from_keys(keys: List[str]) -> str:
+
+def build_jql_from_keys(keys: list[str]) -> str:
     """
     Build a JQL query from a list of issue keys.
 
@@ -107,6 +121,7 @@ def build_jql_from_keys(keys: List[str]) -> str:
         keys_str = ", ".join(keys)
         return f"key in ({keys_str})"
 
+
 def append_jira_macro(content: str, macro: str) -> str:
     """
     Append JIRA macro to existing page content.
@@ -119,6 +134,7 @@ def append_jira_macro(content: str, macro: str) -> str:
         Updated content
     """
     return content + "\n" + macro
+
 
 def replace_with_jira_macro(content: str, macro: str) -> str:
     """
@@ -133,11 +149,12 @@ def replace_with_jira_macro(content: str, macro: str) -> str:
     """
     return macro
 
+
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Embed JIRA issues in a Confluence page',
-        epilog='''
+        description="Embed JIRA issues in a Confluence page",
+        epilog="""
 Examples:
   # Embed issues matching a JQL query
   python embed_jira_issues.py 12345 --jql "project = PROJ AND status = Open"
@@ -147,21 +164,36 @@ Examples:
 
   # Replace page content with JIRA macro
   python embed_jira_issues.py 12345 --jql "project = PROJ" --mode replace
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('page_id', help='Page ID to update')
-    parser.add_argument('--jql', help='JQL query to filter issues')
-    parser.add_argument('--issues', help='Comma-separated list of issue keys (e.g., PROJ-123,PROJ-456)')
-    parser.add_argument('--mode', choices=['append', 'replace'], default='append',
-                        help='How to add the macro (default: append)')
-    parser.add_argument('--server-id', help='JIRA server ID (optional)')
-    parser.add_argument('--columns', help='Comma-separated list of columns to display')
-    parser.add_argument('--max-results', type=int, default=20,
-                        help='Maximum number of issues to display (default: 20)')
-    parser.add_argument('--profile', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("page_id", help="Page ID to update")
+    parser.add_argument("--jql", help="JQL query to filter issues")
+    parser.add_argument(
+        "--issues", help="Comma-separated list of issue keys (e.g., PROJ-123,PROJ-456)"
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["append", "replace"],
+        default="append",
+        help="How to add the macro (default: append)",
+    )
+    parser.add_argument("--server-id", help="JIRA server ID (optional)")
+    parser.add_argument("--columns", help="Comma-separated list of columns to display")
+    parser.add_argument(
+        "--max-results",
+        type=int,
+        default=20,
+        help="Maximum number of issues to display (default: 20)",
+    )
+    parser.add_argument("--profile", help="Confluence profile to use")
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate inputs
@@ -174,7 +206,7 @@ Examples:
     # Process issue keys if provided
     issue_keys = None
     if args.issues:
-        issue_keys = [validate_issue_key(k.strip()) for k in args.issues.split(',')]
+        issue_keys = [validate_issue_key(k.strip()) for k in args.issues.split(",")]
 
     # Validate JQL if provided
     jql = None
@@ -184,28 +216,25 @@ Examples:
     # Parse columns if provided
     columns = None
     if args.columns:
-        columns = [c.strip() for c in args.columns.split(',')]
+        columns = [c.strip() for c in args.columns.split(",")]
 
     # Get client
     client = get_confluence_client(profile=args.profile)
 
     # Get current page content (v1 API for XHTML storage format)
     page = client.get(
-        f'/rest/api/content/{page_id}',
-        params={'expand': 'body.storage,version'},
-        operation='get page'
+        f"/rest/api/content/{page_id}",
+        params={"expand": "body.storage,version"},
+        operation="get page",
     )
 
-    current_content = page['body']['storage']['value']
-    current_version = page['version']['number']
+    current_content = page["body"]["storage"]["value"]
+    current_version = page["version"]["number"]
 
     # Create appropriate macro
     if issue_keys and len(issue_keys) == 1 and not jql:
         # Single issue macro
-        macro = create_jira_macro(
-            issue_key=issue_keys[0],
-            server_id=args.server_id
-        )
+        macro = create_jira_macro(issue_key=issue_keys[0], server_id=args.server_id)
     else:
         # Multiple issues macro
         macro = create_jira_issues_macro(
@@ -213,38 +242,31 @@ Examples:
             issue_keys=issue_keys,
             server_id=args.server_id,
             columns=columns,
-            max_results=args.max_results
+            max_results=args.max_results,
         )
 
     # Update content based on mode
-    if args.mode == 'append':
+    if args.mode == "append":
         new_content = append_jira_macro(current_content, macro)
     else:
         new_content = replace_with_jira_macro(current_content, macro)
 
     # Update page (v1 API)
     update_data = {
-        'version': {
-            'number': current_version + 1
-        },
-        'type': page['type'],
-        'title': page['title'],
-        'body': {
-            'storage': {
-                'value': new_content,
-                'representation': 'storage'
-            }
-        }
+        "version": {"number": current_version + 1},
+        "type": page["type"],
+        "title": page["title"],
+        "body": {"storage": {"value": new_content, "representation": "storage"}},
     }
 
     result = client.put(
-        f'/rest/api/content/{page_id}',
+        f"/rest/api/content/{page_id}",
         json_data=update_data,
-        operation='update page with JIRA macro'
+        operation="update page with JIRA macro",
     )
 
     # Output
-    if args.output == 'json':
+    if args.output == "json":
         print(format_json(result))
     else:
         print(f"Page: {result['title']}")
@@ -257,5 +279,6 @@ Examples:
 
     print_success(f"Embedded JIRA issues in page {page_id}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

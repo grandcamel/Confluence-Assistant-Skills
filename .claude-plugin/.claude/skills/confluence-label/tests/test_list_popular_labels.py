@@ -2,9 +2,6 @@
 Unit tests for list_popular_labels.py
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
-
 
 class TestListPopularLabels:
     """Tests for listing popular labels."""
@@ -20,12 +17,9 @@ class TestListPopularLabels:
                     "title": "Page 1",
                     "metadata": {
                         "labels": {
-                            "results": [
-                                {"name": "documentation"},
-                                {"name": "api"}
-                            ]
+                            "results": [{"name": "documentation"}, {"name": "api"}]
                         }
-                    }
+                    },
                 },
                 {
                     "id": "124",
@@ -33,24 +27,20 @@ class TestListPopularLabels:
                     "title": "Page 2",
                     "metadata": {
                         "labels": {
-                            "results": [
-                                {"name": "documentation"},
-                                {"name": "tutorial"}
-                            ]
+                            "results": [{"name": "documentation"}, {"name": "tutorial"}]
                         }
-                    }
-                }
+                    },
+                },
             ],
-            "_links": {}
+            "_links": {},
         }
 
-        mock_client.setup_response('get', search_results)
+        mock_client.setup_response("get", search_results)
 
         # Would verify label aggregation and counting
 
     def test_list_popular_labels_with_space_filter(self, mock_client):
         """Test listing popular labels filtered to specific space."""
-        space_key = "DOCS"
 
         # Would verify CQL query includes space filter
         # Expected CQL: space = "DOCS"
@@ -59,13 +49,12 @@ class TestListPopularLabels:
         """Test listing popular labels with no content."""
         # Setup empty response
         empty_results = {"results": [], "_links": {}}
-        mock_client.setup_response('get', empty_results)
+        mock_client.setup_response("get", empty_results)
 
         # Would verify empty result handling
 
     def test_list_popular_labels_with_limit(self, mock_client):
         """Test listing popular labels with result limit."""
-        limit = 10
 
         # Would verify only top N labels are returned
 
@@ -78,11 +67,12 @@ class TestLabelAggregation:
         pages = [
             {"labels": ["doc", "api", "v2"]},
             {"labels": ["doc", "tutorial"]},
-            {"labels": ["doc", "api"]}
+            {"labels": ["doc", "api"]},
         ]
 
         # Count occurrences
         from collections import Counter
+
         all_labels = []
         for page in pages:
             all_labels.extend(page["labels"])
@@ -95,7 +85,6 @@ class TestLabelAggregation:
 
     def test_sort_labels_by_count(self):
         """Test sorting labels by popularity."""
-        from collections import Counter
 
         label_counts = {"doc": 5, "api": 3, "tutorial": 1, "v2": 2}
         sorted_labels = sorted(label_counts.items(), key=lambda x: x[1], reverse=True)

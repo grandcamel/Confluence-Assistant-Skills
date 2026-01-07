@@ -7,86 +7,89 @@ Usage:
     pytest test_hierarchy_live.py --profile development -v
 """
 
-import pytest
+import contextlib
 import uuid
-import sys
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 def pytest_addoption(parser):
-    try:
-        parser.addoption("--profile", action="store", default=None, help="Confluence profile")
-    except ValueError:
-        pass
+    with contextlib.suppress(ValueError):
+        parser.addoption(
+            "--profile", action="store", default=None, help="Confluence profile"
+        )
+
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
 
+
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def parent_page(confluence_client, test_space):
     """Create a parent page."""
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': f'Parent Page {uuid.uuid4().hex[:8]}',
-            'body': {'representation': 'storage', 'value': '<p>Parent.</p>'}
-        }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": f"Parent Page {uuid.uuid4().hex[:8]}",
+            "body": {"representation": "storage", "value": "<p>Parent.</p>"},
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.fixture
 def child_page(confluence_client, test_space, parent_page):
     """Create a child page under parent."""
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'parentId': parent_page['id'],
-            'status': 'current',
-            'title': f'Child Page {uuid.uuid4().hex[:8]}',
-            'body': {'representation': 'storage', 'value': '<p>Child.</p>'}
-        }
+            "spaceId": test_space["id"],
+            "parentId": parent_page["id"],
+            "status": "current",
+            "title": f"Child Page {uuid.uuid4().hex[:8]}",
+            "body": {"representation": "storage", "value": "<p>Child.</p>"},
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.fixture
 def grandchild_page(confluence_client, test_space, child_page):
     """Create a grandchild page."""
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'parentId': child_page['id'],
-            'status': 'current',
-            'title': f'Grandchild Page {uuid.uuid4().hex[:8]}',
-            'body': {'representation': 'storage', 'value': '<p>Grandchild.</p>'}
-        }
+            "spaceId": test_space["id"],
+            "parentId": child_page["id"],
+            "status": "current",
+            "title": f"Grandchild Page {uuid.uuid4().hex[:8]}",
+            "body": {"representation": "storage", "value": "<p>Grandchild.</p>"},
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.mark.integration
 class TestGetChildrenLive:
@@ -94,32 +97,28 @@ class TestGetChildrenLive:
 
     def test_get_children(self, confluence_client, parent_page, child_page):
         """Test getting children of a page."""
-        children = confluence_client.get(
-            f"/api/v2/pages/{parent_page['id']}/children"
-        )
+        children = confluence_client.get(f"/api/v2/pages/{parent_page['id']}/children")
 
-        assert 'results' in children
-        child_ids = [c['id'] for c in children['results']]
-        assert child_page['id'] in child_ids
+        assert "results" in children
+        child_ids = [c["id"] for c in children["results"]]
+        assert child_page["id"] in child_ids
 
     def test_get_children_empty(self, confluence_client, test_space):
         """Test getting children of a page with none."""
         page = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': f'No Children {uuid.uuid4().hex[:8]}',
-                'body': {'representation': 'storage', 'value': '<p>Leaf.</p>'}
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": f"No Children {uuid.uuid4().hex[:8]}",
+                "body": {"representation": "storage", "value": "<p>Leaf.</p>"},
+            },
         )
 
         try:
-            children = confluence_client.get(
-                f"/api/v2/pages/{page['id']}/children"
-            )
-            assert 'results' in children
-            assert len(children['results']) == 0
+            children = confluence_client.get(f"/api/v2/pages/{page['id']}/children")
+            assert "results" in children
+            assert len(children["results"]) == 0
         finally:
             confluence_client.delete(f"/api/v2/pages/{page['id']}")
 
@@ -128,45 +127,49 @@ class TestGetChildrenLive:
         child_ids = []
         for i in range(3):
             child = confluence_client.post(
-                '/api/v2/pages',
+                "/api/v2/pages",
                 json_data={
-                    'spaceId': test_space['id'],
-                    'parentId': parent_page['id'],
-                    'status': 'current',
-                    'title': f'Multi Child {i} {uuid.uuid4().hex[:8]}',
-                    'body': {'representation': 'storage', 'value': f'<p>Child {i}.</p>'}
-                }
+                    "spaceId": test_space["id"],
+                    "parentId": parent_page["id"],
+                    "status": "current",
+                    "title": f"Multi Child {i} {uuid.uuid4().hex[:8]}",
+                    "body": {
+                        "representation": "storage",
+                        "value": f"<p>Child {i}.</p>",
+                    },
+                },
             )
-            child_ids.append(child['id'])
+            child_ids.append(child["id"])
 
         try:
             children = confluence_client.get(
                 f"/api/v2/pages/{parent_page['id']}/children"
             )
-            result_ids = [c['id'] for c in children['results']]
+            result_ids = [c["id"] for c in children["results"]]
             for child_id in child_ids:
                 assert child_id in result_ids
         finally:
             for child_id in child_ids:
-                try:
+                with contextlib.suppress(Exception):
                     confluence_client.delete(f"/api/v2/pages/{child_id}")
-                except Exception:
-                    pass
+
 
 @pytest.mark.integration
 class TestGetAncestorsLive:
     """Live tests for getting ancestors."""
 
-    def test_get_ancestors(self, confluence_client, parent_page, child_page, grandchild_page):
+    def test_get_ancestors(
+        self, confluence_client, parent_page, child_page, grandchild_page
+    ):
         """Test getting ancestors of a page."""
         ancestors = confluence_client.get(
             f"/api/v2/pages/{grandchild_page['id']}/ancestors"
         )
 
-        assert 'results' in ancestors
-        ancestor_ids = [a['id'] for a in ancestors['results']]
-        assert child_page['id'] in ancestor_ids
-        assert parent_page['id'] in ancestor_ids
+        assert "results" in ancestors
+        ancestor_ids = [a["id"] for a in ancestors["results"]]
+        assert child_page["id"] in ancestor_ids
+        assert parent_page["id"] in ancestor_ids
 
     def test_get_ancestors_root(self, confluence_client, parent_page):
         """Test getting ancestors of a root-level page."""
@@ -174,26 +177,30 @@ class TestGetAncestorsLive:
             f"/api/v2/pages/{parent_page['id']}/ancestors"
         )
 
-        assert 'results' in ancestors
+        assert "results" in ancestors
         # May have space homepage as ancestor, but parent is not its own ancestor
-        ancestor_ids = [a['id'] for a in ancestors['results']]
-        assert parent_page['id'] not in ancestor_ids
+        ancestor_ids = [a["id"] for a in ancestors["results"]]
+        assert parent_page["id"] not in ancestor_ids
+
 
 @pytest.mark.integration
 class TestGetDescendantsLive:
     """Live tests for getting descendants."""
 
-    def test_get_descendants(self, confluence_client, parent_page, child_page, grandchild_page):
+    def test_get_descendants(
+        self, confluence_client, parent_page, child_page, grandchild_page
+    ):
         """Test getting all descendants of a page."""
         # Use v1 API for descendants
         descendants = confluence_client.get(
             f"/rest/api/content/{parent_page['id']}/descendant/page"
         )
 
-        assert 'results' in descendants
-        descendant_ids = [d['id'] for d in descendants['results']]
-        assert child_page['id'] in descendant_ids
-        assert grandchild_page['id'] in descendant_ids
+        assert "results" in descendants
+        descendant_ids = [d["id"] for d in descendants["results"]]
+        assert child_page["id"] in descendant_ids
+        assert grandchild_page["id"] in descendant_ids
+
 
 @pytest.mark.integration
 class TestMovePageLive:
@@ -203,54 +210,52 @@ class TestMovePageLive:
         """Test moving a page to a different parent."""
         # Create structure
         parent1 = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': f'Parent 1 {uuid.uuid4().hex[:8]}',
-                'body': {'representation': 'storage', 'value': '<p>P1.</p>'}
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": f"Parent 1 {uuid.uuid4().hex[:8]}",
+                "body": {"representation": "storage", "value": "<p>P1.</p>"},
+            },
         )
         parent2 = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': f'Parent 2 {uuid.uuid4().hex[:8]}',
-                'body': {'representation': 'storage', 'value': '<p>P2.</p>'}
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": f"Parent 2 {uuid.uuid4().hex[:8]}",
+                "body": {"representation": "storage", "value": "<p>P2.</p>"},
+            },
         )
         child = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'parentId': parent1['id'],
-                'status': 'current',
-                'title': f'Moving Child {uuid.uuid4().hex[:8]}',
-                'body': {'representation': 'storage', 'value': '<p>Moving.</p>'}
-            }
+                "spaceId": test_space["id"],
+                "parentId": parent1["id"],
+                "status": "current",
+                "title": f"Moving Child {uuid.uuid4().hex[:8]}",
+                "body": {"representation": "storage", "value": "<p>Moving.</p>"},
+            },
         )
 
         try:
             # Move to parent2 using v2 API PUT
             moved = confluence_client.put(
-                f'/api/v2/pages/{child["id"]}',
+                f"/api/v2/pages/{child['id']}",
                 json_data={
-                    'id': child['id'],
-                    'status': 'current',
-                    'title': child['title'],
-                    'spaceId': test_space['id'],
-                    'parentId': parent2['id'],
-                    'version': {'number': child['version']['number'] + 1}
-                }
+                    "id": child["id"],
+                    "status": "current",
+                    "title": child["title"],
+                    "spaceId": test_space["id"],
+                    "parentId": parent2["id"],
+                    "version": {"number": child["version"]["number"] + 1},
+                },
             )
 
             # Verify new parent
-            assert moved['parentId'] == parent2['id']
+            assert moved["parentId"] == parent2["id"]
 
         finally:
             for page in [child, parent2, parent1]:
-                try:
+                with contextlib.suppress(Exception):
                     confluence_client.delete(f"/api/v2/pages/{page['id']}")
-                except Exception:
-                    pass

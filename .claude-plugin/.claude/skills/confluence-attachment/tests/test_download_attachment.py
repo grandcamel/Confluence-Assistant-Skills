@@ -2,11 +2,7 @@
 Unit tests for download_attachment.py
 """
 
-import pytest
-import sys
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
-
+from unittest.mock import MagicMock, Mock
 
 
 class TestDownloadAttachment:
@@ -21,15 +17,15 @@ class TestDownloadAttachment:
 
         download_url = sample_attachment["downloadLink"]
         result = mock_client.download_file(
-            download_url,
-            output_path,
-            operation="download attachment"
+            download_url, output_path, operation="download attachment"
         )
 
         assert result == output_path
         mock_client.download_file.assert_called_once()
 
-    def test_download_attachment_to_directory(self, mock_client, sample_attachment, tmp_path):
+    def test_download_attachment_to_directory(
+        self, mock_client, sample_attachment, tmp_path
+    ):
         """Test downloading attachment to a directory."""
         # Create output directory
         output_dir = tmp_path / "downloads"
@@ -43,7 +39,7 @@ class TestDownloadAttachment:
         result = mock_client.download_file(
             sample_attachment["downloadLink"],
             output_file,
-            operation="download attachment"
+            operation="download attachment",
         )
 
         assert result == output_file
@@ -70,8 +66,7 @@ class TestDownloadAttachment:
         mock_client.get = MagicMock(return_value=sample_attachment)
 
         result = mock_client.get(
-            f"/api/v2/attachments/{attachment_id}",
-            operation="get attachment"
+            f"/api/v2/attachments/{attachment_id}", operation="get attachment"
         )
 
         assert result["id"] == attachment_id
@@ -84,15 +79,11 @@ class TestDownloadAttachment:
             {**sample_attachment, "id": "att2", "title": "file2.docx"},
         ]
 
-        mock_client.get = MagicMock(return_value={
-            "results": attachments,
-            "_links": {}
-        })
+        mock_client.get = MagicMock(return_value={"results": attachments, "_links": {}})
 
         # Get all attachments
         result = mock_client.get(
-            "/api/v2/pages/123456/attachments",
-            operation="list attachments"
+            "/api/v2/pages/123456/attachments", operation="list attachments"
         )
 
         assert len(result["results"]) == 2
@@ -102,22 +93,17 @@ class TestDownloadAttachment:
             output_file = tmp_path / att["title"]
             mock_client.download_file = MagicMock(return_value=output_file)
             downloaded = mock_client.download_file(
-                att["downloadLink"],
-                output_file,
-                operation="download attachment"
+                att["downloadLink"], output_file, operation="download attachment"
             )
             assert downloaded == output_file
 
     def test_download_with_invalid_attachment_id(self, mock_client):
         """Test download with non-existent attachment ID."""
-        from confluence_assistant_skills_lib import NotFoundError
 
         mock_response = Mock()
         mock_response.status_code = 404
         mock_response.ok = False
-        mock_response.json.return_value = {
-            "message": "Attachment not found"
-        }
+        mock_response.json.return_value = {"message": "Attachment not found"}
 
         # Would raise NotFoundError
         # This tests the concept

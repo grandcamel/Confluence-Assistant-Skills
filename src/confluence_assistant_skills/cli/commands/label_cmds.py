@@ -17,7 +17,11 @@ def label() -> None:
 @click.argument("page_id")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_labels(
@@ -39,10 +43,16 @@ def get_labels(
 @label.command(name="add")
 @click.argument("page_id")
 @click.option("--label", "-l", "single_label", help="Single label to add")
-@click.option("--labels", "multiple_labels", help="Comma-separated list of labels to add")
+@click.option(
+    "--labels", "multiple_labels", help="Comma-separated list of labels to add"
+)
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def add_label(
@@ -80,7 +90,11 @@ def add_label(
 @click.option("--label", "-l", required=True, help="Label to remove")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def remove_label(
@@ -112,7 +126,11 @@ def remove_label(
 @click.option("--limit", "-l", type=int, default=25, help="Maximum results")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def search_by_label(
@@ -145,7 +163,11 @@ def search_by_label(
 @click.option("--limit", "-l", type=int, default=25, help="Maximum labels to return")
 @click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def list_popular_labels(

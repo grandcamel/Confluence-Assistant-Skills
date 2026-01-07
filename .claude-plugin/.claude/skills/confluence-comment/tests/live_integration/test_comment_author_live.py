@@ -5,51 +5,55 @@ Usage:
     pytest test_comment_author_live.py --profile development -v
 """
 
-import pytest
+import contextlib
 import uuid
-import sys
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 def pytest_addoption(parser):
-    try:
+    with contextlib.suppress(ValueError):
         parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
+
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
     profile = request.config.getoption("--profile", default=None)
     return get_confluence_client(profile=profile)
 
+
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': f'Comment Author Test {uuid.uuid4().hex[:8]}',
-            'body': {'representation': 'storage', 'value': '<p>Test.</p>'}
-        }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": f"Comment Author Test {uuid.uuid4().hex[:8]}",
+            "body": {"representation": "storage", "value": "<p>Test.</p>"},
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.fixture
 def current_user(confluence_client):
-    return confluence_client.get('/rest/api/user/current')
+    return confluence_client.get("/rest/api/user/current")
+
 
 @pytest.mark.integration
 class TestCommentAuthorLive:
@@ -59,38 +63,38 @@ class TestCommentAuthorLive:
         """Test that comments have author information."""
         # Create comment using v1 API
         comment = confluence_client.post(
-            '/rest/api/content',
+            "/rest/api/content",
             json_data={
-                'type': 'comment',
-                'container': {'id': test_page['id'], 'type': 'page'},
-                'body': {
-                    'storage': {
-                        'representation': 'storage',
-                        'value': '<p>Author test.</p>'
+                "type": "comment",
+                "container": {"id": test_page["id"], "type": "page"},
+                "body": {
+                    "storage": {
+                        "representation": "storage",
+                        "value": "<p>Author test.</p>",
                     }
-                }
-            }
+                },
+            },
         )
 
         try:
             # Get comment with author info via v1
             detailed = confluence_client.get(
                 f"/rest/api/content/{comment['id']}",
-                params={'expand': 'history.createdBy'}
+                params={"expand": "history.createdBy"},
             )
 
-            assert 'history' in detailed or 'version' in detailed
+            assert "history" in detailed or "version" in detailed
         finally:
             confluence_client.delete(f"/rest/api/content/{comment['id']}")
 
     def test_find_user_comments(self, confluence_client, test_space, current_user):
         """Test finding comments by current user."""
         results = confluence_client.get(
-            '/rest/api/search',
+            "/rest/api/search",
             params={
-                'cql': f'type = comment AND space = "{test_space["key"]}" AND creator = currentUser()',
-                'limit': 10
-            }
+                "cql": f'type = comment AND space = "{test_space["key"]}" AND creator = currentUser()',
+                "limit": 10,
+            },
         )
 
-        assert 'results' in results
+        assert "results" in results

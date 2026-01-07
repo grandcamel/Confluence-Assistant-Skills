@@ -11,32 +11,43 @@ Examples:
     python get_ancestors.py 12345 --breadcrumb
 """
 
-import sys
 import argparse
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, validate_page_id, print_success,
     format_json,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+    validate_page_id,
 )
 
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Get ancestor pages for a Confluence page',
-        epilog='''
+        description="Get ancestor pages for a Confluence page",
+        epilog="""
 Examples:
   python get_ancestors.py 12345
   python get_ancestors.py 12345 --output json
   python get_ancestors.py 12345 --breadcrumb
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('page_id', help='Page ID')
-    parser.add_argument('--breadcrumb', action='store_true',
-                        help='Show as breadcrumb path (Title > Title > ...)')
-    parser.add_argument('--profile', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("page_id", help="Page ID")
+    parser.add_argument(
+        "--breadcrumb",
+        action="store_true",
+        help="Show as breadcrumb path (Title > Title > ...)",
+    )
+    parser.add_argument("--profile", help="Confluence profile to use")
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate
@@ -47,21 +58,21 @@ Examples:
 
     # Get page with ancestors
     result = client.get(
-        f'/api/v2/pages/{page_id}',
-        params={'include': 'ancestors'},
-        operation='get page ancestors'
+        f"/api/v2/pages/{page_id}",
+        params={"include": "ancestors"},
+        operation="get page ancestors",
     )
 
-    ancestors = result.get('ancestors', [])
+    ancestors = result.get("ancestors", [])
 
     # Output
-    if args.output == 'json':
+    if args.output == "json":
         print(format_json(ancestors))
     elif args.breadcrumb:
         # Build breadcrumb path
-        titles = [a['title'] for a in ancestors]
-        titles.append(result['title'])
-        print(' > '.join(titles))
+        titles = [a["title"] for a in ancestors]
+        titles.append(result["title"])
+        print(" > ".join(titles))
     else:
         # Text format
         if not ancestors:
@@ -73,5 +84,6 @@ Examples:
 
     print_success(f"Retrieved {len(ancestors)} ancestor(s)")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

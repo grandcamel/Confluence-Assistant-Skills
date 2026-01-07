@@ -10,11 +10,16 @@ Examples:
     python add_inline_comment.py 12345 "text" "Comment" --profile production
 """
 
-import sys
 import argparse
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, ValidationError, validate_page_id,
-    print_success, format_comment, format_json,
+    ValidationError,
+    format_comment,
+    format_json,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+    validate_page_id,
 )
 
 
@@ -41,10 +46,11 @@ def validate_text_selection(selection: str, field_name: str = "selection") -> st
         raise ValidationError(
             f"{field_name} cannot be empty - inline comments require text selection",
             field=field_name,
-            value=selection
+            value=selection,
         )
 
     return selection
+
 
 def validate_comment_body(body: str, field_name: str = "body") -> str:
     """
@@ -66,30 +72,38 @@ def validate_comment_body(body: str, field_name: str = "body") -> str:
     body = str(body).strip()
 
     if not body:
-        raise ValidationError(f"{field_name} cannot be empty", field=field_name, value=body)
+        raise ValidationError(
+            f"{field_name} cannot be empty", field=field_name, value=body
+        )
 
     return body
+
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Add an inline comment to specific content in a Confluence page',
-        epilog='''
+        description="Add an inline comment to specific content in a Confluence page",
+        epilog="""
 Examples:
   python add_inline_comment.py 12345 "selected text" "This is my inline comment"
   python add_inline_comment.py 12345 "text" "Comment" --profile production
 
 Note: Inline comments are attached to specific text in the page. The text selection
       must match existing text in the page content.
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('page_id', help='Page ID to add inline comment to')
-    parser.add_argument('selection', help='Text selection to attach comment to')
-    parser.add_argument('body', help='Comment body text')
-    parser.add_argument('--profile', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("page_id", help="Page ID to add inline comment to")
+    parser.add_argument("selection", help="Text selection to attach comment to")
+    parser.add_argument("body", help="Comment body text")
+    parser.add_argument("--profile", help="Confluence profile to use")
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate inputs
@@ -102,30 +116,28 @@ Note: Inline comments are attached to specific text in the page. The text select
 
     # Prepare inline comment data
     comment_data = {
-        'body': {
-            'representation': 'storage',
-            'value': f'<p>{body_content}</p>'
+        "body": {"representation": "storage", "value": f"<p>{body_content}</p>"},
+        "inlineProperties": {
+            "originalSelection": selection,
+            "textSelection": selection,
         },
-        'inlineProperties': {
-            'originalSelection': selection,
-            'textSelection': selection
-        }
     }
 
     # Create the inline comment
     result = client.post(
-        f'/api/v2/pages/{page_id}/inline-comments',
+        f"/api/v2/pages/{page_id}/inline-comments",
         json_data=comment_data,
-        operation='add inline comment'
+        operation="add inline comment",
     )
 
     # Output
-    if args.output == 'json':
+    if args.output == "json":
         print(format_json(result))
     else:
         print(format_comment(result))
 
     print_success(f"Added inline comment {result['id']} to page {page_id}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
