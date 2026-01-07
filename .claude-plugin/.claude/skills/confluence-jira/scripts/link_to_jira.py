@@ -144,7 +144,6 @@ Examples:
     parser.add_argument(
         "--skip-if-exists", action="store_true", help="Skip if link already exists"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -170,7 +169,7 @@ Examples:
     issue_url = f"{jira_base_url}/browse/{issue_key}"
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Check existing remote links
     existing_links_response = client.get(

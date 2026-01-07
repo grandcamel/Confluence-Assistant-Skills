@@ -5,7 +5,6 @@ Delete a Confluence comment.
 Examples:
     python delete_comment.py 999
     python delete_comment.py 999 --force
-    python delete_comment.py 999 --profile production
 """
 
 import argparse
@@ -28,7 +27,6 @@ def main(argv: list[str] | None = None):
 Examples:
   python delete_comment.py 999
   python delete_comment.py 999 --force
-  python delete_comment.py 999 --profile production
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -36,14 +34,13 @@ Examples:
     parser.add_argument(
         "--force", "-f", action="store_true", help="Skip confirmation prompt"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     args = parser.parse_args(argv)
 
     # Validate inputs
     comment_id = validate_page_id(args.comment_id, "comment_id")
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Confirmation prompt (unless --force)
     if not args.force:

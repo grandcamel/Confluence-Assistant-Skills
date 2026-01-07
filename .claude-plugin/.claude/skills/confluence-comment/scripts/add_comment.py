@@ -5,7 +5,6 @@ Add a footer comment to a Confluence page.
 Examples:
     python add_comment.py 12345 "This is my comment"
     python add_comment.py 12345 --file comment.txt
-    python add_comment.py 12345 "Great page!" --profile production
 """
 
 import argparse
@@ -65,14 +64,12 @@ def main(argv: list[str] | None = None):
 Examples:
   python add_comment.py 12345 "This is my comment"
   python add_comment.py 12345 --file comment.txt
-  python add_comment.py 12345 "Great page!" --profile production
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("page_id", help="Page ID to add comment to")
     parser.add_argument("body", nargs="?", help="Comment body text")
     parser.add_argument("--file", "-f", type=Path, help="Read body from file")
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -97,7 +94,7 @@ Examples:
     body_content = validate_comment_body(body_content)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Prepare comment data using v1 API (v2 API doesn't support POST for comments)
     comment_data = {

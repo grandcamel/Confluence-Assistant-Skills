@@ -2,7 +2,7 @@
 Shared fixtures for confluence-page live integration tests.
 Imports fixtures from shared conftest and adds skill-specific ones.
 
-Note: The --profile option is defined in the root conftest.py.
+Uses environment variables: CONFLUENCE_API_TOKEN, CONFLUENCE_EMAIL, CONFLUENCE_SITE_URL
 """
 
 import contextlib
@@ -17,8 +17,7 @@ from confluence_assistant_skills_lib import (
 
 @pytest.fixture(scope="session")
 def confluence_client(request):
-    profile = request.config.getoption("--profile", default=None)
-    return get_confluence_client(profile=profile)
+    return get_confluence_client()
 
 
 @pytest.fixture(scope="session")

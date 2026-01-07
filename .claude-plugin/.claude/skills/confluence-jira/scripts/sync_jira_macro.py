@@ -119,7 +119,6 @@ Examples:
         type=int,
         help="Index of macro to update (0-based, default: all)",
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -138,7 +137,7 @@ Examples:
         new_jql = None
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get page content (v1 API for XHTML)
     page = client.get(

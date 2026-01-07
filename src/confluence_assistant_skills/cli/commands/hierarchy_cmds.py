@@ -21,7 +21,6 @@ def hierarchy() -> None:
     type=click.Choice(["title", "id", "created"]),
     help="Sort children by field",
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -35,7 +34,6 @@ def get_children(
     page_id: str,
     limit: int,
     sort: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get child pages of a page."""
@@ -44,8 +42,6 @@ def get_children(
         argv.extend(["--limit", str(limit)])
     if sort:
         argv.extend(["--sort", sort])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -55,7 +51,6 @@ def get_children(
 @hierarchy.command(name="ancestors")
 @click.argument("page_id")
 @click.option("--breadcrumb", is_flag=True, help="Show as breadcrumb path")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -68,15 +63,12 @@ def get_ancestors(
     ctx: click.Context,
     page_id: str,
     breadcrumb: bool,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get ancestor pages (parents, grandparents, etc.)."""
     argv = [page_id]
     if breadcrumb:
         argv.append("--breadcrumb")
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -86,7 +78,6 @@ def get_ancestors(
 @hierarchy.command(name="descendants")
 @click.argument("page_id")
 @click.option("--max-depth", "-d", type=int, help="Maximum depth to traverse")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -99,15 +90,12 @@ def get_descendants(
     ctx: click.Context,
     page_id: str,
     max_depth: int | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get all descendant pages."""
     argv = [page_id]
     if max_depth:
         argv.extend(["--max-depth", str(max_depth)])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -120,7 +108,6 @@ def get_descendants(
     "--max-depth", "-d", type=int, help="Maximum depth to traverse (default: unlimited)"
 )
 @click.option("--stats", is_flag=True, help="Show tree statistics")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -134,7 +121,6 @@ def get_page_tree(
     page_id: str,
     max_depth: int | None,
     stats: bool,
-    profile: str | None,
     output: str,
 ) -> None:
     """Display page tree structure."""
@@ -143,8 +129,6 @@ def get_page_tree(
         argv.extend(["--max-depth", str(max_depth)])
     if stats:
         argv.append("--stats")
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -155,14 +139,12 @@ def get_page_tree(
 @click.argument("parent_id")
 @click.argument("order", required=False)
 @click.option("--reverse", is_flag=True, help="Reverse current order")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
 def reorder_children(
     ctx: click.Context,
     parent_id: str,
     order: str | None,
     reverse: bool,
-    profile: str | None,
 ) -> None:
     """Reorder child pages under a parent."""
     argv = [parent_id]
@@ -170,7 +152,5 @@ def reorder_children(
         argv.append(order)
     if reverse:
         argv.append("--reverse")
-    if profile:
-        argv.extend(["--profile", profile])
 
     ctx.exit(call_skill_main("confluence-hierarchy", "reorder_children", argv))

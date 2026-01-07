@@ -430,17 +430,6 @@ class TestJiraCommands:
 class TestGlobalOptions:
     """Test global CLI options."""
 
-    def test_profile_option(self, runner: CliRunner) -> None:
-        """Test --profile global option."""
-        with patch("confluence_assistant_skills.cli.commands.page_cmds.call_skill_main") as mock:
-            mock.return_value = 0
-            result = runner.invoke(cli, ["--profile", "test", "page", "get", "12345"])
-            assert result.exit_code == 0
-            args = mock.call_args[0]
-            # Profile should be passed through context, not directly to the skill
-            # The profile is handled in the command itself
-            mock.assert_called_once()
-
     def test_output_option(self, runner: CliRunner) -> None:
         """Test --output global option."""
         with patch("confluence_assistant_skills.cli.commands.space_cmds.call_skill_main") as mock:

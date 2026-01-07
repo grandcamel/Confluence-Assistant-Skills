@@ -262,7 +262,6 @@ Examples:
         choices=["page", "blogpost", "comment", "attachment"],
         help="Pre-filter by content type",
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--limit",
         "-l",
@@ -277,7 +276,7 @@ Examples:
     args = parser.parse_args(argv)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Build initial parts from pre-filters
     initial_parts = []

@@ -23,7 +23,6 @@ def page() -> None:
     default="storage",
     help="Body format (default: storage)",
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -37,7 +36,6 @@ def get_page(
     page_id: str,
     body: bool,
     body_format: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get a Confluence page by ID."""
@@ -46,8 +44,6 @@ def get_page(
         argv.append("--body")
     if body_format != "storage":
         argv.extend(["--format", body_format])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -72,7 +68,6 @@ def get_page(
     default="current",
     help="Page status",
 )
-@click.option("--profile", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -89,7 +84,6 @@ def create_page(
     body_file: str | None,
     parent_id: str | None,
     status: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Create a new Confluence page."""
@@ -102,8 +96,6 @@ def create_page(
         argv.extend(["--parent", parent_id])
     if status != "current":
         argv.extend(["--status", status])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -125,7 +117,6 @@ def create_page(
 @click.option(
     "--status", type=click.Choice(["current", "draft"]), help="Change page status"
 )
-@click.option("--profile", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -142,7 +133,6 @@ def update_page(
     body_file: str | None,
     version_message: str | None,
     status: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Update an existing Confluence page."""
@@ -157,8 +147,6 @@ def update_page(
         argv.extend(["--message", version_message])
     if status:
         argv.extend(["--status", status])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -171,14 +159,12 @@ def update_page(
 @click.option(
     "--permanent", is_flag=True, help="Permanently delete (cannot be recovered)"
 )
-@click.option("--profile", help="Confluence profile to use")
 @click.pass_context
 def delete_page(
     ctx: click.Context,
     page_id: str,
     force: bool,
     permanent: bool,
-    profile: str | None,
 ) -> None:
     """Delete a Confluence page."""
     argv = [page_id]
@@ -186,8 +172,6 @@ def delete_page(
         argv.append("--force")
     if permanent:
         argv.append("--permanent")
-    if profile:
-        argv.extend(["--profile", profile])
 
     ctx.exit(call_skill_main("confluence-page", "delete_page", argv))
 
@@ -198,7 +182,6 @@ def delete_page(
 @click.option("--space", "-s", help="Target space key")
 @click.option("--parent", "-p", "parent_id", help="Target parent page ID")
 @click.option("--include-children", is_flag=True, help="Copy child pages recursively")
-@click.option("--profile", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -214,7 +197,6 @@ def copy_page(
     space: str | None,
     parent_id: str | None,
     include_children: bool,
-    profile: str | None,
     output: str,
 ) -> None:
     """Copy a Confluence page."""
@@ -227,8 +209,6 @@ def copy_page(
         argv.extend(["--parent", parent_id])
     if include_children:
         argv.append("--include-children")
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -240,7 +220,6 @@ def copy_page(
 @click.option("--space", "-s", help="Target space key")
 @click.option("--parent", "-p", "parent_id", help="Target parent page ID")
 @click.option("--root", is_flag=True, help="Move to space root (no parent)")
-@click.option("--profile", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -255,7 +234,6 @@ def move_page(
     space: str | None,
     parent_id: str | None,
     root: bool,
-    profile: str | None,
     output: str,
 ) -> None:
     """Move a Confluence page."""
@@ -266,8 +244,6 @@ def move_page(
         argv.extend(["--parent", parent_id])
     if root:
         argv.append("--root")
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -284,7 +260,6 @@ def move_page(
     help="Maximum versions to return (default: 25)",
 )
 @click.option("--detailed", is_flag=True, help="Show full version details")
-@click.option("--profile", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -298,7 +273,6 @@ def get_page_versions(
     page_id: str,
     limit: int,
     detailed: bool,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get version history for a page."""
@@ -307,8 +281,6 @@ def get_page_versions(
         argv.extend(["--limit", str(limit)])
     if detailed:
         argv.append("--detailed")
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -321,7 +293,6 @@ def get_page_versions(
     "--version", "-v", type=int, required=True, help="Version number to restore"
 )
 @click.option("--message", "-m", help="Version message for the restoration")
-@click.option("--profile", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -335,15 +306,12 @@ def restore_version(
     page_id: str,
     version: int,
     message: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Restore a page to a previous version."""
     argv = [page_id, "--version", str(version)]
     if message:
         argv.extend(["--message", message])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -367,7 +335,6 @@ def blog() -> None:
     default="storage",
     help="Body format (default: storage)",
 )
-@click.option("--profile", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -381,7 +348,6 @@ def get_blogpost(
     blogpost_id: str,
     body: bool,
     body_format: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get a blog post by ID."""
@@ -390,8 +356,6 @@ def get_blogpost(
         argv.append("--body")
     if body_format != "storage":
         argv.extend(["--format", body_format])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -415,7 +379,6 @@ def get_blogpost(
     default="current",
     help="Blog post status",
 )
-@click.option("--profile", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -431,7 +394,6 @@ def create_blogpost(
     body: str | None,
     body_file: str | None,
     status: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Create a new blog post."""
@@ -442,8 +404,6 @@ def create_blogpost(
         argv.extend(["--file", body_file])
     if status != "current":
         argv.extend(["--status", status])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 

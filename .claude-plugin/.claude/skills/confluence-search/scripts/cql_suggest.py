@@ -263,7 +263,6 @@ Examples:
     parser.add_argument(
         "--functions", action="store_true", help="List all CQL functions"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -338,7 +337,7 @@ Examples:
         # Get client if needed
         client = None
         if field_name in ["space", "label"]:
-            client = get_confluence_client(profile=args.profile)
+            client = get_confluence_client()
 
         values = get_field_values(client, field_name)
 

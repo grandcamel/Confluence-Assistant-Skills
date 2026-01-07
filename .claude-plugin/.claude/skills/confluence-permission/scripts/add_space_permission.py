@@ -61,7 +61,6 @@ Note: This uses the v1 API. Space permission management is not available in v2.
         choices=VALID_OPERATIONS,
         help="Permission operation to grant",
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -91,7 +90,7 @@ Note: This uses the v1 API. Space permission management is not available in v2.
     operation = args.operation
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Build permission payload for v1 API
     payload = {

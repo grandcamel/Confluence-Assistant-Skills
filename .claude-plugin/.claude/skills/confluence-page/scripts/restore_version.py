@@ -37,7 +37,6 @@ Examples:
         "--version", "-v", type=int, required=True, help="Version number to restore"
     )
     parser.add_argument("--message", "-m", help="Version message for the restoration")
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -54,7 +53,7 @@ Examples:
         raise ValidationError("Version number must be at least 1")
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get current page info
     current_page = client.get(f"/api/v2/pages/{page_id}", operation="get current page")

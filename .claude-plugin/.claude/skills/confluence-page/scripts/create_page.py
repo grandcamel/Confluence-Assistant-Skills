@@ -60,7 +60,6 @@ Examples:
         default="current",
         help="Page status (default: current)",
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -90,7 +89,7 @@ Examples:
         raise ValidationError("Either --body or --file is required")
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # First, get the space ID from the space key
     spaces = list(

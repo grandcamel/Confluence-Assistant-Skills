@@ -23,7 +23,6 @@ def comment() -> None:
     default="-created",
     help="Sort order (default: -created for newest first)",
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -37,7 +36,6 @@ def get_comments(
     page_id: str,
     limit: int | None,
     sort: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """List comments on a page."""
@@ -46,8 +44,6 @@ def get_comments(
         argv.extend(["--limit", str(limit)])
     if sort != "-created":
         argv.extend(["--sort", sort])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -60,7 +56,6 @@ def get_comments(
 @click.option(
     "--file", "-f", type=click.Path(exists=True), help="Read comment body from file"
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -74,7 +69,6 @@ def add_comment(
     page_id: str,
     body: str | None,
     file: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Add a comment to a page."""
@@ -88,8 +82,6 @@ def add_comment(
         argv.extend(["--file", file])
     else:
         argv.append(body)
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -100,7 +92,6 @@ def add_comment(
 @click.argument("page_id")
 @click.argument("selection")
 @click.argument("body")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -114,13 +105,10 @@ def add_inline_comment(
     page_id: str,
     selection: str,
     body: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Add an inline comment to specific text in a page."""
     argv = [page_id, selection, body]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -133,7 +121,6 @@ def add_inline_comment(
 @click.option(
     "--file", "-f", type=click.Path(exists=True), help="Read updated body from file"
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -147,7 +134,6 @@ def update_comment(
     comment_id: str,
     body: str | None,
     file: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Update an existing comment."""
@@ -161,8 +147,6 @@ def update_comment(
         argv.extend(["--file", file])
     else:
         argv.append(body)
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -172,20 +156,16 @@ def update_comment(
 @comment.command(name="delete")
 @click.argument("comment_id")
 @click.option("--force", "-f", is_flag=True, help="Skip confirmation prompt")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
 def delete_comment(
     ctx: click.Context,
     comment_id: str,
     force: bool,
-    profile: str | None,
 ) -> None:
     """Delete a comment."""
     argv = [comment_id]
     if force:
         argv.append("--force")
-    if profile:
-        argv.extend(["--profile", profile])
 
     ctx.exit(call_skill_main("confluence-comment", "delete_comment", argv))
 
@@ -202,7 +182,6 @@ def delete_comment(
     flag_value="unresolve",
     help="Mark comment as unresolved/open",
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -215,7 +194,6 @@ def resolve_comment(
     ctx: click.Context,
     comment_id: str,
     action: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Resolve or reopen a comment."""
@@ -227,8 +205,6 @@ def resolve_comment(
         argv.append("--resolve")
     else:
         argv.append("--unresolve")
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 

@@ -58,7 +58,6 @@ Examples:
         default=100,
         help="Maximum pages to scan (default: 100)",
     )
-    parser.add_argument("--profile", "-p", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -80,7 +79,7 @@ Examples:
     cql = build_cql_query(space=space_key)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Search for content and collect labels
     label_counter = Counter()

@@ -40,7 +40,6 @@ Examples:
         default="global",
         help="Space type (default: global)",
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -57,7 +56,7 @@ Examples:
         raise ValidationError("Space name is required")
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Build space data
     space_data = {"key": space_key, "name": args.name.strip()}

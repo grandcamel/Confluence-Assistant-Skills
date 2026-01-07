@@ -52,7 +52,6 @@ Examples:
         "-m",
         help="Filter by media type (e.g., application/pdf, image/png)",
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -66,7 +65,7 @@ Examples:
     page_id = validate_page_id(args.page_id)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Build params
     params = {}

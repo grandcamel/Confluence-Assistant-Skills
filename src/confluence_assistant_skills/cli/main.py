@@ -27,12 +27,10 @@ class ContextObj:
 
     def __init__(
         self,
-        profile: str | None,
         output: str,
         verbose: bool,
         quiet: bool,
     ) -> None:
-        self.profile = profile
         self.output = output
         self.verbose = verbose
         self.quiet = quiet
@@ -40,12 +38,6 @@ class ContextObj:
 
 @click.group(invoke_without_command=True)
 @click.version_option(version=__version__, prog_name="confluence")
-@click.option(
-    "--profile",
-    "-p",
-    help="Configuration profile to use.",
-    envvar="CONFLUENCE_PROFILE",
-)
 @click.option(
     "--output",
     "-o",
@@ -68,7 +60,6 @@ class ContextObj:
 @click.pass_context
 def cli(
     ctx: click.Context,
-    profile: str | None,
     output: str,
     verbose: bool,
     quiet: bool,
@@ -89,7 +80,6 @@ def cli(
     """
     ctx.ensure_object(dict)
     ctx.obj = ContextObj(
-        profile=profile,
         output=output,
         verbose=verbose,
         quiet=quiet,

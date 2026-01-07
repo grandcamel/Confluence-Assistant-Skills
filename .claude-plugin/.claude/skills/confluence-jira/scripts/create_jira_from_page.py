@@ -161,7 +161,6 @@ Note: This script requires JIRA API access. Set JIRA credentials:
     parser.add_argument(
         "--jira-token", help="JIRA API token (or set JIRA_API_TOKEN env var)"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -190,7 +189,7 @@ Note: This script requires JIRA API access. Set JIRA credentials:
         )
 
     # Get Confluence client
-    confluence_client = get_confluence_client(profile=args.profile)
+    confluence_client = get_confluence_client()
 
     # Get page content
     page = confluence_client.get(

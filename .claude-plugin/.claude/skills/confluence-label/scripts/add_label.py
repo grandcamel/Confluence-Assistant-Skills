@@ -5,7 +5,7 @@ Add label(s) to a Confluence page or blog post.
 Examples:
     python add_label.py 12345 --label documentation
     python add_label.py 12345 --labels doc,approved,v2
-    python add_label.py 12345 -l api --profile production
+    python add_label.py 12345 -l api
 """
 
 import argparse
@@ -35,14 +35,13 @@ def main(argv: list[str] | None = None):
 Examples:
   python add_label.py 12345 --label documentation
   python add_label.py 12345 --labels doc,approved,v2
-  python add_label.py 12345 -l api --profile production
+  python add_label.py 12345 -l api
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("page_id", help="Page or blog post ID")
     parser.add_argument("--label", "-l", help="Single label to add")
     parser.add_argument("--labels", help="Comma-separated list of labels to add")
-    parser.add_argument("--profile", "-p", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -69,7 +68,7 @@ Examples:
         validated_labels.append(validate_label(label))
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Add labels using v1 API (v2 API doesn't support POST for labels)
     # v1 API accepts an array of labels in a single request

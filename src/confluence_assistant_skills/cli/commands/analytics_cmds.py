@@ -15,7 +15,6 @@ def analytics() -> None:
 
 @analytics.command(name="views")
 @click.argument("page_id")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -27,13 +26,10 @@ def analytics() -> None:
 def get_page_views(
     ctx: click.Context,
     page_id: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get view statistics for a page."""
     argv = [page_id]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -42,7 +38,6 @@ def get_page_views(
 
 @analytics.command(name="watchers")
 @click.argument("page_id")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -54,13 +49,10 @@ def get_page_views(
 def get_content_watchers(
     ctx: click.Context,
     page_id: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get users watching a page."""
     argv = [page_id]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -86,7 +78,6 @@ def get_content_watchers(
 @click.option(
     "--limit", "-l", type=int, default=10, help="Maximum results (default: 10)"
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -102,7 +93,6 @@ def get_popular_content(
     content_type: str,
     sort: str,
     limit: int,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get popular content."""
@@ -117,8 +107,6 @@ def get_popular_content(
         argv.extend(["--sort", sort])
     if limit != 10:
         argv.extend(["--limit", str(limit)])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -128,7 +116,6 @@ def get_popular_content(
 @analytics.command(name="space")
 @click.argument("space_key")
 @click.option("--days", type=int, help="Limit to content from last N days")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -141,15 +128,12 @@ def get_space_analytics(
     ctx: click.Context,
     space_key: str,
     days: int | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get analytics for a space."""
     argv = [space_key]
     if days:
         argv.extend(["--days", str(days)])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 

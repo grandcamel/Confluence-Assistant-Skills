@@ -40,7 +40,6 @@ Examples:
         action="store_true",
         help="Show as breadcrumb path (Title > Title > ...)",
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -54,7 +53,7 @@ Examples:
     page_id = validate_page_id(args.page_id)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get page with ancestors
     result = client.get(

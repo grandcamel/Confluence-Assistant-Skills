@@ -7,7 +7,6 @@ This script uses the v2 API inline-comments endpoint.
 
 Examples:
     python add_inline_comment.py 12345 "selected text" "This is my inline comment"
-    python add_inline_comment.py 12345 "text" "Comment" --profile production
 """
 
 import argparse
@@ -86,7 +85,6 @@ def main(argv: list[str] | None = None):
         epilog="""
 Examples:
   python add_inline_comment.py 12345 "selected text" "This is my inline comment"
-  python add_inline_comment.py 12345 "text" "Comment" --profile production
 
 Note: Inline comments are attached to specific text in the page. The text selection
       must match existing text in the page content.
@@ -96,7 +94,6 @@ Note: Inline comments are attached to specific text in the page. The text select
     parser.add_argument("page_id", help="Page ID to add inline comment to")
     parser.add_argument("selection", help="Text selection to attach comment to")
     parser.add_argument("body", help="Comment body text")
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -112,7 +109,7 @@ Note: Inline comments are attached to specific text in the page. The text select
     body_content = validate_comment_body(args.body)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Prepare inline comment data
     comment_data = {

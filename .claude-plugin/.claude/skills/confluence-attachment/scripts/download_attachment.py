@@ -45,14 +45,13 @@ Examples:
     parser.add_argument(
         "--all", "-a", action="store_true", help="Download all attachments from page"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     args = parser.parse_args(argv)
 
     # Validate inputs
     item_id = validate_page_id(args.id)  # Works for both page and attachment IDs
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     if args.all:
         # Download all attachments from page

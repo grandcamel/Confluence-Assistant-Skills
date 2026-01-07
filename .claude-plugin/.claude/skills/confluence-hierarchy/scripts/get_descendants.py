@@ -113,7 +113,6 @@ Examples:
         type=int,
         help="Maximum depth to traverse (default: unlimited)",
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -127,7 +126,7 @@ Examples:
     page_id = validate_page_id(args.page_id)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get parent page info
     parent = client.get(f"/api/v2/pages/{page_id}", operation="get parent page")

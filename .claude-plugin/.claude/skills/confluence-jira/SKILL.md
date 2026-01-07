@@ -35,8 +35,8 @@ confluence jira embed 12345 --jql "assignee = currentUser()" --columns key,summa
 # With specific JIRA server
 confluence jira embed 12345 --jql "project = PROJ" --server-id abc123
 
-# JSON output with profile
-confluence jira embed 12345 --issues PROJ-123 --output json --profile production
+# JSON output
+confluence jira embed 12345 --issues PROJ-123 --output json
 ```
 
 **Options:**
@@ -46,7 +46,6 @@ confluence jira embed 12345 --issues PROJ-123 --output json --profile production
 - `--server-id`: JIRA server ID (optional)
 - `--columns`: Columns to display (comma-separated)
 - `--max-results`: Maximum number of issues (default: 20)
-- `--profile`: Confluence profile to use
 - `--output`: Output format (`text` or `json`)
 
 ### get_linked_issues.py
@@ -55,11 +54,10 @@ List JIRA issues linked to a page.
 **Usage:**
 ```bash
 confluence jira linked 12345
-confluence jira linked 12345 --output json --profile production
+confluence jira linked 12345 --output json
 ```
 
 **Options:**
-- `--profile`: Confluence profile to use
 - `--output`: Output format (`text` or `json`)
 
 ### create_jira_from_page.py
@@ -79,8 +77,8 @@ confluence jira create-from-page 12345 --project PROJ --type Story \
   --jira-email user@example.com \
   --jira-token your-api-token
 
-# JSON output with profile
-confluence jira create-from-page 12345 --project PROJ --type Task --output json --profile production
+# JSON output
+confluence jira create-from-page 12345 --project PROJ --type Task --output json
 ```
 
 **Options:**
@@ -91,7 +89,6 @@ confluence jira create-from-page 12345 --project PROJ --type Task --output json 
 - `--jira-url`: JIRA base URL (or set JIRA_URL env var)
 - `--jira-email`: JIRA email (or set JIRA_EMAIL env var)
 - `--jira-token`: JIRA API token (or set JIRA_API_TOKEN env var)
-- `--profile`: Confluence profile to use
 - `--output`: Output format (`text` or `json`)
 
 ### link_to_jira.py
@@ -108,15 +105,14 @@ confluence jira link 12345 PROJ-123 --jira-url https://jira.example.com --relati
 # Skip if link already exists
 confluence jira link 12345 PROJ-123 --jira-url https://jira.example.com --skip-if-exists
 
-# JSON output with profile
-confluence jira link 12345 PROJ-123 --jira-url https://jira.example.com --output json --profile production
+# JSON output
+confluence jira link 12345 PROJ-123 --jira-url https://jira.example.com --output json
 ```
 
 **Options:**
 - `--jira-url`: Base JIRA URL (required, e.g., https://jira.example.com)
 - `--relationship`: Relationship type (default: "relates to"). Options: relates to, documents, mentions, references, implements
 - `--skip-if-exists`: Skip if link already exists
-- `--profile`: Confluence profile to use
 - `--output`: Output format (`text` or `json`)
 
 ### sync_jira_macro.py
@@ -133,12 +129,11 @@ confluence jira sync-macro 12345 --update-jql "project = PROJ AND status = Open"
 # Update JQL in a specific macro by index (0-based)
 confluence jira sync-macro 12345 --update-jql "status = Done" --macro-index 0
 
-# JSON output with profile
-confluence jira sync-macro 12345 --output json --profile production
+# JSON output
+confluence jira sync-macro 12345 --output json
 ```
 
 **Options:**
 - `--update-jql`: New JQL query to set in macros
 - `--macro-index`: Index of macro to update (0-based). If not specified, updates all macros
-- `--profile`: Confluence profile to use
 - `--output`: Output format (`text` or `json`)

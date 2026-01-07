@@ -38,13 +38,12 @@ Retrieves:
 
 **Usage:**
 ```bash
-confluence analytics views PAGE_ID [--output json] [--profile PROFILE]
+confluence analytics views PAGE_ID [--output json]
 ```
 
 **Arguments:**
 - `PAGE_ID` - The page ID (required)
 - `--output` - Output format: text or json (default: text)
-- `--profile` - Confluence profile to use
 
 **Examples:**
 ```bash
@@ -53,9 +52,6 @@ confluence analytics views 12345
 
 # Get as JSON
 confluence analytics views 12345 --output json
-
-# Use specific profile
-confluence analytics views 12345 --profile production
 ```
 
 **Output (text):**
@@ -96,14 +92,13 @@ Retrieves:
 
 **Usage:**
 ```bash
-confluence analytics space SPACE_KEY [--days N] [--output json] [--profile PROFILE]
+confluence analytics space SPACE_KEY [--days N] [--output json]
 ```
 
 **Arguments:**
 - `SPACE_KEY` - The space key (required)
 - `--days` - Limit to content from last N days (optional)
 - `--output` - Output format: text or json (default: text)
-- `--profile` - Confluence profile to use
 
 **Examples:**
 ```bash
@@ -154,7 +149,7 @@ Uses CQL queries with ordering to identify popular content based on:
 
 **Usage:**
 ```bash
-confluence analytics popular [--space SPACE_KEY] [--label LABEL] [--type TYPE] [--sort SORT] [--limit N] [--output json] [--profile PROFILE]
+confluence analytics popular [--space SPACE_KEY] [--label LABEL] [--type TYPE] [--sort SORT] [--limit N] [--output json]
 ```
 
 **Arguments:**
@@ -164,7 +159,6 @@ confluence analytics popular [--space SPACE_KEY] [--label LABEL] [--type TYPE] [
 - `--sort` - Sort by: created or modified (default: modified)
 - `--limit` - Number of results (default: 10)
 - `--output` - Output format: text or json (default: text)
-- `--profile` - Confluence profile to use
 
 **Note:** Must specify either `--space` or `--label`
 
@@ -212,13 +206,12 @@ Get the list of users watching a page (who will be notified of changes).
 
 **Usage:**
 ```bash
-confluence analytics watchers PAGE_ID [--output json] [--profile PROFILE]
+confluence analytics watchers PAGE_ID [--output json]
 ```
 
 **Arguments:**
 - `PAGE_ID` - The page or blog post ID (required)
 - `--output` - Output format: text or json (default: text)
-- `--profile` - Confluence profile to use
 
 **Examples:**
 ```bash

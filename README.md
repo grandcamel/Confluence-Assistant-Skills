@@ -207,7 +207,6 @@ claude-as  # Runs Claude with Assistant Skills venv activated
 | `CONFLUENCE_SITE_URL` | Yes | Confluence Cloud site URL (e.g., `https://your-site.atlassian.net`) |
 | `CONFLUENCE_EMAIL` | Yes | Atlassian account email for API authentication |
 | `CONFLUENCE_API_TOKEN` | Yes | API token from [Atlassian Account Settings](https://id.atlassian.com/manage-profile/security/api-tokens) |
-| `CONFLUENCE_PROFILE` | No | Configuration profile name (default: `default`) |
 
 <br>
 
@@ -435,7 +434,7 @@ conftest.py                   # Shared fixtures and pytest hooks
 # Shared library (PyPI package)
 confluence-assistant-skills-lib
 ├── confluence_client.py      # HTTP client with retry
-├── config_manager.py         # Multi-profile config
+├── config_manager.py         # Configuration management
 ├── error_handler.py          # Exception handling
 ├── validators.py             # Input validation
 └── formatters.py             # Output formatting
@@ -451,36 +450,19 @@ confluence-assistant-skills-lib
 
 ### Environment Variables
 
+All configuration is done through environment variables:
+
 ```bash
 export CONFLUENCE_SITE_URL="https://your-site.atlassian.net"
 export CONFLUENCE_EMAIL="you@company.com"
 export CONFLUENCE_API_TOKEN="your-api-token"
 ```
 
-### Multiple Profiles
-
-```json
-{
-  "confluence": {
-    "default_profile": "production",
-    "profiles": {
-      "production": {
-        "url": "https://company.atlassian.net",
-        "default_space": "DOCS"
-      },
-      "sandbox": {
-        "url": "https://company-sandbox.atlassian.net",
-        "default_space": "TEST"
-      }
-    }
-  }
-}
-```
-
-```bash
-# Use specific profile
-confluence page get 12345 --profile sandbox
-```
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `CONFLUENCE_SITE_URL` | Yes | Confluence Cloud site URL |
+| `CONFLUENCE_EMAIL` | Yes | Atlassian account email |
+| `CONFLUENCE_API_TOKEN` | Yes | API token from [Atlassian Account Settings](https://id.atlassian.com/manage-profile/security/api-tokens) |
 
 <br>
 
@@ -508,7 +490,7 @@ pytest .claude/skills/ -v --ignore-glob="**/live_integration/*"
 pytest --cov=confluence_assistant_skills_lib --cov-report=html
 
 # Run live integration tests
-pytest .claude/skills/*/tests/live_integration/ --profile=sandbox -v
+pytest .claude/skills/*/tests/live_integration/ --live -v
 
 # Run E2E tests (requires ANTHROPIC_API_KEY)
 ./scripts/run-e2e-tests.sh           # Docker

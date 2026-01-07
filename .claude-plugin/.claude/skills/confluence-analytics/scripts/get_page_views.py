@@ -8,7 +8,6 @@ analytics data for a page using the v1 REST API.
 Examples:
     python get_page_views.py 12345
     python get_page_views.py 12345 --output json
-    python get_page_views.py 12345 --profile production
 """
 
 import argparse
@@ -30,12 +29,10 @@ def main(argv: list[str] | None = None):
 Examples:
   python get_page_views.py 12345
   python get_page_views.py 12345 --output json
-  python get_page_views.py 12345 --profile production
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("page_id", help="Page ID")
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -49,7 +46,7 @@ Examples:
     page_id = validate_page_id(args.page_id)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get page with history and contributors
     # Using v1 API for history/analytics data

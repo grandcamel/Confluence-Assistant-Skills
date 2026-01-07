@@ -186,7 +186,6 @@ Examples:
         default=20,
         help="Maximum number of issues to display (default: 20)",
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -219,7 +218,7 @@ Examples:
         columns = [c.strip() for c in args.columns.split(",")]
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get current page content (v1 API for XHTML storage format)
     page = client.get(

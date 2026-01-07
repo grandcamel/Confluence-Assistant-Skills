@@ -32,7 +32,6 @@ Examples:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("space_key", help="Space key")
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -46,7 +45,7 @@ Examples:
     space_key = validate_space_key(args.space_key)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get spaces by key
     spaces = list(

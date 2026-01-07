@@ -5,7 +5,7 @@ These tests run against a real Confluence instance.
 Set CONFLUENCE_EMAIL, CONFLUENCE_API_TOKEN environment variables.
 
 Usage:
-    pytest test_watch_live.py --profile test -v
+    pytest test_watch_live.py --live -v
 """
 
 import contextlib
@@ -19,10 +19,9 @@ from confluence_assistant_skills_lib import (
 
 
 @pytest.fixture(scope="session")
-def confluence_client(request):
-    """Get Confluence client using profile from command line."""
-    profile = request.config.getoption("--profile", default=None)
-    return get_confluence_client(profile=profile)
+def confluence_client():
+    """Get Confluence client using environment variables."""
+    return get_confluence_client()
 
 
 @pytest.fixture(scope="session")
@@ -231,11 +230,3 @@ class TestWatchSpaceLive:
             confluence_client.delete(f"/rest/api/user/watch/space/{space_key}")
 
 
-def pytest_addoption(parser):
-    """Add custom command line option for profile."""
-    parser.addoption(
-        "--profile",
-        action="store",
-        default=None,
-        help="Confluence profile to use for testing",
-    )

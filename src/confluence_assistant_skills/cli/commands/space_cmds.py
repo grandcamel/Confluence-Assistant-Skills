@@ -18,7 +18,6 @@ def space() -> None:
 @click.option("--query", "-q", help="Search query")
 @click.option("--status", help="Filter by status (current, archived)")
 @click.option("--limit", "-l", type=int, default=50, help="Maximum spaces to return")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -33,7 +32,6 @@ def list_spaces(
     query: str | None,
     status: str | None,
     limit: int,
-    profile: str | None,
     output: str,
 ) -> None:
     """List all accessible Confluence spaces."""
@@ -46,8 +44,6 @@ def list_spaces(
         argv.extend(["--status", status])
     if limit != 50:
         argv.extend(["--limit", str(limit)])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -56,7 +52,6 @@ def list_spaces(
 
 @space.command(name="get")
 @click.argument("space_key")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -68,13 +63,10 @@ def list_spaces(
 def get_space(
     ctx: click.Context,
     space_key: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get details for a specific space."""
     argv = [space_key]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -90,7 +82,6 @@ def get_space(
 @click.option(
     "--type", "space_type", default="global", help="Space type (global or personal)"
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -105,7 +96,6 @@ def create_space(
     name: str,
     description: str | None,
     space_type: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Create a new Confluence space."""
@@ -114,8 +104,6 @@ def create_space(
         argv.extend(["--description", description])
     if space_type != "global":
         argv.extend(["--type", space_type])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -127,7 +115,6 @@ def create_space(
 @click.option("--name", "-n", help="New space name")
 @click.option("--description", "-d", help="New space description")
 @click.option("--homepage", help="Homepage page ID")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -142,7 +129,6 @@ def update_space(
     name: str | None,
     description: str | None,
     homepage: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Update a Confluence space."""
@@ -153,8 +139,6 @@ def update_space(
         argv.extend(["--description", description])
     if homepage:
         argv.extend(["--homepage", homepage])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -164,20 +148,16 @@ def update_space(
 @space.command(name="delete")
 @click.argument("space_key")
 @click.option("--force", "-f", is_flag=True, help="Skip confirmation prompt")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
 def delete_space(
     ctx: click.Context,
     space_key: str,
     force: bool,
-    profile: str | None,
 ) -> None:
     """Delete a Confluence space."""
     argv = [space_key]
     if force:
         argv.append("--force")
-    if profile:
-        argv.extend(["--profile", profile])
 
     ctx.exit(call_skill_main("confluence-space", "delete_space", argv))
 
@@ -188,7 +168,6 @@ def delete_space(
 @click.option("--status", help="Filter by status (current, archived, draft)")
 @click.option("--include-archived", is_flag=True, help="Include archived content")
 @click.option("--limit", "-l", type=int, default=50, help="Maximum items to return")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -204,7 +183,6 @@ def get_space_content(
     status: str | None,
     include_archived: bool,
     limit: int,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get content in a space."""
@@ -217,8 +195,6 @@ def get_space_content(
         argv.append("--include-archived")
     if limit != 50:
         argv.extend(["--limit", str(limit)])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -227,7 +203,6 @@ def get_space_content(
 
 @space.command(name="settings")
 @click.argument("space_key")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -239,13 +214,10 @@ def get_space_content(
 def get_space_settings(
     ctx: click.Context,
     space_key: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get settings for a space."""
     argv = [space_key]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 

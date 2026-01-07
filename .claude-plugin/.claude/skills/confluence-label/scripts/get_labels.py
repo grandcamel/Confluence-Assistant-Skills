@@ -5,7 +5,6 @@ Get all labels on a Confluence page or blog post.
 Examples:
     python get_labels.py 12345
     python get_labels.py 12345 --output json
-    python get_labels.py 12345 --profile production
 """
 
 import argparse
@@ -29,12 +28,10 @@ def main(argv: list[str] | None = None):
 Examples:
   python get_labels.py 12345
   python get_labels.py 12345 --output json
-  python get_labels.py 12345 --profile production
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("page_id", help="Page or blog post ID")
-    parser.add_argument("--profile", "-p", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -48,7 +45,7 @@ Examples:
     page_id = validate_page_id(args.page_id)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get labels
     response = client.get(f"/api/v2/pages/{page_id}/labels", operation="get labels")

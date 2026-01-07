@@ -4,7 +4,7 @@ Live Integration Tests - Space Lifecycle
 Tests for space CRUD operations against a real Confluence instance.
 
 Usage:
-    pytest test_space_lifecycle.py --profile development -v
+    pytest test_space_lifecycle.py --live -v
 """
 
 import contextlib

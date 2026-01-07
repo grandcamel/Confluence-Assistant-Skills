@@ -4,7 +4,6 @@ Check if the current user is watching a Confluence page.
 
 Examples:
     python am_i_watching.py 123456
-    python am_i_watching.py 123456 --profile production
     python am_i_watching.py 123456 --output json
 """
 
@@ -26,13 +25,11 @@ def main(argv: list[str] | None = None):
         epilog="""
 Examples:
   python am_i_watching.py 123456
-  python am_i_watching.py 123456 --profile production
   python am_i_watching.py 123456 --output json
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("page_id", help="Page ID to check")
-    parser.add_argument("--profile", "-p", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -46,7 +43,7 @@ Examples:
     page_id = validate_page_id(args.page_id)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get current user
     current_user = client.get("/rest/api/user/current", operation="get current user")

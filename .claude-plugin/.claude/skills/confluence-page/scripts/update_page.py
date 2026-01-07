@@ -57,7 +57,6 @@ Examples:
     parser.add_argument(
         "--status", choices=["current", "draft"], help="Change page status"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -92,7 +91,7 @@ Examples:
         body_content = args.body
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # First, get the current page to get version number
     current_page = client.get(f"/api/v2/pages/{page_id}", operation="get current page")

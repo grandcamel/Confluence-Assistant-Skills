@@ -121,7 +121,6 @@ confluence search cql "text ~ 'config'" --show-excerpts
 - `--show-excerpts` - Show content excerpts
 - `--show-labels` - Show content labels
 - `--show-ancestors` - Show ancestor pages
-- `--profile` - Confluence profile
 - `--output, -o` - Output format: text or json
 
 ### cql_validate.py
@@ -136,7 +135,6 @@ confluence search validate "invalid query (("
 
 **Arguments:**
 - `cql` - CQL query to validate (required)
-- `--profile` - Confluence profile (for server-side validation)
 
 ### cql_suggest.py
 
@@ -161,7 +159,6 @@ confluence search suggest --functions
 - `--field NAME` - Get values for a specific field
 - `--operators` - List all CQL operators
 - `--functions` - List all CQL functions
-- `--profile` - Confluence profile
 - `--output, -o` - Output format: text or json
 
 ### cql_interactive.py
@@ -180,7 +177,6 @@ confluence search interactive --type page --execute
 - `--type` - Pre-filter by content type: page, blogpost, comment, or attachment
 - `--limit, -l` - Maximum results (default: 25)
 - `--execute` - Execute query after building
-- `--profile` - Confluence profile
 
 ### export_results.py
 
@@ -204,7 +200,6 @@ confluence search export "type = page" --columns id,title,space,created
 - `--output, -o` - Output file path (required)
 - `--columns` - Columns to include (comma-separated)
 - `--limit, -l` - Maximum results
-- `--profile` - Confluence profile
 
 ### streaming_export.py
 
@@ -229,7 +224,6 @@ confluence search stream-export "type = page" --output pages.csv --batch-size 50
 - `--columns` - Columns to include (comma-separated)
 - `--batch-size` - Records per batch (default: 100)
 - `--resume` - Resume from last checkpoint
-- `--profile` - Confluence profile
 
 ### cql_history.py
 
@@ -282,7 +276,6 @@ confluence search content "API documentation" --type page
 - `--space` - Limit to space
 - `--type` - Content type: page, blogpost, or all
 - `--limit, -l` - Maximum results
-- `--profile` - Confluence profile
 - `--output, -o` - Output format
 
 ## Examples

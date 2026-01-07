@@ -46,7 +46,6 @@ Examples:
     parser.add_argument(
         "--force", action="store_true", help="Delete without confirmation"
     )
-    parser.add_argument("--profile", "-p", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -63,7 +62,7 @@ Examples:
         raise ValidationError("Property key cannot be empty")
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Confirmation (unless --force)
     if not args.force:

@@ -2,10 +2,9 @@
 Live integration tests for JIRA link operations.
 
 Usage:
-    pytest test_jira_links_live.py --profile development -v
+    pytest test_jira_links_live.py --live -v
 """
 
-import contextlib
 import uuid
 
 import pytest
@@ -15,15 +14,9 @@ from confluence_assistant_skills_lib import (
 )
 
 
-def pytest_addoption(parser):
-    with contextlib.suppress(ValueError):
-        parser.addoption("--profile", action="store", default=None)
-
-
 @pytest.fixture(scope="session")
-def confluence_client(request):
-    profile = request.config.getoption("--profile", default=None)
-    return get_confluence_client(profile=profile)
+def confluence_client():
+    return get_confluence_client()
 
 
 @pytest.fixture(scope="session")

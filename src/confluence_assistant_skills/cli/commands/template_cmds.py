@@ -26,7 +26,6 @@ def template() -> None:
 @click.option(
     "--limit", "-l", type=int, default=100, help="Maximum templates to return"
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -41,7 +40,6 @@ def list_templates(
     template_type: str | None,
     blueprints: bool,
     limit: int,
-    profile: str | None,
     output: str,
 ) -> None:
     """List available templates."""
@@ -54,8 +52,6 @@ def list_templates(
         argv.append("--blueprints")
     if limit != 100:
         argv.extend(["--limit", str(limit)])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -73,7 +69,6 @@ def list_templates(
     help="Body format (storage or markdown)",
 )
 @click.option("--blueprint", is_flag=True, help="Get blueprint instead of template")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -88,7 +83,6 @@ def get_template(
     body: bool,
     body_format: str,
     blueprint: bool,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get a template by ID."""
@@ -99,8 +93,6 @@ def get_template(
         argv.extend(["--format", body_format])
     if blueprint:
         argv.append("--blueprint")
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -128,7 +120,6 @@ def get_template(
     help="Template type (default: page)",
 )
 @click.option("--blueprint-id", help="Base on existing blueprint")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -147,7 +138,6 @@ def create_template(
     labels: str | None,
     template_type: str,
     blueprint_id: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Create a new template."""
@@ -164,8 +154,6 @@ def create_template(
         argv.extend(["--type", template_type])
     if blueprint_id:
         argv.extend(["--blueprint-id", blueprint_id])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -182,7 +170,6 @@ def create_template(
 )
 @click.option("--add-labels", help="Comma-separated labels to add")
 @click.option("--remove-labels", help="Comma-separated labels to remove")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -200,7 +187,6 @@ def update_template(
     content_file: str | None,
     add_labels: str | None,
     remove_labels: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Update an existing template."""
@@ -217,8 +203,6 @@ def update_template(
         argv.extend(["--add-labels", add_labels])
     if remove_labels:
         argv.extend(["--remove-labels", remove_labels])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -243,7 +227,6 @@ def update_template(
     type=click.Path(exists=True),
     help="File with custom content",
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -262,7 +245,6 @@ def create_from_template(
     labels: str | None,
     content: str | None,
     content_file: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Create a page from a template."""
@@ -280,8 +262,6 @@ def create_from_template(
         argv.extend(["--content", content])
     if content_file:
         argv.extend(["--file", content_file])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 

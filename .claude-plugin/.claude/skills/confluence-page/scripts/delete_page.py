@@ -54,14 +54,13 @@ Examples:
     parser.add_argument(
         "--force", "-f", action="store_true", help="Skip confirmation prompt"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     args = parser.parse_args(argv)
 
     # Validate
     page_id = validate_page_id(args.page_id)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get page info for confirmation
     page = client.get(f"/api/v2/pages/{page_id}", operation="get page")

@@ -7,7 +7,6 @@ Retrieves the list of permissions assigned to users and groups for a space.
 Examples:
     python get_space_permissions.py DOCS
     python get_space_permissions.py DOCS --output json
-    python get_space_permissions.py DOCS --profile production
 """
 
 import argparse
@@ -48,12 +47,10 @@ def main(argv: list[str] | None = None):
 Examples:
   python get_space_permissions.py DOCS
   python get_space_permissions.py DOCS --output json
-  python get_space_permissions.py DOCS --profile production
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("space_key", help="Space key (e.g., DOCS, TEST)")
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -67,7 +64,7 @@ Examples:
     space_key = validate_space_key(args.space_key)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # First get space ID from space key (v2 API requires numeric ID)
     space_result = client.get(

@@ -4,7 +4,7 @@ Live Integration Tests - Page Lifecycle
 Tests for page CRUD operations against a real Confluence instance.
 
 Usage:
-    pytest test_page_lifecycle.py --profile development -v
+    pytest test_page_lifecycle.py --live -v
 """
 
 import contextlib

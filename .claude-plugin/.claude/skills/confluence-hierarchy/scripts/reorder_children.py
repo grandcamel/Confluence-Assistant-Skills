@@ -115,14 +115,13 @@ API supports it. Check the Confluence API documentation for current capabilities
         help="Comma-separated child page IDs (alternative to positional arg)",
     )
     parser.add_argument("--reverse", action="store_true", help="Reverse current order")
-    parser.add_argument("--profile", help="Confluence profile to use")
     args = parser.parse_args(argv)
 
     # Validate parent ID
     parent_id = validate_page_id(args.parent_id)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get parent page info
     parent = client.get(f"/api/v2/pages/{parent_id}", operation="get parent page")

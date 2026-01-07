@@ -120,28 +120,6 @@ export CONFLUENCE_API_TOKEN="your-api-token"
 }
 ```
 
-### Multiple Profiles
-
-Configure multiple Confluence instances:
-
-```json
-{
-  "confluence": {
-    "default_profile": "production",
-    "profiles": {
-      "production": {
-        "url": "https://company.atlassian.net",
-        "default_space": "DOCS"
-      },
-      "sandbox": {
-        "url": "https://company-sandbox.atlassian.net",
-        "default_space": "TEST"
-      }
-    }
-  }
-}
-```
-
 ## Example Commands
 
 ### Page Operations

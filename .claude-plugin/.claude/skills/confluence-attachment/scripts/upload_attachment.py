@@ -5,7 +5,6 @@ Upload a file attachment to a Confluence page.
 Examples:
     python upload_attachment.py 123456 --file report.pdf
     python upload_attachment.py 123456 --file image.png --comment "Screenshot of bug"
-    python upload_attachment.py 123456 --file document.docx --profile production
 """
 
 import argparse
@@ -31,7 +30,6 @@ def main(argv: list[str] | None = None):
 Examples:
   python upload_attachment.py 123456 --file report.pdf
   python upload_attachment.py 123456 --file image.png --comment "Screenshot"
-  python upload_attachment.py 123456 --file doc.docx --profile production
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -40,7 +38,6 @@ Examples:
     parser.add_argument(
         "--comment", "-c", help="Comment or description for the attachment"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -55,7 +52,7 @@ Examples:
     file_path = validate_file_path(args.file, must_exist=True, must_be_file=True)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Prepare additional data
     additional_data = {}

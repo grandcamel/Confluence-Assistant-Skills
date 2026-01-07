@@ -15,7 +15,6 @@ def watch() -> None:
 
 @watch.command(name="page")
 @click.argument("page_id")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -27,13 +26,10 @@ def watch() -> None:
 def watch_page(
     ctx: click.Context,
     page_id: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Start watching a page."""
     argv = [page_id]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -42,7 +38,6 @@ def watch_page(
 
 @watch.command(name="unwatch-page")
 @click.argument("page_id")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -54,13 +49,10 @@ def watch_page(
 def unwatch_page(
     ctx: click.Context,
     page_id: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Stop watching a page."""
     argv = [page_id]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -69,7 +61,6 @@ def unwatch_page(
 
 @watch.command(name="space")
 @click.argument("space_key")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -81,13 +72,10 @@ def unwatch_page(
 def watch_space(
     ctx: click.Context,
     space_key: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Start watching a space."""
     argv = [space_key]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -96,7 +84,6 @@ def watch_space(
 
 @watch.command(name="status")
 @click.argument("page_id")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -108,13 +95,10 @@ def watch_space(
 def am_i_watching(
     ctx: click.Context,
     page_id: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Check if you're watching a page."""
     argv = [page_id]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -123,7 +107,6 @@ def am_i_watching(
 
 @watch.command(name="list")
 @click.argument("page_id")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -135,13 +118,10 @@ def am_i_watching(
 def get_watchers(
     ctx: click.Context,
     page_id: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """List watchers of a page."""
     argv = [page_id]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 

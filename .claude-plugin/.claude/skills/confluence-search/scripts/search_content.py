@@ -46,7 +46,6 @@ Examples:
     parser.add_argument(
         "--limit", "-l", type=int, default=25, help="Maximum results (default: 25)"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -75,7 +74,7 @@ Examples:
     cql = " AND ".join(cql_parts)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Execute search
     params = {"cql": cql, "limit": min(limit, 50)}

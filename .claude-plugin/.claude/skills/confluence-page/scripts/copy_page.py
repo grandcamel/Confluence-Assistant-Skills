@@ -45,7 +45,6 @@ Examples:
     parser.add_argument(
         "--include-children", action="store_true", help="Copy child pages recursively"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -64,7 +63,7 @@ Examples:
         parent_id = None
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get source page
     source_page = client.get(

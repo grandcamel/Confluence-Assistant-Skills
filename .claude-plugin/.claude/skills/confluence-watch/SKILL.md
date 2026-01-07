@@ -30,21 +30,17 @@ Start watching a Confluence page to receive notifications for updates.
 
 **Usage:**
 ```bash
-confluence watch page PAGE_ID [--profile PROFILE] [--output FORMAT]
+confluence watch page PAGE_ID [--output FORMAT]
 ```
 
 **Arguments:**
 - `PAGE_ID` - ID of the page to watch (required)
-- `--profile, -p` - Confluence profile to use (optional)
 - `--output, -o` - Output format: text or json (default: text)
 
 **Examples:**
 ```bash
 # Watch a page
 confluence watch page 123456
-
-# Watch with specific profile
-confluence watch page 123456 --profile production
 
 # Get JSON output
 confluence watch page 123456 --output json
@@ -55,12 +51,11 @@ Stop watching a Confluence page.
 
 **Usage:**
 ```bash
-confluence watch unwatch-page PAGE_ID [--profile PROFILE] [--output FORMAT]
+confluence watch unwatch-page PAGE_ID [--output FORMAT]
 ```
 
 **Arguments:**
 - `PAGE_ID` - ID of the page to unwatch (required)
-- `--profile, -p` - Confluence profile to use (optional)
 - `--output, -o` - Output format: text or json (default: text)
 
 **Examples:**
@@ -77,12 +72,11 @@ Start watching an entire Confluence space to receive notifications for new conte
 
 **Usage:**
 ```bash
-confluence watch space SPACE_KEY [--profile PROFILE] [--output FORMAT]
+confluence watch space SPACE_KEY [--output FORMAT]
 ```
 
 **Arguments:**
 - `SPACE_KEY` - Key of the space to watch (required)
-- `--profile, -p` - Confluence profile to use (optional)
 - `--output, -o` - Output format: text or json (default: text)
 
 **Examples:**
@@ -91,7 +85,7 @@ confluence watch space SPACE_KEY [--profile PROFILE] [--output FORMAT]
 confluence watch space DOCS
 
 # Watch space with lowercase key (auto-converted to uppercase)
-confluence watch space kb --profile production
+confluence watch space kb
 
 # Get JSON output
 confluence watch space TEST --output json
@@ -102,12 +96,11 @@ Get the list of users who are watching a page.
 
 **Usage:**
 ```bash
-confluence watch list PAGE_ID [--profile PROFILE] [--output FORMAT]
+confluence watch list PAGE_ID [--output FORMAT]
 ```
 
 **Arguments:**
 - `PAGE_ID` - ID of the page (required)
-- `--profile, -p` - Confluence profile to use (optional)
 - `--output, -o` - Output format: text or json (default: text)
 
 **Examples:**
@@ -155,21 +148,17 @@ Check if the current authenticated user is watching a specific page.
 
 **Usage:**
 ```bash
-confluence watch status PAGE_ID [--profile PROFILE] [--output FORMAT]
+confluence watch status PAGE_ID [--output FORMAT]
 ```
 
 **Arguments:**
 - `PAGE_ID` - ID of the page to check (required)
-- `--profile, -p` - Confluence profile to use (optional)
 - `--output, -o` - Output format: text or json (default: text)
 
 **Examples:**
 ```bash
 # Check if watching a page
 confluence watch status 123456
-
-# Check with specific profile
-confluence watch status 123456 --profile production
 
 # Get JSON output
 confluence watch status 123456 --output json

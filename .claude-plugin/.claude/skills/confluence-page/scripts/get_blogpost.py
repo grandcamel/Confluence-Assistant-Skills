@@ -43,7 +43,6 @@ Examples:
         default="storage",
         help="Body format (default: storage)",
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -57,7 +56,7 @@ Examples:
     blogpost_id = validate_page_id(args.blogpost_id, field_name="blogpost_id")
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Build request params
     params = {}

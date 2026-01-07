@@ -219,8 +219,6 @@ Examples:
     parser.add_argument(
         "--resume", action="store_true", help="Resume from last checkpoint"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
-
     args = parser.parse_args(argv)
 
     # Determine format
@@ -288,7 +286,7 @@ Examples:
             print_warning("Output file exists. Will be overwritten.")
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     print_info(f"Exporting results for: {cql}")
     print_info(f"Output: {output_file} ({export_format})")

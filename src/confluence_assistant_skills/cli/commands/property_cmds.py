@@ -25,7 +25,6 @@ def property_cmd() -> None:
 )
 @click.option("--expand", help="Comma-separated fields to expand (e.g., version)")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed information")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -42,7 +41,6 @@ def list_properties(
     sort: str,
     expand: str | None,
     verbose: bool,
-    profile: str | None,
     output: str,
 ) -> None:
     """List all properties on a page."""
@@ -57,8 +55,6 @@ def list_properties(
         argv.extend(["--expand", expand])
     if verbose:
         argv.append("--verbose")
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -69,7 +65,6 @@ def list_properties(
 @click.argument("page_id")
 @click.option("--key", "-k", help="Specific property key to retrieve")
 @click.option("--expand", help="Comma-separated fields to expand (e.g., version)")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -83,7 +78,6 @@ def get_properties(
     page_id: str,
     key: str | None,
     expand: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get properties from a page. Optionally filter by key."""
@@ -92,8 +86,6 @@ def get_properties(
         argv.extend(["--key", key])
     if expand:
         argv.extend(["--expand", expand])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -109,7 +101,6 @@ def get_properties(
     "--update", is_flag=True, help="Update existing property (fetches current version)"
 )
 @click.option("--version", type=int, help="Explicit version number for update")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -126,7 +117,6 @@ def set_property(
     file_path: str | None,
     update: bool,
     version: int | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Set a property value."""
@@ -139,8 +129,6 @@ def set_property(
         argv.append("--update")
     if version is not None:
         argv.extend(["--version", str(version)])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -151,20 +139,16 @@ def set_property(
 @click.argument("page_id")
 @click.argument("key")
 @click.option("--force", is_flag=True, help="Delete without confirmation")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
 def delete_property(
     ctx: click.Context,
     page_id: str,
     key: str,
     force: bool,
-    profile: str | None,
 ) -> None:
     """Delete a property."""
     argv = [page_id, key]
     if force:
         argv.append("--force")
-    if profile:
-        argv.extend(["--profile", profile])
 
     ctx.exit(call_skill_main("confluence-property", "delete_property", argv))

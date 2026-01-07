@@ -4,8 +4,10 @@ Confluence Assistant Skills - Live Integration Test Configuration
 Session-scoped fixtures for test space and cleanup.
 Function-scoped fixtures for individual test resources.
 
+Uses environment variables: CONFLUENCE_API_TOKEN, CONFLUENCE_EMAIL, CONFLUENCE_SITE_URL
+
 Usage:
-    pytest .claude/skills/shared/tests/live_integration/ --profile development -v
+    pytest .claude/skills/shared/tests/live_integration/ --live -v
     pytest --keep-space -v  # Don't delete test space after tests
     pytest --space-key EXISTING -v  # Use existing space
 """
@@ -25,7 +27,7 @@ from confluence_assistant_skills_lib import (
 
 # =============================================================================
 # Pytest Configuration (extends root conftest.py)
-# Note: --profile and --live options are defined in root conftest.py
+# Note: --live option is defined in root conftest.py
 # =============================================================================
 
 
@@ -68,14 +70,6 @@ def pytest_configure(config):
 
 
 @pytest.fixture(scope="session")
-def confluence_profile(request) -> str:
-    """Get the Confluence profile from command line or environment."""
-    profile = request.config.getoption("--profile")
-    # Default to development if not specified
-    return profile or os.environ.get("CONFLUENCE_PROFILE", "development")
-
-
-@pytest.fixture(scope="session")
 def keep_space(request) -> bool:
     """Check if we should keep the test space after tests."""
     return request.config.getoption("--keep-space")
@@ -88,14 +82,16 @@ def existing_space_key(request) -> Optional[str]:
 
 
 @pytest.fixture(scope="session")
-def confluence_client(confluence_profile) -> Generator[ConfluenceClient, None, None]:
+def confluence_client() -> Generator[ConfluenceClient, None, None]:
     """
     Create a Confluence client for the test session.
+
+    Uses environment variables: CONFLUENCE_API_TOKEN, CONFLUENCE_EMAIL, CONFLUENCE_SITE_URL
 
     Yields:
         Configured ConfluenceClient instance
     """
-    client = get_confluence_client(profile=confluence_profile)
+    client = get_confluence_client()
 
     # Verify connection
     test_result = client.test_connection()

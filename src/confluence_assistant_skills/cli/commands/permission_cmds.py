@@ -22,7 +22,6 @@ def page_permission() -> None:
 
 @page_permission.command(name="get")
 @click.argument("page_id")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -34,13 +33,10 @@ def page_permission() -> None:
 def get_page_restrictions(
     ctx: click.Context,
     page_id: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get restrictions on a page."""
     argv = [page_id]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -57,7 +53,6 @@ def get_page_restrictions(
     required=True,
     help="Operation to restrict",
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -72,7 +67,6 @@ def add_page_restriction(
     user: str | None,
     group_name: str | None,
     operation: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Add a restriction to a page."""
@@ -81,8 +75,6 @@ def add_page_restriction(
         argv.extend(["--user", user])
     if group_name:
         argv.extend(["--group", group_name])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -102,7 +94,6 @@ def add_page_restriction(
 @click.option(
     "--all", "remove_all", is_flag=True, help="Remove all restrictions of this type"
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
 def remove_page_restriction(
     ctx: click.Context,
@@ -111,7 +102,6 @@ def remove_page_restriction(
     group_name: str | None,
     operation: str,
     remove_all: bool,
-    profile: str | None,
 ) -> None:
     """Remove a restriction from a page."""
     argv = [page_id, "--operation", operation]
@@ -121,8 +111,6 @@ def remove_page_restriction(
         argv.extend(["--group", group_name])
     if remove_all:
         argv.append("--all")
-    if profile:
-        argv.extend(["--profile", profile])
 
     ctx.exit(call_skill_main("confluence-permission", "remove_page_restriction", argv))
 
@@ -136,7 +124,6 @@ def space_permission() -> None:
 
 @space_permission.command(name="get")
 @click.argument("space_key")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -148,13 +135,10 @@ def space_permission() -> None:
 def get_space_permissions(
     ctx: click.Context,
     space_key: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get permissions for a space."""
     argv = [space_key]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -170,7 +154,6 @@ def get_space_permissions(
     required=True,
     help="Permission operation (read, write, administer, etc.)",
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -185,7 +168,6 @@ def add_space_permission(
     user: str | None,
     group_name: str | None,
     operation: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Add a permission to a space."""
@@ -194,8 +176,6 @@ def add_space_permission(
         argv.extend(["--user", user])
     if group_name:
         argv.extend(["--group", group_name])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -211,7 +191,6 @@ def add_space_permission(
     required=True,
     help="Permission operation to remove",
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
 def remove_space_permission(
     ctx: click.Context,
@@ -219,7 +198,6 @@ def remove_space_permission(
     user: str | None,
     group_name: str | None,
     operation: str,
-    profile: str | None,
 ) -> None:
     """Remove a permission from a space."""
     argv = [space_key, "--operation", operation]
@@ -227,7 +205,5 @@ def remove_space_permission(
         argv.extend(["--user", user])
     if group_name:
         argv.extend(["--group", group_name])
-    if profile:
-        argv.extend(["--profile", profile])
 
     ctx.exit(call_skill_main("confluence-permission", "remove_space_permission", argv))

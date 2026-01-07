@@ -31,7 +31,6 @@ Examples:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("cql", help="CQL query to validate")
-    parser.add_argument("--profile", help="Confluence profile (for server validation)")
     parser.add_argument(
         "--server", action="store_true", help="Also validate against server"
     )
@@ -48,11 +47,11 @@ Examples:
         sys.exit(1)
 
     # Server validation (optional)
-    if args.server or args.profile:
+    if args.server:
         print("\nValidating against server...")
 
         try:
-            client = get_confluence_client(profile=args.profile)
+            client = get_confluence_client()
 
             # Try to execute with limit=0 to just validate
             response = client.get(

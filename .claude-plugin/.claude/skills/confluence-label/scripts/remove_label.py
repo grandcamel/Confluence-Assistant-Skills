@@ -4,7 +4,7 @@ Remove a label from a Confluence page or blog post.
 
 Examples:
     python remove_label.py 12345 --label draft
-    python remove_label.py 12345 -l old-version --profile production
+    python remove_label.py 12345 -l old-version
 """
 
 import argparse
@@ -27,13 +27,12 @@ def main(argv: list[str] | None = None):
         epilog="""
 Examples:
   python remove_label.py 12345 --label draft
-  python remove_label.py 12345 -l old-version --profile production
+  python remove_label.py 12345 -l old-version
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("page_id", help="Page or blog post ID")
     parser.add_argument("--label", "-l", required=True, help="Label to remove")
-    parser.add_argument("--profile", "-p", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -48,7 +47,7 @@ Examples:
     label_name = validate_label(args.label)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # First, verify the label exists on the page
     labels_response = client.get(

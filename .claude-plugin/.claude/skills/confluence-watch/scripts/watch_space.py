@@ -4,7 +4,6 @@ Start watching a Confluence space for notifications.
 
 Examples:
     python watch_space.py DOCS
-    python watch_space.py kb --profile production
     python watch_space.py TEST --output json
 """
 
@@ -26,13 +25,11 @@ def main(argv: list[str] | None = None):
         epilog="""
 Examples:
   python watch_space.py DOCS
-  python watch_space.py kb --profile production
   python watch_space.py TEST --output json
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("space_key", help="Space key to watch")
-    parser.add_argument("--profile", "-p", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -46,7 +43,7 @@ Examples:
     space_key = validate_space_key(args.space_key)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Watch the space using v1 API
     # Note: Space watching uses the space key endpoint

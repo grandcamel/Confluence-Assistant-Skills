@@ -72,7 +72,6 @@ Examples:
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Show detailed information"
     )
-    parser.add_argument("--profile", "-p", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -86,7 +85,7 @@ Examples:
     content_id = validate_page_id(args.content_id)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Build request params
     params = {}

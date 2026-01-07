@@ -75,7 +75,6 @@ Examples:
         help="Template type (default: page)",
     )
     parser.add_argument("--blueprint-id", help="Base on existing blueprint")
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -95,7 +94,7 @@ Examples:
         labels = [l.strip() for l in args.labels.split(",") if l.strip()]
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Prepare body content
     body_value = "<p></p>"  # Default empty template

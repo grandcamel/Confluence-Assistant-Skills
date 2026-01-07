@@ -5,7 +5,6 @@ Update an existing Confluence comment.
 Examples:
     python update_comment.py 999 "Updated comment text"
     python update_comment.py 999 --file updated.txt
-    python update_comment.py 999 "Updated" --profile production
 """
 
 import argparse
@@ -65,14 +64,12 @@ def main(argv: list[str] | None = None):
 Examples:
   python update_comment.py 999 "Updated comment text"
   python update_comment.py 999 --file updated.txt
-  python update_comment.py 999 "Updated" --profile production
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("comment_id", help="Comment ID to update")
     parser.add_argument("body", nargs="?", help="Updated comment body text")
     parser.add_argument("--file", "-f", type=Path, help="Read body from file")
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -97,7 +94,7 @@ Examples:
     body_content = validate_comment_body(body_content)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # First, get the current comment to get the version (using v1 API)
     current_comment = client.get(

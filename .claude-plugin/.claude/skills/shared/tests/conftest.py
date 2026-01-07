@@ -5,7 +5,7 @@ This conftest.py provides common fixtures used across all skill tests:
 - Mock Confluence client
 - Test configuration
 - Sample data generators
-- Live integration fixtures (when --profile is provided)
+- Live integration fixtures (when --live is provided)
 
 Note: Pytest hooks (addoption, configure, collection_modifyitems) and
 basic temp directory fixtures are defined in the root conftest.py.
@@ -271,20 +271,14 @@ def sample_adf():
 
 
 @pytest.fixture(scope="session")
-def live_profile(request):
-    """Get the profile name for live tests."""
-    profile = request.config.getoption("--profile")
-    if not profile:
-        pytest.skip("No --profile provided for live tests")
-    return profile
+def live_client():
+    """Create a real Confluence client for live tests.
 
-
-@pytest.fixture(scope="session")
-def live_client(live_profile):
-    """Create a real Confluence client for live tests."""
+    Uses environment variables: CONFLUENCE_API_TOKEN, CONFLUENCE_EMAIL, CONFLUENCE_SITE_URL
+    """
     from confluence_assistant_skills_lib import get_confluence_client
 
-    return get_confluence_client(profile=live_profile)
+    return get_confluence_client()
 
 
 @pytest.fixture(scope="session")

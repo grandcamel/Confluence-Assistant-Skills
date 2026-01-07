@@ -15,7 +15,6 @@ def label() -> None:
 
 @label.command(name="list")
 @click.argument("page_id")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -27,13 +26,10 @@ def label() -> None:
 def get_labels(
     ctx: click.Context,
     page_id: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """List labels on a page."""
     argv = [page_id]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -46,7 +42,6 @@ def get_labels(
 @click.option(
     "--labels", "multiple_labels", help="Comma-separated list of labels to add"
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -60,7 +55,6 @@ def add_label(
     page_id: str,
     single_label: str | None,
     multiple_labels: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Add labels to a page.
@@ -77,8 +71,6 @@ def add_label(
         argv.extend(["--label", single_label])
     if multiple_labels:
         argv.extend(["--labels", multiple_labels])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -88,7 +80,6 @@ def add_label(
 @label.command(name="remove")
 @click.argument("page_id")
 @click.option("--label", "-l", required=True, help="Label to remove")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -101,18 +92,14 @@ def remove_label(
     ctx: click.Context,
     page_id: str,
     label: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Remove a label from a page.
 
     Examples:
         confluence label remove 12345 --label draft
-        confluence label remove 12345 -l old-version --profile production
     """
     argv = [page_id, "--label", label]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -124,7 +111,6 @@ def remove_label(
 @click.option("--space", "-s", help="Limit to specific space")
 @click.option("--type", "content_type", help="Content type (page, blogpost)")
 @click.option("--limit", "-l", type=int, default=25, help="Maximum results")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -139,7 +125,6 @@ def search_by_label(
     space: str | None,
     content_type: str | None,
     limit: int,
-    profile: str | None,
     output: str,
 ) -> None:
     """Search content by label."""
@@ -150,8 +135,6 @@ def search_by_label(
         argv.extend(["--type", content_type])
     if limit != 25:
         argv.extend(["--limit", str(limit)])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -161,7 +144,6 @@ def search_by_label(
 @label.command(name="popular")
 @click.option("--space", "-s", help="Limit to specific space")
 @click.option("--limit", "-l", type=int, default=25, help="Maximum labels to return")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -174,7 +156,6 @@ def list_popular_labels(
     ctx: click.Context,
     space: str | None,
     limit: int,
-    profile: str | None,
     output: str,
 ) -> None:
     """List popular labels."""
@@ -183,8 +164,6 @@ def list_popular_labels(
         argv.extend(["--space", space])
     if limit != 25:
         argv.extend(["--limit", str(limit)])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 

@@ -49,7 +49,6 @@ Examples:
     parser.add_argument(
         "--blueprint", action="store_true", help="Get blueprint instead of template"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -66,7 +65,7 @@ Examples:
     template_id = args.template_id.strip()
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Determine endpoint
     if args.blueprint:

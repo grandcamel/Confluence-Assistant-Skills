@@ -50,7 +50,6 @@ Examples:
     parser.add_argument(
         "--limit", "-l", type=int, default=50, help="Maximum results (default: 50)"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -65,7 +64,7 @@ Examples:
     limit = validate_limit(args.limit, max_value=250)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get space ID first
     spaces = list(

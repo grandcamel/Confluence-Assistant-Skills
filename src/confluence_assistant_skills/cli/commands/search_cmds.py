@@ -21,7 +21,6 @@ def search() -> None:
 @click.option("--show-excerpts", is_flag=True, help="Show content excerpts")
 @click.option("--show-labels", is_flag=True, help="Show content labels")
 @click.option("--show-ancestors", is_flag=True, help="Show ancestor pages")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -37,7 +36,6 @@ def cql_search(
     show_excerpts: bool,
     show_labels: bool,
     show_ancestors: bool,
-    profile: str | None,
     output: str,
 ) -> None:
     """Execute CQL queries against Confluence."""
@@ -50,8 +48,6 @@ def cql_search(
         argv.append("--show-labels")
     if show_ancestors:
         argv.append("--show-ancestors")
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -63,7 +59,6 @@ def cql_search(
 @click.option("--space", "-s", help="Limit to specific space")
 @click.option("--type", "content_type", help="Content type (page, blogpost)")
 @click.option("--limit", "-l", type=int, default=25, help="Maximum results")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -78,7 +73,6 @@ def search_content(
     space: str | None,
     content_type: str | None,
     limit: int,
-    profile: str | None,
     output: str,
 ) -> None:
     """Search content by text."""
@@ -89,8 +83,6 @@ def search_content(
         argv.extend(["--type", content_type])
     if limit != 25:
         argv.extend(["--limit", str(limit)])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -99,17 +91,13 @@ def search_content(
 
 @search.command(name="validate")
 @click.argument("cql")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
 def cql_validate(
     ctx: click.Context,
     cql: str,
-    profile: str | None,
 ) -> None:
     """Validate a CQL query syntax."""
     argv = [cql]
-    if profile:
-        argv.extend(["--profile", profile])
 
     ctx.exit(call_skill_main("confluence-search", "cql_validate", argv))
 
@@ -119,7 +107,6 @@ def cql_validate(
 @click.option("--field", help="Get values for a specific field")
 @click.option("--operators", is_flag=True, help="List all CQL operators")
 @click.option("--functions", is_flag=True, help="List all CQL functions")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -134,7 +121,6 @@ def cql_suggest(
     field: str | None,
     operators: bool,
     functions: bool,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get CQL field and value suggestions."""
@@ -147,8 +133,6 @@ def cql_suggest(
         argv.append("--operators")
     if functions:
         argv.append("--functions")
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -168,7 +152,6 @@ def cql_suggest(
 @click.option("--output", "-o", required=True, help="Output file path")
 @click.option("--columns", help="Columns to include (comma-separated)")
 @click.option("--limit", "-l", type=int, help="Maximum results to export")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
 def export_results(
     ctx: click.Context,
@@ -177,7 +160,6 @@ def export_results(
     output: str,
     columns: str | None,
     limit: int | None,
-    profile: str | None,
 ) -> None:
     """Export search results to file."""
     argv = [cql]
@@ -189,8 +171,6 @@ def export_results(
         argv.extend(["--columns", columns])
     if limit:
         argv.extend(["--limit", str(limit)])
-    if profile:
-        argv.extend(["--profile", profile])
 
     ctx.exit(call_skill_main("confluence-search", "export_results", argv))
 
@@ -210,7 +190,6 @@ def export_results(
     "--batch-size", type=int, default=100, help="Records per batch (default: 100)"
 )
 @click.option("--resume", is_flag=True, help="Resume from last checkpoint")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
 def streaming_export(
     ctx: click.Context,
@@ -220,7 +199,6 @@ def streaming_export(
     columns: str | None,
     batch_size: int,
     resume: bool,
-    profile: str | None,
 ) -> None:
     """Stream export large result sets."""
     argv = [cql]
@@ -234,8 +212,6 @@ def streaming_export(
         argv.extend(["--batch-size", str(batch_size)])
     if resume:
         argv.append("--resume")
-    if profile:
-        argv.extend(["--profile", profile])
 
     ctx.exit(call_skill_main("confluence-search", "streaming_export", argv))
 
@@ -378,7 +354,6 @@ def history_cleanup(
     "--limit", "-l", type=int, default=25, help="Maximum results (default: 25)"
 )
 @click.option("--execute", is_flag=True, help="Execute query after building")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
 def cql_interactive(
     ctx: click.Context,
@@ -386,7 +361,6 @@ def cql_interactive(
     content_type: str | None,
     limit: int,
     execute: bool,
-    profile: str | None,
 ) -> None:
     """Start interactive CQL query builder."""
     argv = []
@@ -398,7 +372,5 @@ def cql_interactive(
         argv.extend(["--limit", str(limit)])
     if execute:
         argv.append("--execute")
-    if profile:
-        argv.extend(["--profile", profile])
 
     ctx.exit(call_skill_main("confluence-search", "cql_interactive", argv))

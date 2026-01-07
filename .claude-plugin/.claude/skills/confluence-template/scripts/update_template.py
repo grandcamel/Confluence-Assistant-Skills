@@ -61,7 +61,6 @@ Examples:
     )
     parser.add_argument("--add-labels", help="Comma-separated labels to add")
     parser.add_argument("--remove-labels", help="Comma-separated labels to remove")
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -94,7 +93,7 @@ Examples:
         )
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get current template
     current = client.get(

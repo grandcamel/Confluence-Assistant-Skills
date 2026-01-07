@@ -42,7 +42,6 @@ Examples:
     parser.add_argument(
         "--blueprints", action="store_true", help="List blueprints instead of templates"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -64,7 +63,7 @@ Examples:
         space_key = validate_space_key(args.space)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Build request params
     params = {"limit": args.limit}

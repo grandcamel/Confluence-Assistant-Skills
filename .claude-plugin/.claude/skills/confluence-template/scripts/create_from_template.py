@@ -48,7 +48,6 @@ Examples:
     parser.add_argument("--labels", help="Comma-separated labels to add")
     parser.add_argument("--content", help="Custom content (overrides template)")
     parser.add_argument("--file", help="File with custom content (Markdown or HTML)")
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -79,7 +78,7 @@ Examples:
         labels = [l.strip() for l in args.labels.split(",") if l.strip()]
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get template/blueprint to use as base
     if args.template:

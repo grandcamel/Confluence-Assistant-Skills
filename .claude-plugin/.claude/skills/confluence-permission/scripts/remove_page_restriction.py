@@ -55,7 +55,6 @@ Note: This uses the v1 API as page restrictions are not available in v2.
     parser.add_argument(
         "--all", action="store_true", help="Remove all restrictions of this type"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     args = parser.parse_args(argv)
 
     # Validate
@@ -75,7 +74,7 @@ Note: This uses the v1 API as page restrictions are not available in v2.
         raise ValidationError("Cannot specify both --user and --group")
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get current restrictions
     current = client.get(

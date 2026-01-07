@@ -60,7 +60,6 @@ Note: This uses the v1 API. The v2 API does not support removing space permissio
         choices=VALID_OPERATIONS,
         help="Permission operation to revoke",
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     args = parser.parse_args(argv)
 
     # Validate inputs
@@ -83,7 +82,7 @@ Note: This uses the v1 API. The v2 API does not support removing space permissio
     operation = args.operation
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     print_warning("Note: Removing space permissions via API may have limitations.")
     print_warning("You may need to first list permissions to find the permission ID.")

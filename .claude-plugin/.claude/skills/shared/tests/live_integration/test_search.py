@@ -4,7 +4,7 @@ Live Integration Tests - Search Operations
 Tests for CQL search operations against a real Confluence instance.
 
 Usage:
-    pytest test_search.py --profile development -v
+    pytest test_search.py --live -v
 """
 
 import time

@@ -38,7 +38,6 @@ Examples:
     parser.add_argument("--name", "-n", help="New space name")
     parser.add_argument("--description", "-d", help="New description")
     parser.add_argument("--homepage", help="Homepage page ID")
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -63,7 +62,7 @@ Examples:
         )
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get current space
     spaces = list(

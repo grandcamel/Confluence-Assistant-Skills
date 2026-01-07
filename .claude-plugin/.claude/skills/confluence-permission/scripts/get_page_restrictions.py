@@ -7,7 +7,6 @@ Retrieves the list of users and groups that can read and update a page.
 Examples:
     python get_page_restrictions.py 123456
     python get_page_restrictions.py 123456 --output json
-    python get_page_restrictions.py 123456 --profile production
 """
 
 import argparse
@@ -66,14 +65,12 @@ def main(argv: list[str] | None = None):
 Examples:
   python get_page_restrictions.py 123456
   python get_page_restrictions.py 123456 --output json
-  python get_page_restrictions.py 123456 --profile production
 
 Note: This uses the v1 API as v2 does not yet support page restrictions.
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("page_id", help="Page ID")
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -87,7 +84,7 @@ Note: This uses the v1 API as v2 does not yet support page restrictions.
     page_id = validate_page_id(args.page_id)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get page restrictions (v1 API - v2 doesn't support this yet)
     result = client.get(

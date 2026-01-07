@@ -4,7 +4,7 @@ Live integration tests for confluence-page skill.
 Tests page CRUD operations against a real Confluence instance.
 
 Usage:
-    pytest test_page_live.py --profile development -v
+    pytest test_page_live.py --live -v
 """
 
 import contextlib
@@ -17,24 +17,10 @@ from confluence_assistant_skills_lib import (
 )
 
 
-def pytest_addoption(parser):
-    """Add custom command line option for profile."""
-    try:
-        parser.addoption(
-            "--profile",
-            action="store",
-            default=None,
-            help="Confluence profile to use for testing",
-        )
-    except ValueError:
-        pass  # Option already added
-
-
 @pytest.fixture(scope="session")
-def confluence_client(request):
-    """Get Confluence client using profile from command line."""
-    profile = request.config.getoption("--profile", default=None)
-    return get_confluence_client(profile=profile)
+def confluence_client():
+    """Get Confluence client using environment variables."""
+    return get_confluence_client()
 
 
 @pytest.fixture(scope="session")

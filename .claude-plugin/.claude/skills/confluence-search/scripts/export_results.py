@@ -83,7 +83,6 @@ Examples:
     parser.add_argument(
         "--limit", "-l", type=int, default=1000, help="Maximum results (default: 1000)"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     args = parser.parse_args(argv)
 
     # Validate
@@ -95,7 +94,7 @@ Examples:
     columns = [c.strip() for c in columns]
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     print_info(f"Executing query: {cql}")
     print_info(f"Exporting to: {output_path}")

@@ -32,7 +32,6 @@ Retrieve the list of permissions assigned to a space.
 ```bash
 confluence permission space get SPACE_KEY
 confluence permission space get DOCS --output json
-confluence permission space get DOCS --profile production
 ```
 
 **Output:** Lists all users and groups with their assigned operations (read, write, administer, etc.)
@@ -73,7 +72,6 @@ List restrictions on a page (who can read/edit).
 ```bash
 confluence permission page get PAGE_ID
 confluence permission page get 123456 --output json
-confluence permission page get 123456 --profile production
 ```
 
 **Output:** Shows read and update restrictions with users and groups

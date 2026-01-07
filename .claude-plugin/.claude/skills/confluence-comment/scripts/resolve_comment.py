@@ -7,7 +7,6 @@ Resolution marks a comment as addressed or reopens it for discussion.
 Examples:
     python resolve_comment.py 999 --resolve
     python resolve_comment.py 999 --unresolve
-    python resolve_comment.py 999 --resolve --profile production
 """
 
 import argparse
@@ -30,7 +29,6 @@ def main(argv: list[str] | None = None):
 Examples:
   python resolve_comment.py 999 --resolve
   python resolve_comment.py 999 --unresolve
-  python resolve_comment.py 999 --resolve --profile production
 
 Note: Exactly one of --resolve or --unresolve must be specified.
         """,
@@ -46,7 +44,6 @@ Note: Exactly one of --resolve or --unresolve must be specified.
         "--unresolve", "-u", action="store_true", help="Mark comment as unresolved/open"
     )
 
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -68,7 +65,7 @@ Note: Exactly one of --resolve or --unresolve must be specified.
         action = "unresolved"
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # First, get the current comment to get the version
     current_comment = client.get(

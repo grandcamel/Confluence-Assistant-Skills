@@ -56,7 +56,6 @@ Examples:
     parser.add_argument(
         "--expand", help="Comma-separated list of fields to expand (e.g., version)"
     )
-    parser.add_argument("--profile", "-p", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -73,7 +72,7 @@ Examples:
         raise ValidationError("Property key cannot be empty")
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Build request params
     params = {}

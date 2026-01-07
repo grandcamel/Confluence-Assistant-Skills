@@ -52,7 +52,6 @@ Note: This uses the v1 API as page restrictions are not available in v2.
         choices=VALID_OPERATIONS,
         help="Restriction type (read or update)",
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -81,7 +80,7 @@ Note: This uses the v1 API as page restrictions are not available in v2.
         identifier = args.group
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get current restrictions
     current = client.get(

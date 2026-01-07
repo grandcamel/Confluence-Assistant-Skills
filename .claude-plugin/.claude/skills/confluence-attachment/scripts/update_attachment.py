@@ -31,7 +31,6 @@ def main(argv: list[str] | None = None):
 Examples:
   python update_attachment.py att123456 --file new_version.pdf
   python update_attachment.py att123456 --file updated.docx --comment "Updated content"
-  python update_attachment.py att123456 --file report_v2.xlsx --profile production
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -40,7 +39,6 @@ Examples:
         "--file", "-f", required=True, type=Path, help="New file to upload"
     )
     parser.add_argument("--comment", "-c", help="Version comment or description")
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -55,7 +53,7 @@ Examples:
     file_path = validate_file_path(args.file, must_exist=True, must_be_file=True)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get current attachment info
     current_attachment = client.get(

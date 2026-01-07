@@ -58,7 +58,6 @@ Examples:
         default=10,
         help="Number of results to return (default: 10)",
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -78,7 +77,7 @@ Examples:
         raise ValidationError("Must specify either --space or --label")
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Build CQL query
     cql_parts = []

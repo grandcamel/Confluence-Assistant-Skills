@@ -65,7 +65,6 @@ Examples:
     parser.add_argument(
         "--version", type=int, help="Version number for update (if known)"
     )
-    parser.add_argument("--profile", "-p", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -88,7 +87,7 @@ Examples:
         raise ValidationError("Cannot specify both --value and --file")
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Parse value
     if args.file:

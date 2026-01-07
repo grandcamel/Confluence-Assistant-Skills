@@ -19,7 +19,6 @@ def attachment() -> None:
     "--limit", "-l", type=int, default=25, help="Maximum attachments to return"
 )
 @click.option("--media-type", "-m", help="Filter by media type (e.g., application/pdf)")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -33,7 +32,6 @@ def list_attachments(
     page_id: str,
     limit: int,
     media_type: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """List attachments on a page."""
@@ -42,8 +40,6 @@ def list_attachments(
         argv.extend(["--limit", str(limit)])
     if media_type:
         argv.extend(["--media-type", media_type])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -54,7 +50,6 @@ def list_attachments(
 @click.argument("page_id")
 @click.argument("file_path", type=click.Path(exists=True))
 @click.option("--comment", help="Attachment comment")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -68,15 +63,12 @@ def upload_attachment(
     page_id: str,
     file_path: str,
     comment: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Upload a file attachment to a page."""
     argv = [page_id, "--file", file_path]
     if comment:
         argv.extend(["--comment", comment])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -93,14 +85,12 @@ def upload_attachment(
     is_flag=True,
     help="Download all attachments from page",
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
 def download_attachment(
     ctx: click.Context,
     attachment_id: str,
     output: str,
     download_all: bool,
-    profile: str | None,
 ) -> None:
     """Download an attachment."""
     argv = [attachment_id]
@@ -108,8 +98,6 @@ def download_attachment(
         argv.extend(["--output", output])
     if download_all:
         argv.append("--all")
-    if profile:
-        argv.extend(["--profile", profile])
 
     ctx.exit(call_skill_main("confluence-attachment", "download_attachment", argv))
 
@@ -118,7 +106,6 @@ def download_attachment(
 @click.argument("attachment_id")
 @click.argument("file_path", type=click.Path(exists=True))
 @click.option("--comment", help="Update comment")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -132,15 +119,12 @@ def update_attachment(
     attachment_id: str,
     file_path: str,
     comment: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Update an existing attachment."""
     argv = [attachment_id, "--file", file_path]
     if comment:
         argv.extend(["--comment", comment])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -150,19 +134,15 @@ def update_attachment(
 @attachment.command(name="delete")
 @click.argument("attachment_id")
 @click.option("--force", "-f", is_flag=True, help="Skip confirmation prompt")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.pass_context
 def delete_attachment(
     ctx: click.Context,
     attachment_id: str,
     force: bool,
-    profile: str | None,
 ) -> None:
     """Delete an attachment."""
     argv = [attachment_id]
     if force:
         argv.append("--force")
-    if profile:
-        argv.extend(["--profile", profile])
 
     ctx.exit(call_skill_main("confluence-attachment", "delete_attachment", argv))

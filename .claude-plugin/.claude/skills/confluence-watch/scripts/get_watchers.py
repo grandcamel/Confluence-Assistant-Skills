@@ -4,7 +4,6 @@ Get the list of users watching a Confluence page.
 
 Examples:
     python get_watchers.py 123456
-    python get_watchers.py 123456 --profile production
     python get_watchers.py 123456 --output json
 """
 
@@ -26,13 +25,11 @@ def main(argv: list[str] | None = None):
         epilog="""
 Examples:
   python get_watchers.py 123456
-  python get_watchers.py 123456 --profile production
   python get_watchers.py 123456 --output json
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("page_id", help="Page ID")
-    parser.add_argument("--profile", "-p", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -46,7 +43,7 @@ Examples:
     page_id = validate_page_id(args.page_id)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get watchers using v1 API
     result = client.get(

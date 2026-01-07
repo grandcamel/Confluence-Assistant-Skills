@@ -45,7 +45,6 @@ Examples:
     parser.add_argument(
         "--detailed", action="store_true", help="Show full version details"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -60,7 +59,7 @@ Examples:
     limit = validate_limit(args.limit, max_value=100)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get the page first to show current info
     page = client.get(f"/api/v2/pages/{page_id}", operation="get page")

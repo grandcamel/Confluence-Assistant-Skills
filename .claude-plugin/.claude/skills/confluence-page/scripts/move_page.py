@@ -40,7 +40,6 @@ Examples:
     parser.add_argument(
         "--root", action="store_true", help="Move to space root (no parent)"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -68,7 +67,7 @@ Examples:
         raise ValidationError("Cannot specify both --parent and --root")
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get current page
     current_page = client.get(f"/api/v2/pages/{page_id}", operation="get current page")

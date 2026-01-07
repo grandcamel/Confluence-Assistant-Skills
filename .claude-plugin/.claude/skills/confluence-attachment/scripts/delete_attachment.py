@@ -44,14 +44,13 @@ Examples:
     parser.add_argument(
         "--force", "-f", action="store_true", help="Skip confirmation prompt"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     args = parser.parse_args(argv)
 
     # Validate inputs
     attachment_id = validate_page_id(args.attachment_id)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get attachment info for confirmation
     if not args.force:

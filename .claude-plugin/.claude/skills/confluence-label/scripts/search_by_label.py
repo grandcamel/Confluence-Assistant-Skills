@@ -66,7 +66,6 @@ Examples:
         default=25,
         help="Maximum number of results (default: 25)",
     )
-    parser.add_argument("--profile", "-p", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -88,7 +87,7 @@ Examples:
     cql = build_cql_query(label_name, space=space_key, content_type=args.type)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Search using CQL
     results = []

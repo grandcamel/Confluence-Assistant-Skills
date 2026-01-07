@@ -25,7 +25,6 @@ def jira() -> None:
     help="Relationship type (default: relates to)",
 )
 @click.option("--skip-if-exists", is_flag=True, help="Skip if link already exists")
-@click.option("--profile", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -41,7 +40,6 @@ def link_to_jira(
     jira_url: str,
     relationship: str,
     skip_if_exists: bool,
-    profile: str | None,
     output: str,
 ) -> None:
     """Link a Confluence page to a JIRA issue."""
@@ -51,8 +49,6 @@ def link_to_jira(
         argv.extend(["--relationship", relationship])
     if skip_if_exists:
         argv.append("--skip-if-exists")
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -61,7 +57,6 @@ def link_to_jira(
 
 @jira.command(name="linked")
 @click.argument("page_id")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -73,13 +68,10 @@ def link_to_jira(
 def get_linked_issues(
     ctx: click.Context,
     page_id: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get JIRA issues linked to a page."""
     argv = [page_id]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -103,7 +95,6 @@ def get_linked_issues(
 @click.option(
     "--max-results", type=int, default=20, help="Maximum number of issues (default: 20)"
 )
-@click.option("--profile", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -121,7 +112,6 @@ def embed_jira_issues(
     server_id: str | None,
     columns: str | None,
     max_results: int,
-    profile: str | None,
     output: str,
 ) -> None:
     """Embed JIRA issues in a page using JQL or issue keys.
@@ -145,8 +135,6 @@ def embed_jira_issues(
         argv.extend(["--columns", columns])
     if max_results != 20:
         argv.extend(["--max-results", str(max_results)])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -164,7 +152,6 @@ def embed_jira_issues(
 @click.option("--jira-url", help="JIRA base URL (or set JIRA_URL env var)")
 @click.option("--jira-email", help="JIRA email (or set JIRA_EMAIL env var)")
 @click.option("--jira-token", help="JIRA API token (or set JIRA_API_TOKEN env var)")
-@click.option("--profile", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -183,7 +170,6 @@ def create_jira_from_page(
     jira_url: str | None,
     jira_email: str | None,
     jira_token: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Create a JIRA issue from a Confluence page.
@@ -204,8 +190,6 @@ def create_jira_from_page(
         argv.extend(["--jira-email", jira_email])
     if jira_token:
         argv.extend(["--jira-token", jira_token])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -218,7 +202,6 @@ def create_jira_from_page(
 @click.option(
     "--macro-index", type=int, help="Index of macro to update (0-based, default: all)"
 )
-@click.option("--profile", help="Confluence profile to use")
 @click.option(
     "--output",
     "-o",
@@ -232,7 +215,6 @@ def sync_jira_macro(
     page_id: str,
     update_jql: str | None,
     macro_index: int | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Refresh JIRA macros on a page.
@@ -244,8 +226,6 @@ def sync_jira_macro(
         argv.extend(["--update-jql", update_jql])
     if macro_index is not None:
         argv.extend(["--macro-index", str(macro_index)])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 

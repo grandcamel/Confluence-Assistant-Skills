@@ -5,7 +5,7 @@ Tests JIRA integration operations against a real Confluence instance.
 Note: These tests require a connected JIRA instance.
 
 Usage:
-    pytest test_jira_live.py --profile development -v
+    pytest test_jira_live.py --live -v
 """
 
 import contextlib
@@ -18,17 +18,9 @@ from confluence_assistant_skills_lib import (
 )
 
 
-def pytest_addoption(parser):
-    with contextlib.suppress(ValueError):
-        parser.addoption(
-            "--profile", action="store", default=None, help="Confluence profile"
-        )
-
-
 @pytest.fixture(scope="session")
-def confluence_client(request):
-    profile = request.config.getoption("--profile", default=None)
-    return get_confluence_client(profile=profile)
+def confluence_client():
+    return get_confluence_client()
 
 
 @pytest.fixture(scope="session")

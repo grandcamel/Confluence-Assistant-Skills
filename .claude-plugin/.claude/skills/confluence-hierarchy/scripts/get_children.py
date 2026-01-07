@@ -47,7 +47,6 @@ Examples:
     parser.add_argument(
         "--sort", choices=["title", "id", "created"], help="Sort children by field"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -62,7 +61,7 @@ Examples:
     limit = validate_limit(args.limit, max_value=250)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get parent page info
     parent = client.get(f"/api/v2/pages/{page_id}", operation="get parent page")

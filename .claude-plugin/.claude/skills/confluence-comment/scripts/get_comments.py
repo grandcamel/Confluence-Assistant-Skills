@@ -44,7 +44,6 @@ Examples:
         default="-created",
         help="Sort order (default: -created for newest first)",
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -63,7 +62,7 @@ Examples:
         limit = None
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Prepare query parameters
     params = {"sort": args.sort}

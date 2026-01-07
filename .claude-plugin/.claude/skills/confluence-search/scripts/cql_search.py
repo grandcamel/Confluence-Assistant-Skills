@@ -46,7 +46,6 @@ Examples:
     parser.add_argument(
         "--show-ancestors", action="store_true", help="Show ancestor pages"
     )
-    parser.add_argument("--profile", help="Confluence profile to use")
     parser.add_argument(
         "--output",
         "-o",
@@ -61,7 +60,7 @@ Examples:
     limit = validate_limit(args.limit, max_value=200)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Build expand parameter
     expand = ["content.space"]
