@@ -5,12 +5,11 @@ Run with: pytest tests/e2e/ -v --e2e-verbose
 Save responses: pytest tests/e2e/ -v --e2e-save-responses
 """
 
+
 import pytest
-from pathlib import Path
 
 from .conftest import assert_response_contains
 from .runner import E2ETestStatus
-
 
 pytestmark = [pytest.mark.e2e, pytest.mark.slow]
 

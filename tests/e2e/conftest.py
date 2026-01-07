@@ -2,12 +2,13 @@
 
 import json
 import os
-import pytest
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
-from .runner import E2ETestRunner, ClaudeCodeRunner
+import pytest
+
+from .runner import ClaudeCodeRunner, E2ETestRunner
 
 
 class ResponseLogger:
@@ -83,7 +84,7 @@ def assert_response_contains(
         ]
         if error:
             error_details.extend([
-                f"\n\n--- STDERR ---",
+                "\n\n--- STDERR ---",
                 error[:500]
             ])
         error_details.append("\n--- END RESPONSE ---\n")

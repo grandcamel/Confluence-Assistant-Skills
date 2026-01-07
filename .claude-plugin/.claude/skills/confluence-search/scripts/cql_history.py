@@ -211,7 +211,7 @@ def export_history(output_file, format="csv"):
         output_path.write_text(json.dumps(history, indent=2))
 
     elif format == "csv":
-        with open(output_path, "w", newline="", encoding="utf-8") as f:
+        with output_path.open("w", newline="", encoding="utf-8") as f:
             # Determine all possible fields
             all_fields = set()
             for entry in history:

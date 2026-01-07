@@ -121,7 +121,7 @@ Examples:
 
             labels = result.get("labels", [])
             if labels:
-                label_names = [l.get("name", "") for l in labels]
+                label_names = [lbl.get("name", "") for lbl in labels]
                 print(f"Labels: {', '.join(label_names)}")
 
             if args.body:

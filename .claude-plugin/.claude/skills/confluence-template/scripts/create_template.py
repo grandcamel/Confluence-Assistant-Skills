@@ -91,7 +91,7 @@ Examples:
     # Parse labels
     labels = []
     if args.labels:
-        labels = [l.strip() for l in args.labels.split(",") if l.strip()]
+        labels = [lbl.strip() for lbl in args.labels.split(",") if lbl.strip()]
 
     # Get client
     client = get_confluence_client()

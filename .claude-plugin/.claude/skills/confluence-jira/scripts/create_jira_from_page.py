@@ -239,7 +239,7 @@ Note: This script requires JIRA API access. Set JIRA credentials:
         try:
             error_json = response.json()
             error_msg = error_json.get("errorMessages", [error_msg])[0]
-        except:
+        except Exception:
             pass
         raise ValidationError(f"Failed to create JIRA issue: {error_msg}")
 

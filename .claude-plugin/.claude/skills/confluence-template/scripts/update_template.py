@@ -151,11 +151,11 @@ Examples:
     label_names = {label.get("name") for label in current_labels}
 
     if args.add_labels:
-        new_labels = [l.strip() for l in args.add_labels.split(",") if l.strip()]
+        new_labels = [lbl.strip() for lbl in args.add_labels.split(",") if lbl.strip()]
         label_names.update(new_labels)
 
     if args.remove_labels:
-        remove_labels = {l.strip() for l in args.remove_labels.split(",") if l.strip()}
+        remove_labels = {lbl.strip() for lbl in args.remove_labels.split(",") if lbl.strip()}
         label_names -= remove_labels
 
     if args.add_labels or args.remove_labels:
@@ -182,8 +182,8 @@ Examples:
 
         labels = result.get("labels", [])
         if labels:
-            label_names = [l.get("name", "") for l in labels]
-            print(f"Labels: {', '.join(label_names)}")
+            label_name_list = [lbl.get("name", "") for lbl in labels]
+            print(f"Labels: {', '.join(label_name_list)}")
 
     print_success(f"Updated template {template_id}")
 

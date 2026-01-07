@@ -145,7 +145,7 @@ def export_batch_csv(records, output_file, columns, is_first_batch):
     """
     mode = "w" if is_first_batch else "a"
 
-    with open(output_file, mode, newline="", encoding="utf-8") as f:
+    with output_file.open(mode, newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=columns, extrasaction="ignore")
 
         if is_first_batch:
@@ -167,7 +167,7 @@ def export_batch_json(records, output_file, is_first_batch, is_last_batch):
     """
     mode = "w" if is_first_batch else "a"
 
-    with open(output_file, mode, encoding="utf-8") as f:
+    with output_file.open(mode, encoding="utf-8") as f:
         if is_first_batch:
             f.write("[\n")
 

@@ -5,7 +5,6 @@ Usage:
     pytest test_attachment_search_live.py --live -v
 """
 
-import contextlib
 
 import pytest
 

@@ -10,11 +10,10 @@ This root conftest.py centralizes:
 - Project structure fixtures
 """
 
-import json
-import pytest
 import tempfile
 from pathlib import Path
 
+import pytest
 
 # =============================================================================
 # PYTEST HOOKS

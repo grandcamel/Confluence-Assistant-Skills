@@ -24,7 +24,7 @@ from confluence_assistant_skills_lib import (
 
 def parse_labels(labels_str: str) -> list:
     """Parse comma-separated label string into list."""
-    return [l.strip() for l in labels_str.split(",") if l.strip()]
+    return [label.strip() for label in labels_str.split(",") if label.strip()]
 
 
 @handle_errors

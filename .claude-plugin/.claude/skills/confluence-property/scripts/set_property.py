@@ -95,7 +95,7 @@ Examples:
         if not file_path.exists():
             raise ValidationError(f"File not found: {args.file}")
 
-        with open(file_path, encoding="utf-8") as f:
+        with file_path.open(encoding="utf-8") as f:
             try:
                 property_value = json.load(f)
             except json.JSONDecodeError as e:

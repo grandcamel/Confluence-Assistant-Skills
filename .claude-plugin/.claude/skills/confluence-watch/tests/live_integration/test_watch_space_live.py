@@ -5,7 +5,6 @@ Usage:
     pytest test_watch_space_live.py --live -v
 """
 
-import contextlib
 
 import pytest
 

@@ -5,7 +5,6 @@ Usage:
     pytest test_label_copy_live.py --live -v
 """
 
-import contextlib
 import uuid
 
 import pytest

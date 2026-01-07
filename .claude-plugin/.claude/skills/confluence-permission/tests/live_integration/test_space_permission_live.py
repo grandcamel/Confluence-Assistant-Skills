@@ -5,7 +5,6 @@ Usage:
     pytest test_space_permission_live.py --live -v
 """
 
-import contextlib
 
 import pytest
 

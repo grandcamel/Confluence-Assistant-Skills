@@ -5,7 +5,6 @@ Usage:
     pytest test_blogpost_live.py --live -v
 """
 
-import contextlib
 import uuid
 
 import pytest

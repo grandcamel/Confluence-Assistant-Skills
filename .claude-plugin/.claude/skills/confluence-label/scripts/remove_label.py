@@ -55,7 +55,7 @@ Examples:
     )
 
     # Check if label exists
-    label_names = [l.get("name") for l in labels_response.get("results", [])]
+    label_names = [lbl.get("name") for lbl in labels_response.get("results", [])]
     if label_name not in label_names:
         raise NotFoundError(f"Label '{label_name}' not found on page {page_id}")
 

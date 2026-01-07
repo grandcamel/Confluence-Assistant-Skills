@@ -5,7 +5,6 @@ Usage:
     pytest test_permission_inherit_live.py --live -v
 """
 
-import contextlib
 import uuid
 
 import pytest
