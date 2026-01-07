@@ -11,22 +11,26 @@ Examples:
     python get_descendants.py 12345 --output json
 """
 
-import sys
 import argparse
-from typing import List, Dict, Any, Set
+import sys
+from typing import Any, Optional
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, validate_page_id, print_success,
     format_json,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+    validate_page_id,
 )
 
 
 def get_descendants_recursive(
     client,
     page_id: str,
-    max_depth: int = None,
+    max_depth: Optional[int] = None,
     current_depth: int = 1,
-    visited: Set[str] = None
-) -> List[Dict[str, Any]]:
+    visited: Optional[set[str]] = None,
+) -> list[dict[str, Any]]:
     """
     Recursively get all descendants of a page.
 
@@ -58,80 +62,80 @@ def get_descendants_recursive(
     # Get direct children
     try:
         children_data = client.get(
-            f'/api/v2/pages/{page_id}/children',
-            params={'limit': 250},
-            operation=f'get children at depth {current_depth}'
+            f"/api/v2/pages/{page_id}/children",
+            params={"limit": 250},
+            operation=f"get children at depth {current_depth}",
         )
 
-        children = children_data.get('results', [])
+        children = children_data.get("results", [])
 
         for child in children:
-            child_id = child.get('id')
+            child_id = child.get("id")
             if not child_id:
                 continue
 
             # Add child with depth info
             child_with_depth = child.copy()
-            child_with_depth['depth'] = current_depth
+            child_with_depth["depth"] = current_depth
             descendants.append(child_with_depth)
 
             # Recursively get grandchildren
             grandchildren = get_descendants_recursive(
-                client,
-                child_id,
-                max_depth,
-                current_depth + 1,
-                visited
+                client, child_id, max_depth, current_depth + 1, visited
             )
             descendants.extend(grandchildren)
 
     except Exception as e:
         # Log error but continue with other branches
-        print(f"Warning: Could not get children of page {page_id}: {e}", file=sys.stderr)
+        print(
+            f"Warning: Could not get children of page {page_id}: {e}", file=sys.stderr
+        )
 
     return descendants
+
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Get all descendant pages of a Confluence page (recursive)',
-        epilog='''
+        description="Get all descendant pages of a Confluence page (recursive)",
+        epilog="""
 Examples:
   python get_descendants.py 12345
   python get_descendants.py 12345 --max-depth 2
   python get_descendants.py 12345 --output json
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('page_id', help='Parent page ID')
-    parser.add_argument('--max-depth', '-d', type=int,
-                        help='Maximum depth to traverse (default: unlimited)')
-    parser.add_argument('--profile', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("page_id", help="Parent page ID")
+    parser.add_argument(
+        "--max-depth",
+        "-d",
+        type=int,
+        help="Maximum depth to traverse (default: unlimited)",
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate
     page_id = validate_page_id(args.page_id)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get parent page info
-    parent = client.get(
-        f'/api/v2/pages/{page_id}',
-        operation='get parent page'
-    )
+    parent = client.get(f"/api/v2/pages/{page_id}", operation="get parent page")
 
     # Get all descendants
-    descendants = get_descendants_recursive(
-        client,
-        page_id,
-        max_depth=args.max_depth
-    )
+    descendants = get_descendants_recursive(client, page_id, max_depth=args.max_depth)
 
     # Output
-    if args.output == 'json':
+    if args.output == "json":
         print(format_json(descendants))
     else:
         # Text format with indentation
@@ -141,13 +145,14 @@ Examples:
             print("No descendant pages found.")
         else:
             for descendant in descendants:
-                title = descendant.get('title', 'Untitled')
-                desc_id = descendant.get('id', 'Unknown')
-                depth = descendant.get('depth', 1)
-                indent = '  ' * (depth - 1)
+                title = descendant.get("title", "Untitled")
+                desc_id = descendant.get("id", "Unknown")
+                depth = descendant.get("depth", 1)
+                indent = "  " * (depth - 1)
                 print(f"{indent}- {title} (ID: {desc_id})")
 
     print_success(f"Retrieved {len(descendants)} descendant(s)")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

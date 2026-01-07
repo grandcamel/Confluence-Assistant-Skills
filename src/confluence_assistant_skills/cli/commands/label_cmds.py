@@ -15,21 +15,21 @@ def label() -> None:
 
 @label.command(name="list")
 @click.argument("page_id")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_labels(
     ctx: click.Context,
     page_id: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """List labels on a page."""
     argv = [page_id]
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -38,23 +38,39 @@ def get_labels(
 
 @label.command(name="add")
 @click.argument("page_id")
-@click.argument("labels", nargs=-1, required=True)
-@click.option("--profile", "-p", help="Confluence profile to use")
+@click.option("--label", "-l", "single_label", help="Single label to add")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--labels", "multiple_labels", help="Comma-separated list of labels to add"
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def add_label(
     ctx: click.Context,
     page_id: str,
-    labels: tuple[str, ...],
-    profile: str | None,
+    single_label: str | None,
+    multiple_labels: str | None,
     output: str,
 ) -> None:
-    """Add labels to a page."""
-    argv = [page_id] + list(labels)
-    if profile:
-        argv.extend(["--profile", profile])
+    """Add labels to a page.
+
+    Examples:
+        confluence label add 12345 --label documentation
+        confluence label add 12345 --labels doc,approved,v2
+    """
+    if not single_label and not multiple_labels:
+        raise click.UsageError("Either --label or --labels is required")
+
+    argv = [page_id]
+    if single_label:
+        argv.extend(["--label", single_label])
+    if multiple_labels:
+        argv.extend(["--labels", multiple_labels])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -63,19 +79,29 @@ def add_label(
 
 @label.command(name="remove")
 @click.argument("page_id")
-@click.argument("labels", nargs=-1, required=True)
-@click.option("--profile", "-p", help="Confluence profile to use")
+@click.option("--label", "-l", required=True, help="Label to remove")
+@click.option(
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
+)
 @click.pass_context
 def remove_label(
     ctx: click.Context,
     page_id: str,
-    labels: tuple[str, ...],
-    profile: str | None,
+    label: str,
+    output: str,
 ) -> None:
-    """Remove labels from a page."""
-    argv = [page_id] + list(labels)
-    if profile:
-        argv.extend(["--profile", profile])
+    """Remove a label from a page.
+
+    Examples:
+        confluence label remove 12345 --label draft
+    """
+    argv = [page_id, "--label", label]
+    if output != "text":
+        argv.extend(["--output", output])
 
     ctx.exit(call_skill_main("confluence-label", "remove_label", argv))
 
@@ -85,9 +111,12 @@ def remove_label(
 @click.option("--space", "-s", help="Limit to specific space")
 @click.option("--type", "content_type", help="Content type (page, blogpost)")
 @click.option("--limit", "-l", type=int, default=25, help="Maximum results")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def search_by_label(
@@ -96,7 +125,6 @@ def search_by_label(
     space: str | None,
     content_type: str | None,
     limit: int,
-    profile: str | None,
     output: str,
 ) -> None:
     """Search content by label."""
@@ -107,8 +135,6 @@ def search_by_label(
         argv.extend(["--type", content_type])
     if limit != 25:
         argv.extend(["--limit", str(limit)])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -118,16 +144,18 @@ def search_by_label(
 @label.command(name="popular")
 @click.option("--space", "-s", help="Limit to specific space")
 @click.option("--limit", "-l", type=int, default=25, help="Maximum labels to return")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def list_popular_labels(
     ctx: click.Context,
     space: str | None,
     limit: int,
-    profile: str | None,
     output: str,
 ) -> None:
     """List popular labels."""
@@ -136,8 +164,6 @@ def list_popular_labels(
         argv.extend(["--space", space])
     if limit != 25:
         argv.extend(["--limit", str(limit)])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 

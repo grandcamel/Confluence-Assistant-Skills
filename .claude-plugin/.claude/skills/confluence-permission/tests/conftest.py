@@ -2,22 +2,22 @@
 Confluence Permission Skill - Test Configuration
 """
 
-import sys
 import json
-import pytest
-from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from typing import Optional
+from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 
 
 @pytest.fixture
 def mock_response():
     """Factory for creating mock HTTP responses."""
+
     def _create_response(
         status_code: int = 200,
-        json_data: dict = None,
+        json_data: Optional[dict] = None,
         text: str = "",
-        headers: dict = None,
+        headers: Optional[dict] = None,
     ):
         response = Mock()
         response.status_code = status_code
@@ -40,11 +40,11 @@ def mock_client(mock_response):
     """Create a mock Confluence client."""
     from confluence_assistant_skills_lib import ConfluenceClient
 
-    with patch.object(ConfluenceClient, '_create_session'):
+    with patch.object(ConfluenceClient, "_create_session"):
         client = ConfluenceClient(
             base_url="https://test.atlassian.net",
             email="test@example.com",
-            api_token="test-token"
+            api_token="test-token",
         )
 
         client.session = MagicMock()
@@ -63,27 +63,15 @@ def sample_space_permissions():
     return {
         "results": [
             {
-                "principal": {
-                    "type": "user",
-                    "id": "user-123"
-                },
-                "operation": {
-                    "key": "read",
-                    "target": "space"
-                }
+                "principal": {"type": "user", "id": "user-123"},
+                "operation": {"key": "read", "target": "space"},
             },
             {
-                "principal": {
-                    "type": "group",
-                    "id": "group-456"
-                },
-                "operation": {
-                    "key": "administer",
-                    "target": "space"
-                }
-            }
+                "principal": {"type": "group", "id": "group-456"},
+                "operation": {"key": "administer", "target": "space"},
+            },
         ],
-        "_links": {}
+        "_links": {},
     }
 
 
@@ -100,30 +88,30 @@ def sample_page_restrictions():
                             "type": "known",
                             "username": "user1",
                             "userKey": "user-key-1",
-                            "accountId": "account-id-1"
+                            "accountId": "account-id-1",
                         }
                     ],
-                    "size": 1
+                    "size": 1,
                 },
                 "group": {
                     "results": [
                         {
                             "type": "group",
                             "name": "confluence-administrators",
-                            "id": "group-id-1"
+                            "id": "group-id-1",
                         }
                     ],
-                    "size": 1
-                }
-            }
+                    "size": 1,
+                },
+            },
         },
         "update": {
             "operation": "update",
             "restrictions": {
                 "user": {"results": [], "size": 0},
-                "group": {"results": [], "size": 0}
-            }
-        }
+                "group": {"results": [], "size": 0},
+            },
+        },
     }
 
 
@@ -132,18 +120,9 @@ def sample_page_operations():
     """Sample page operations data from v2 API."""
     return {
         "results": [
-            {
-                "operation": "read",
-                "targetType": "page"
-            },
-            {
-                "operation": "update",
-                "targetType": "page"
-            },
-            {
-                "operation": "delete",
-                "targetType": "page"
-            }
+            {"operation": "read", "targetType": "page"},
+            {"operation": "update", "targetType": "page"},
+            {"operation": "delete", "targetType": "page"},
         ],
-        "_links": {}
+        "_links": {},
     }

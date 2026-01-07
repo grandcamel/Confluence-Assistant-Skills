@@ -9,13 +9,16 @@ Examples:
     python cql_suggest.py --functions
 """
 
-import sys
 import argparse
-from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, ValidationError, print_success,
-    format_json, format_table,
-)
 
+from confluence_assistant_skills_lib import (
+    ValidationError,
+    format_json,
+    format_table,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+)
 
 # CQL Field Definitions
 CQL_FIELDS = [
@@ -24,21 +27,21 @@ CQL_FIELDS = [
         "type": "string",
         "description": "Space key (e.g., DOCS, KB)",
         "operators": ["=", "!=", "in", "not in"],
-        "example": "space = 'DOCS'"
+        "example": "space = 'DOCS'",
     },
     {
         "name": "title",
         "type": "string",
         "description": "Content title",
         "operators": ["=", "!=", "~", "!~"],
-        "example": "title ~ 'API'"
+        "example": "title ~ 'API'",
     },
     {
         "name": "text",
         "type": "string",
         "description": "Full text search",
         "operators": ["~", "!~"],
-        "example": "text ~ 'documentation'"
+        "example": "text ~ 'documentation'",
     },
     {
         "name": "type",
@@ -46,85 +49,105 @@ CQL_FIELDS = [
         "description": "Content type",
         "values": ["page", "blogpost", "comment", "attachment"],
         "operators": ["=", "!=", "in", "not in"],
-        "example": "type = page"
+        "example": "type = page",
     },
     {
         "name": "label",
         "type": "string",
         "description": "Content label",
         "operators": ["=", "!=", "in", "not in"],
-        "example": "label = 'api'"
+        "example": "label = 'api'",
     },
     {
         "name": "creator",
         "type": "string",
         "description": "Content creator (email or currentUser())",
         "operators": ["=", "!=", "in", "not in"],
-        "example": "creator = currentUser()"
+        "example": "creator = currentUser()",
     },
     {
         "name": "contributor",
         "type": "string",
         "description": "Any contributor (creator or editor)",
         "operators": ["=", "!=", "in", "not in"],
-        "example": "contributor = 'user@example.com'"
+        "example": "contributor = 'user@example.com'",
     },
     {
         "name": "created",
         "type": "date",
         "description": "Creation date",
         "operators": ["=", "!=", ">", "<", ">=", "<="],
-        "example": "created >= '2024-01-01'"
+        "example": "created >= '2024-01-01'",
     },
     {
         "name": "lastModified",
         "type": "date",
         "description": "Last modified date",
         "operators": ["=", "!=", ">", "<", ">=", "<="],
-        "example": "lastModified > startOfMonth()"
+        "example": "lastModified > startOfMonth()",
     },
     {
         "name": "parent",
         "type": "string",
         "description": "Parent page ID",
         "operators": ["=", "!="],
-        "example": "parent = 12345"
+        "example": "parent = 12345",
     },
     {
         "name": "ancestor",
         "type": "string",
         "description": "Ancestor page ID (includes all parents up tree)",
         "operators": ["=", "!="],
-        "example": "ancestor = 12345"
+        "example": "ancestor = 12345",
     },
     {
         "name": "id",
         "type": "string",
         "description": "Content ID",
         "operators": ["=", "!=", "in", "not in"],
-        "example": "id = 12345"
+        "example": "id = 12345",
     },
     {
         "name": "macro",
         "type": "string",
         "description": "Macro name present in content",
         "operators": ["=", "!="],
-        "example": "macro = 'code'"
+        "example": "macro = 'code'",
     },
 ]
 
 # CQL Operators
 CQL_OPERATORS = [
-    {"operator": "=", "description": "Equals", "types": ["string", "enum", "date", "number"]},
-    {"operator": "!=", "description": "Not equals", "types": ["string", "enum", "date", "number"]},
+    {
+        "operator": "=",
+        "description": "Equals",
+        "types": ["string", "enum", "date", "number"],
+    },
+    {
+        "operator": "!=",
+        "description": "Not equals",
+        "types": ["string", "enum", "date", "number"],
+    },
     {"operator": "~", "description": "Contains (text search)", "types": ["string"]},
     {"operator": "!~", "description": "Does not contain", "types": ["string"]},
     {"operator": ">", "description": "Greater than", "types": ["date", "number"]},
     {"operator": "<", "description": "Less than", "types": ["date", "number"]},
-    {"operator": ">=", "description": "Greater than or equal", "types": ["date", "number"]},
-    {"operator": "<=", "description": "Less than or equal", "types": ["date", "number"]},
+    {
+        "operator": ">=",
+        "description": "Greater than or equal",
+        "types": ["date", "number"],
+    },
+    {
+        "operator": "<=",
+        "description": "Less than or equal",
+        "types": ["date", "number"],
+    },
     {"operator": "in", "description": "In list", "types": ["string", "enum", "number"]},
-    {"operator": "not in", "description": "Not in list", "types": ["string", "enum", "number"]},
+    {
+        "operator": "not in",
+        "description": "Not in list",
+        "types": ["string", "enum", "number"],
+    },
 ]
 
 # CQL Functions
@@ -140,6 +163,7 @@ CQL_FUNCTIONS = [
     {"name": "endOfYear()", "description": "End of this year", "type": "date"},
     {"name": "now()", "description": "Current date/time", "type": "date"},
 ]
+
 
 def get_field_values(client, field_name):
     """
@@ -157,11 +181,13 @@ def get_field_values(client, field_name):
     if field_name == "space":
         # Get all spaces
         try:
-            for space in client.paginate('/api/v2/spaces', limit=100):
-                values.append({
-                    "value": space['key'],
-                    "label": f"{space['key']} - {space.get('name', '')}"
-                })
+            for space in client.paginate("/api/v2/spaces", limit=100):
+                values.append(
+                    {
+                        "value": space["key"],
+                        "label": f"{space['key']} - {space.get('name', '')}",
+                    }
+                )
         except Exception:
             # If API call fails, return empty
             pass
@@ -194,16 +220,20 @@ def get_field_values(client, field_name):
 
     elif field_name in ["created", "lastModified"]:
         # Date functions
-        values = [f for f in CQL_FUNCTIONS if f['type'] == 'date']
-        values = [{"value": f['name'], "label": f"{f['name']} - {f['description']}"} for f in values]
+        values = [f for f in CQL_FUNCTIONS if f["type"] == "date"]
+        values = [
+            {"value": f["name"], "label": f"{f['name']} - {f['description']}"}
+            for f in values
+        ]
 
     return values
+
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Get CQL field and value suggestions',
-        epilog='''
+        description="Get CQL field and value suggestions",
+        epilog="""
 Examples:
   # List all CQL fields
   python cql_suggest.py --fields
@@ -217,21 +247,29 @@ Examples:
 
   # List functions
   python cql_suggest.py --functions
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    parser.add_argument('--fields', action='store_true',
-                        help='List all available CQL fields')
-    parser.add_argument('--field', metavar='NAME',
-                        help='Get suggested values for a specific field')
-    parser.add_argument('--operators', action='store_true',
-                        help='List all CQL operators')
-    parser.add_argument('--functions', action='store_true',
-                        help='List all CQL functions')
-    parser.add_argument('--profile', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument(
+        "--fields", action="store_true", help="List all available CQL fields"
+    )
+    parser.add_argument(
+        "--field", metavar="NAME", help="Get suggested values for a specific field"
+    )
+    parser.add_argument(
+        "--operators", action="store_true", help="List all CQL operators"
+    )
+    parser.add_argument(
+        "--functions", action="store_true", help="List all CQL functions"
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
 
     args = parser.parse_args(argv)
 
@@ -241,41 +279,47 @@ Examples:
 
     # List all fields
     if args.fields:
-        if args.output == 'json':
+        if args.output == "json":
             print(format_json(CQL_FIELDS))
         else:
             print("\nAvailable CQL Fields:\n")
-            print(format_table(
-                CQL_FIELDS,
-                columns=['name', 'type', 'description', 'example'],
-                headers=['Field', 'Type', 'Description', 'Example']
-            ))
+            print(
+                format_table(
+                    CQL_FIELDS,
+                    columns=["name", "type", "description", "example"],
+                    headers=["Field", "Type", "Description", "Example"],
+                )
+            )
             print()
 
     # List operators
     if args.operators:
-        if args.output == 'json':
+        if args.output == "json":
             print(format_json(CQL_OPERATORS))
         else:
             print("\nCQL Operators:\n")
-            print(format_table(
-                CQL_OPERATORS,
-                columns=['operator', 'description'],
-                headers=['Operator', 'Description']
-            ))
+            print(
+                format_table(
+                    CQL_OPERATORS,
+                    columns=["operator", "description"],
+                    headers=["Operator", "Description"],
+                )
+            )
             print()
 
     # List functions
     if args.functions:
-        if args.output == 'json':
+        if args.output == "json":
             print(format_json(CQL_FUNCTIONS))
         else:
             print("\nCQL Functions:\n")
-            print(format_table(
-                CQL_FUNCTIONS,
-                columns=['name', 'description'],
-                headers=['Function', 'Description']
-            ))
+            print(
+                format_table(
+                    CQL_FUNCTIONS,
+                    columns=["name", "description"],
+                    headers=["Function", "Description"],
+                )
+            )
             print()
 
     # Get values for a specific field
@@ -283,24 +327,30 @@ Examples:
         field_name = args.field.lower()
 
         # Find the field definition
-        field_def = next((f for f in CQL_FIELDS if f['name'].lower() == field_name), None)
+        field_def = next(
+            (f for f in CQL_FIELDS if f["name"].lower() == field_name), None
+        )
 
         if not field_def:
             raise ValidationError(f"Unknown field: {args.field}")
 
         # Get client if needed
         client = None
-        if field_name in ['space', 'label']:
-            client = get_confluence_client(profile=args.profile)
+        if field_name in ["space", "label"]:
+            client = get_confluence_client()
 
         values = get_field_values(client, field_name)
 
-        if args.output == 'json':
-            print(format_json({
-                "field": field_def['name'],
-                "type": field_def['type'],
-                "values": values
-            }))
+        if args.output == "json":
+            print(
+                format_json(
+                    {
+                        "field": field_def["name"],
+                        "type": field_def["type"],
+                        "values": values,
+                    }
+                )
+            )
         else:
             print(f"\nSuggested values for '{field_def['name']}':\n")
 
@@ -319,5 +369,6 @@ Examples:
 
     print_success("Suggestions complete")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

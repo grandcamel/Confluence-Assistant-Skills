@@ -9,40 +9,52 @@ Examples:
     python create_from_template.py --template tmpl-123 --space DOCS --title "Page" --labels "tag1,tag2"
 """
 
-import sys
 import argparse
 from pathlib import Path
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, ValidationError, validate_space_key,
-    validate_title, validate_page_id, print_success, format_json,
+    ValidationError,
+    format_json,
+    get_confluence_client,
+    handle_errors,
     markdown_to_xhtml,
+    print_success,
+    validate_page_id,
+    validate_space_key,
+    validate_title,
 )
 
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Create a page from a Confluence template or blueprint',
-        epilog='''
+        description="Create a page from a Confluence template or blueprint",
+        epilog="""
 Examples:
   python create_from_template.py --template tmpl-123 --space DOCS --title "New Page"
   python create_from_template.py --template tmpl-123 --space DOCS --title "Page" --parent-id 12345
   python create_from_template.py --blueprint bp-456 --space DOCS --title "Project"
   python create_from_template.py --template tmpl-123 --space DOCS --title "Page" --labels "tag1,tag2"
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('--template', help='Template ID to use')
-    parser.add_argument('--blueprint', help='Blueprint ID to use (alternative to --template)')
-    parser.add_argument('--space', required=True, help='Space key for the new page')
-    parser.add_argument('--title', required=True, help='Title for the new page')
-    parser.add_argument('--parent-id', help='Parent page ID')
-    parser.add_argument('--labels', help='Comma-separated labels to add')
-    parser.add_argument('--content', help='Custom content (overrides template)')
-    parser.add_argument('--file', help='File with custom content (Markdown or HTML)')
-    parser.add_argument('--profile', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("--template", help="Template ID to use")
+    parser.add_argument(
+        "--blueprint", help="Blueprint ID to use (alternative to --template)"
+    )
+    parser.add_argument("--space", required=True, help="Space key for the new page")
+    parser.add_argument("--title", required=True, help="Title for the new page")
+    parser.add_argument("--parent-id", help="Parent page ID")
+    parser.add_argument("--labels", help="Comma-separated labels to add")
+    parser.add_argument("--content", help="Custom content (overrides template)")
+    parser.add_argument("--file", help="File with custom content (Markdown or HTML)")
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate that either template or blueprint is provided
@@ -63,19 +75,21 @@ Examples:
     # Parse labels
     labels = []
     if args.labels:
-        labels = [l.strip() for l in args.labels.split(',') if l.strip()]
+        labels = [lbl.strip() for lbl in args.labels.split(",") if lbl.strip()]
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get template/blueprint to use as base
     if args.template:
-        template = client.get(f'/rest/api/template/{args.template}',
-                            operation='get template')
-        template_id = template.get('templateId')
+        template = client.get(
+            f"/rest/api/template/{args.template}", operation="get template"
+        )
+        template_id = template.get("templateId")
     else:
-        template = client.get(f'/rest/api/template/blueprint/{args.blueprint}',
-                            operation='get blueprint')
+        template = client.get(
+            f"/rest/api/template/blueprint/{args.blueprint}", operation="get blueprint"
+        )
         template_id = None
 
     # Prepare body content
@@ -89,69 +103,60 @@ Examples:
         if not file_path.exists():
             raise ValidationError(f"File not found: {args.file}")
 
-        content = file_path.read_text(encoding='utf-8')
+        content = file_path.read_text(encoding="utf-8")
 
         # Convert Markdown to XHTML if needed
-        if file_path.suffix.lower() in ['.md', '.markdown']:
+        if file_path.suffix.lower() in [".md", ".markdown"]:
             body_value = markdown_to_xhtml(content)
         else:
             body_value = content
     elif args.template:
         # Use template body
-        body = template.get('body', {})
-        storage = body.get('storage', {})
-        body_value = storage.get('value', '')
+        body = template.get("body", {})
+        storage = body.get("storage", {})
+        body_value = storage.get("value", "")
 
     # Build page data
-    page_data = {
-        'type': 'page',
-        'title': title,
-        'space': {'key': space_key}
-    }
+    page_data = {"type": "page", "title": title, "space": {"key": space_key}}
 
     # Add body
     if body_value:
-        page_data['body'] = {
-            'storage': {
-                'value': body_value,
-                'representation': 'storage'
-            }
+        page_data["body"] = {
+            "storage": {"value": body_value, "representation": "storage"}
         }
 
     # Add template ID
     if template_id:
-        page_data['metadata'] = {
-            'properties': {
-                'editor': {'value': 'v2'},
-                'content-appearance-draft': {'value': 'full-width'},
-                'content-appearance-published': {'value': 'full-width'}
+        page_data["metadata"] = {
+            "properties": {
+                "editor": {"value": "v2"},
+                "content-appearance-draft": {"value": "full-width"},
+                "content-appearance-published": {"value": "full-width"},
             }
         }
 
     # Add parent (ancestors)
     if parent_id:
-        page_data['ancestors'] = [{'id': parent_id}]
+        page_data["ancestors"] = [{"id": parent_id}]
 
     # Create the page
     result = client.post(
-        '/rest/api/content',
-        json_data=page_data,
-        operation='create page from template'
+        "/rest/api/content", json_data=page_data, operation="create page from template"
     )
 
     # Add labels if specified
     if labels:
-        page_id = result['id']
-        label_data = [{'name': label} for label in labels]
+        page_id = result["id"]
+        label_data = [{"name": label} for label in labels]
         client.post(
-            f'/rest/api/content/{page_id}/label',
+            f"/rest/api/content/{page_id}/label",
             json_data=label_data,
-            operation='add labels'
+            operation="add labels",
         )
-        result['labels'] = label_data
+        result["labels"] = label_data
 
     # Output
-    if args.output == 'json':
+    if args.output == "json":
         print(format_json(result))
     else:
         print(f"Created page: {result.get('title')}")
@@ -159,12 +164,13 @@ Examples:
         print(f"Space: {result.get('space', {}).get('key', 'N/A')}")
 
         # Web link
-        links = result.get('_links', {})
-        if 'webui' in links:
-            base_url = client.base_url.rstrip('/')
+        links = result.get("_links", {})
+        if "webui" in links:
+            base_url = client.base_url.rstrip("/")
             print(f"URL: {base_url}{links['webui']}")
 
     print_success(f"Created page from {'template' if args.template else 'blueprint'}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

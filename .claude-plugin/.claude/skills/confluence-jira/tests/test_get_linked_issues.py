@@ -2,12 +2,10 @@
 Unit tests for get_linked_issues.py
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 
 class TestGetLinkedIssues:
@@ -17,8 +15,8 @@ class TestGetLinkedIssues:
         """Test extracting JIRA issue keys from page content."""
         from get_linked_issues import extract_jira_keys
 
-        content = '''<p>This page mentions PROJ-123 and PROJ-456.</p>
-        <p>Also see ABC-789 for more details.</p>'''
+        content = """<p>This page mentions PROJ-123 and PROJ-456.</p>
+        <p>Also see ABC-789 for more details.</p>"""
 
         keys = extract_jira_keys(content)
 
@@ -57,8 +55,8 @@ class TestGetLinkedIssues:
         """Test deduplication of issue keys."""
         from get_linked_issues import extract_jira_keys
 
-        content = '''<p>PROJ-123 is mentioned here.</p>
-        <p>PROJ-123 is mentioned again.</p>'''
+        content = """<p>PROJ-123 is mentioned here.</p>
+        <p>PROJ-123 is mentioned again.</p>"""
 
         keys = extract_jira_keys(content)
 
@@ -67,11 +65,11 @@ class TestGetLinkedIssues:
 
     def test_get_page_content(self, mock_client, sample_page):
         """Test getting page content via API."""
-        mock_client.setup_response('get', sample_page)
+        mock_client.setup_response("get", sample_page)
 
         page = mock_client.get(f"/rest/api/content/{sample_page['id']}")
 
-        assert page['body']['storage']['value'] is not None
+        assert page["body"]["storage"]["value"] is not None
 
     def test_output_json_format(self):
         """Test JSON output format."""
@@ -100,8 +98,9 @@ class TestJiraKeyRegex:
 
     def test_standard_key_format(self):
         """Test standard JIRA key format (PROJ-123)."""
-        from get_linked_issues import JIRA_KEY_PATTERN
         import re
+
+        from get_linked_issues import JIRA_KEY_PATTERN
 
         text = "See PROJ-123 for details"
         matches = re.findall(JIRA_KEY_PATTERN, text)
@@ -111,8 +110,9 @@ class TestJiraKeyRegex:
 
     def test_multiple_keys(self):
         """Test multiple keys in text."""
-        from get_linked_issues import JIRA_KEY_PATTERN
         import re
+
+        from get_linked_issues import JIRA_KEY_PATTERN
 
         text = "PROJ-123, PROJ-456, and ABC-789"
         matches = re.findall(JIRA_KEY_PATTERN, text)
@@ -121,14 +121,15 @@ class TestJiraKeyRegex:
 
     def test_key_variations(self):
         """Test various valid JIRA key formats."""
-        from get_linked_issues import JIRA_KEY_PATTERN
         import re
 
+        from get_linked_issues import JIRA_KEY_PATTERN
+
         valid_keys = [
-            "A-1",        # Minimum
-            "ABC-123",    # Standard
+            "A-1",  # Minimum
+            "ABC-123",  # Standard
             "PROJ-9999",  # Large number
-            "MY_PROJ-42", # Underscore in project key
+            "MY_PROJ-42",  # Underscore in project key
         ]
 
         for key in valid_keys:
@@ -137,17 +138,15 @@ class TestJiraKeyRegex:
 
     def test_invalid_formats(self):
         """Test that invalid formats are not matched."""
-        from get_linked_issues import JIRA_KEY_PATTERN
-        import re
 
         invalid = [
-            "123-ABC",     # Number first
-            "PROJ",        # No number
-            "PROJ-",       # No number after dash
-            "proj-abc",    # Letters after dash
+            "123-ABC",  # Number first
+            "PROJ",  # No number
+            "PROJ-",  # No number after dash
+            "proj-abc",  # Letters after dash
         ]
 
-        for text in invalid:
+        for _text in invalid:
             # Should not match or match incorrectly
             # This test verifies the pattern doesn't over-match
             pass

@@ -2,53 +2,50 @@
 Live integration tests for inline comment operations.
 
 Usage:
-    pytest test_inline_comment_live.py --profile development -v
+    pytest test_inline_comment_live.py --live -v
 """
 
-import pytest
+import contextlib
 import uuid
-import sys
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
-def pytest_addoption(parser):
-    try:
-        parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
 
 @pytest.fixture(scope="session")
-def confluence_client(request):
-    profile = request.config.getoption("--profile", default=None)
-    return get_confluence_client(profile=profile)
+def confluence_client():
+    return get_confluence_client()
+
 
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': f'Inline Comment Test {uuid.uuid4().hex[:8]}',
-            'body': {
-                'representation': 'storage',
-                'value': '<p>This is paragraph one with some text.</p><p>This is paragraph two.</p>'
-            }
-        }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": f"Inline Comment Test {uuid.uuid4().hex[:8]}",
+            "body": {
+                "representation": "storage",
+                "value": "<p>This is paragraph one with some text.</p><p>This is paragraph two.</p>",
+            },
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.mark.integration
 class TestInlineCommentsLive:
@@ -60,9 +57,9 @@ class TestInlineCommentsLive:
             f"/api/v2/pages/{test_page['id']}/inline-comments"
         )
 
-        assert 'results' in comments
+        assert "results" in comments
         # New page should have no inline comments
-        assert len(comments['results']) == 0
+        assert len(comments["results"]) == 0
 
     def test_add_inline_comment(self, confluence_client, test_page):
         """Test adding an inline comment."""
@@ -70,39 +67,39 @@ class TestInlineCommentsLive:
         # This test creates a footer comment as inline requires browser context
         # Use v1 API for creating comments
         comment = confluence_client.post(
-            '/rest/api/content',
+            "/rest/api/content",
             json_data={
-                'type': 'comment',
-                'container': {'id': test_page['id'], 'type': 'page'},
-                'body': {
-                    'storage': {
-                        'representation': 'storage',
-                        'value': '<p>This simulates inline feedback.</p>'
+                "type": "comment",
+                "container": {"id": test_page["id"], "type": "page"},
+                "body": {
+                    "storage": {
+                        "representation": "storage",
+                        "value": "<p>This simulates inline feedback.</p>",
                     }
-                }
-            }
+                },
+            },
         )
 
-        assert comment['id'] is not None
+        assert comment["id"] is not None
 
     def test_resolve_comment(self, confluence_client, test_page):
         """Test resolving a comment (marking as resolved)."""
         # Create comment using v1 API
         comment = confluence_client.post(
-            '/rest/api/content',
+            "/rest/api/content",
             json_data={
-                'type': 'comment',
-                'container': {'id': test_page['id'], 'type': 'page'},
-                'body': {
-                    'storage': {
-                        'representation': 'storage',
-                        'value': '<p>To resolve.</p>'
+                "type": "comment",
+                "container": {"id": test_page["id"], "type": "page"},
+                "body": {
+                    "storage": {
+                        "representation": "storage",
+                        "value": "<p>To resolve.</p>",
                     }
-                }
-            }
+                },
+            },
         )
 
         # Note: Resolving comments may require specific API endpoints
         # The v2 API doesn't have a direct resolve endpoint
         # Check if comment was created
-        assert comment['id'] is not None
+        assert comment["id"] is not None

@@ -2,11 +2,7 @@
 Unit tests for list_attachments.py
 """
 
-import pytest
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock
-
 
 
 class TestListAttachments:
@@ -14,30 +10,24 @@ class TestListAttachments:
 
     def test_list_attachments_empty(self, mock_client):
         """Test listing attachments when page has none."""
-        mock_client.get = MagicMock(return_value={
-            "results": [],
-            "_links": {}
-        })
+        mock_client.get = MagicMock(return_value={"results": [], "_links": {}})
 
         page_id = "123456"
         result = mock_client.get(
-            f"/api/v2/pages/{page_id}/attachments",
-            operation="list attachments"
+            f"/api/v2/pages/{page_id}/attachments", operation="list attachments"
         )
 
         assert result["results"] == []
 
     def test_list_attachments_single(self, mock_client, sample_attachment):
         """Test listing attachments with one attachment."""
-        mock_client.get = MagicMock(return_value={
-            "results": [sample_attachment],
-            "_links": {}
-        })
+        mock_client.get = MagicMock(
+            return_value={"results": [sample_attachment], "_links": {}}
+        )
 
         page_id = "123456"
         result = mock_client.get(
-            f"/api/v2/pages/{page_id}/attachments",
-            operation="list attachments"
+            f"/api/v2/pages/{page_id}/attachments", operation="list attachments"
         )
 
         assert len(result["results"]) == 1
@@ -52,15 +42,11 @@ class TestListAttachments:
             {**sample_attachment, "id": "att3", "title": "image.png"},
         ]
 
-        mock_client.get = MagicMock(return_value={
-            "results": attachments,
-            "_links": {}
-        })
+        mock_client.get = MagicMock(return_value={"results": attachments, "_links": {}})
 
         page_id = "123456"
         result = mock_client.get(
-            f"/api/v2/pages/{page_id}/attachments",
-            operation="list attachments"
+            f"/api/v2/pages/{page_id}/attachments", operation="list attachments"
         )
 
         assert len(result["results"]) == 3
@@ -72,22 +58,16 @@ class TestListAttachments:
         """Test listing attachments with pagination."""
         first_page = {
             "results": [{**sample_attachment, "id": "att1"}],
-            "_links": {
-                "next": "/api/v2/pages/123456/attachments?cursor=abc123"
-            }
+            "_links": {"next": "/api/v2/pages/123456/attachments?cursor=abc123"},
         }
 
-        second_page = {
-            "results": [{**sample_attachment, "id": "att2"}],
-            "_links": {}
-        }
+        second_page = {"results": [{**sample_attachment, "id": "att2"}], "_links": {}}
 
         mock_client.get = MagicMock(side_effect=[first_page, second_page])
 
         # First call
         result1 = mock_client.get(
-            "/api/v2/pages/123456/attachments",
-            operation="list attachments"
+            "/api/v2/pages/123456/attachments", operation="list attachments"
         )
 
         assert len(result1["results"]) == 1
@@ -98,12 +78,14 @@ class TestListAttachments:
         result2 = mock_client.get(
             "/api/v2/pages/123456/attachments",
             params={"cursor": "abc123"},
-            operation="list attachments"
+            operation="list attachments",
         )
 
         assert len(result2["results"]) == 1
 
-    def test_list_attachments_filter_by_media_type(self, mock_client, sample_attachment):
+    def test_list_attachments_filter_by_media_type(
+        self, mock_client, sample_attachment
+    ):
         """Test filtering attachments by media type."""
         attachments = [
             {**sample_attachment, "id": "att1", "mediaType": "application/pdf"},
@@ -111,15 +93,12 @@ class TestListAttachments:
             {**sample_attachment, "id": "att3", "mediaType": "application/pdf"},
         ]
 
-        mock_client.get = MagicMock(return_value={
-            "results": attachments,
-            "_links": {}
-        })
+        mock_client.get = MagicMock(return_value={"results": attachments, "_links": {}})
 
         result = mock_client.get(
             "/api/v2/pages/123456/attachments",
             params={"mediaType": "application/pdf"},
-            operation="list attachments"
+            operation="list attachments",
         )
 
         # In practice, the API would filter, but we're testing the request
@@ -140,9 +119,10 @@ class TestAttachmentFormatting:
 
     def test_format_attachment_size(self):
         """Test file size formatting."""
+
         def format_file_size(bytes: int) -> str:
             """Format file size in human-readable format."""
-            for unit in ['B', 'KB', 'MB', 'GB']:
+            for unit in ["B", "KB", "MB", "GB"]:
                 if bytes < 1024.0:
                     return f"{bytes:.1f} {unit}"
                 bytes /= 1024.0

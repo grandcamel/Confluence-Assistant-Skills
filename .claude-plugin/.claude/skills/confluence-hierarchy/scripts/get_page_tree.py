@@ -12,22 +12,27 @@ Examples:
     python get_page_tree.py 12345 --stats
 """
 
-import sys
 import argparse
-from typing import Dict, Any, Set
+import sys
+from typing import Any, Optional
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, validate_page_id, print_success,
-    format_json, print_info,
+    format_json,
+    get_confluence_client,
+    handle_errors,
+    print_info,
+    print_success,
+    validate_page_id,
 )
 
 
 def build_page_tree(
     client,
     page_id: str,
-    max_depth: int = None,
+    max_depth: Optional[int] = None,
     current_depth: int = 0,
-    visited: Set[str] = None
-) -> Dict[str, Any]:
+    visited: Optional[set[str]] = None,
+) -> dict[str, Any]:
     """
     Recursively build a tree structure for a page and its descendants.
 
@@ -52,15 +57,14 @@ def build_page_tree(
 
     # Get page info
     page = client.get(
-        f'/api/v2/pages/{page_id}',
-        operation=f'get page at depth {current_depth}'
+        f"/api/v2/pages/{page_id}", operation=f"get page at depth {current_depth}"
     )
 
     tree_node = {
-        'id': page.get('id'),
-        'title': page.get('title'),
-        'status': page.get('status'),
-        'children': []
+        "id": page.get("id"),
+        "title": page.get("title"),
+        "status": page.get("status"),
+        "children": [],
     }
 
     # Check depth limit
@@ -70,36 +74,35 @@ def build_page_tree(
     # Get children
     try:
         children_data = client.get(
-            f'/api/v2/pages/{page_id}/children',
-            params={'limit': 250},
-            operation=f'get children at depth {current_depth}'
+            f"/api/v2/pages/{page_id}/children",
+            params={"limit": 250},
+            operation=f"get children at depth {current_depth}",
         )
 
-        children = children_data.get('results', [])
+        children = children_data.get("results", [])
 
         for child in children:
-            child_id = child.get('id')
+            child_id = child.get("id")
             if not child_id:
                 continue
 
             # Recursively build child tree
             child_tree = build_page_tree(
-                client,
-                child_id,
-                max_depth,
-                current_depth + 1,
-                visited
+                client, child_id, max_depth, current_depth + 1, visited
             )
 
             if child_tree:
-                tree_node['children'].append(child_tree)
+                tree_node["children"].append(child_tree)
 
     except Exception as e:
-        print(f"Warning: Could not get children of page {page_id}: {e}", file=sys.stderr)
+        print(
+            f"Warning: Could not get children of page {page_id}: {e}", file=sys.stderr
+        )
 
     return tree_node
 
-def format_tree_text(node: Dict[str, Any], depth: int = 0) -> str:
+
+def format_tree_text(node: dict[str, Any], depth: int = 0) -> str:
     """
     Format tree as indented text.
 
@@ -111,19 +114,20 @@ def format_tree_text(node: Dict[str, Any], depth: int = 0) -> str:
         Formatted string
     """
     lines = []
-    indent = '  ' * depth
-    title = node.get('title', 'Untitled')
-    node_id = node.get('id', 'Unknown')
-    status = node.get('status', 'current')
+    indent = "  " * depth
+    title = node.get("title", "Untitled")
+    node_id = node.get("id", "Unknown")
+    status = node.get("status", "current")
 
     lines.append(f"{indent}{title} (ID: {node_id}, Status: {status})")
 
-    for child in node.get('children', []):
+    for child in node.get("children", []):
         lines.append(format_tree_text(child, depth + 1))
 
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
-def calculate_tree_stats(node: Dict[str, Any]) -> Dict[str, int]:
+
+def calculate_tree_stats(node: dict[str, Any]) -> dict[str, int]:
     """
     Calculate statistics about the tree.
 
@@ -133,67 +137,72 @@ def calculate_tree_stats(node: Dict[str, Any]) -> Dict[str, int]:
     Returns:
         Dictionary with statistics
     """
+
     def count_nodes(n):
         count = 1
-        for child in n.get('children', []):
+        for child in n.get("children", []):
             count += count_nodes(child)
         return count
 
     def max_depth(n, current=0):
-        if not n.get('children'):
+        if not n.get("children"):
             return current
-        return max(max_depth(child, current + 1) for child in n['children'])
+        return max(max_depth(child, current + 1) for child in n["children"])
 
     def count_leaves(n):
-        if not n.get('children'):
+        if not n.get("children"):
             return 1
-        return sum(count_leaves(child) for child in n['children'])
+        return sum(count_leaves(child) for child in n["children"])
 
     return {
-        'total_pages': count_nodes(node),
-        'max_depth': max_depth(node),
-        'leaf_pages': count_leaves(node)
+        "total_pages": count_nodes(node),
+        "max_depth": max_depth(node),
+        "leaf_pages": count_leaves(node),
     }
+
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Get full page tree structure for a Confluence page',
-        epilog='''
+        description="Get full page tree structure for a Confluence page",
+        epilog="""
 Examples:
   python get_page_tree.py 12345
   python get_page_tree.py 12345 --max-depth 3
   python get_page_tree.py 12345 --output json
   python get_page_tree.py 12345 --stats
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('page_id', help='Root page ID')
-    parser.add_argument('--max-depth', '-d', type=int,
-                        help='Maximum depth to traverse (default: unlimited)')
-    parser.add_argument('--stats', action='store_true',
-                        help='Show tree statistics')
-    parser.add_argument('--profile', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("page_id", help="Root page ID")
+    parser.add_argument(
+        "--max-depth",
+        "-d",
+        type=int,
+        help="Maximum depth to traverse (default: unlimited)",
+    )
+    parser.add_argument("--stats", action="store_true", help="Show tree statistics")
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate
     page_id = validate_page_id(args.page_id)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Build tree
     print_info("Building page tree...")
-    tree = build_page_tree(
-        client,
-        page_id,
-        max_depth=args.max_depth
-    )
+    tree = build_page_tree(client, page_id, max_depth=args.max_depth)
 
     # Output
-    if args.output == 'json':
+    if args.output == "json":
         print(format_json(tree))
     else:
         # Text format
@@ -203,12 +212,13 @@ Examples:
     # Show statistics if requested
     if args.stats:
         stats = calculate_tree_stats(tree)
-        print(f"\n--- Tree Statistics ---")
+        print("\n--- Tree Statistics ---")
         print(f"Total pages: {stats['total_pages']}")
         print(f"Maximum depth: {stats['max_depth']}")
         print(f"Leaf pages: {stats['leaf_pages']}")
 
     print_success("Page tree retrieved successfully")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

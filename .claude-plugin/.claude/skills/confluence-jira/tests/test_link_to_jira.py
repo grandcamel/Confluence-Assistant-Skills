@@ -2,12 +2,10 @@
 Unit tests for link_to_jira.py
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 
 class TestLinkToJira:
@@ -21,7 +19,7 @@ class TestLinkToJira:
             page_id="123456",
             issue_key="PROJ-123",
             jira_url="https://jira.example.com/browse/PROJ-123",
-            relationship="relates to"
+            relationship="relates to",
         )
 
         assert "object" in link_data
@@ -35,11 +33,7 @@ class TestLinkToJira:
         issue_key = "PROJ-123"
         jira_url = "https://jira.example.com/browse/PROJ-123"
 
-        result = add_jira_link_to_content(
-            original_content,
-            issue_key,
-            jira_url
-        )
+        result = add_jira_link_to_content(original_content, issue_key, jira_url)
 
         assert issue_key in result
         assert jira_url in result
@@ -56,13 +50,9 @@ class TestLinkToJira:
 
     def test_create_link_via_api(self, mock_client):
         """Test creating remote link via API."""
-        link_response = {
-            "id": "10001",
-            "type": "remotelink",
-            "status": "created"
-        }
+        link_response = {"id": "10001", "type": "remotelink", "status": "created"}
 
-        mock_client.setup_response('post', link_response)
+        mock_client.setup_response("post", link_response)
 
         # Would call the API endpoint
         # POST /rest/api/content/{page_id}/remotelink
@@ -80,17 +70,17 @@ class TestRemoteLinkAPI:
                     "relationship": "relates to",
                     "object": {
                         "url": "https://jira.example.com/browse/PROJ-123",
-                        "title": "PROJ-123"
-                    }
+                        "title": "PROJ-123",
+                    },
                 }
             ]
         }
 
-        mock_client.setup_response('get', links_response)
+        mock_client.setup_response("get", links_response)
 
     def test_delete_remote_link(self, mock_client):
         """Test deleting a remote link."""
-        mock_client.setup_response('delete', {})
+        mock_client.setup_response("delete", {})
 
         # DELETE /rest/api/content/{page_id}/remotelink/{link_id}
 
@@ -99,11 +89,7 @@ class TestRemoteLinkAPI:
         from link_to_jira import link_exists
 
         existing_links = [
-            {
-                "object": {
-                    "url": "https://jira.example.com/browse/PROJ-123"
-                }
-            }
+            {"object": {"url": "https://jira.example.com/browse/PROJ-123"}}
         ]
 
         assert link_exists(existing_links, "PROJ-123") is True

@@ -2,22 +2,22 @@
 Confluence Template Skill - Test Configuration
 """
 
-import sys
 import json
-import pytest
-from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from typing import Optional
+from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 
 
 @pytest.fixture
 def mock_response():
     """Factory for creating mock HTTP responses."""
+
     def _create_response(
         status_code: int = 200,
-        json_data: dict = None,
+        json_data: Optional[dict] = None,
         text: str = "",
-        headers: dict = None,
+        headers: Optional[dict] = None,
     ):
         response = Mock()
         response.status_code = status_code
@@ -40,11 +40,11 @@ def mock_client(mock_response):
     """Create a mock Confluence client."""
     from confluence_assistant_skills_lib import ConfluenceClient
 
-    with patch.object(ConfluenceClient, '_create_session'):
+    with patch.object(ConfluenceClient, "_create_session"):
         client = ConfluenceClient(
             base_url="https://test.atlassian.net",
             email="test@example.com",
-            api_token="test-token"
+            api_token="test-token",
         )
 
         client.session = MagicMock()
@@ -68,11 +68,11 @@ def sample_template():
         "body": {
             "storage": {
                 "value": "<h1>Meeting Notes</h1><p>Date: </p><p>Attendees: </p>",
-                "representation": "storage"
+                "representation": "storage",
             }
         },
         "labels": [{"name": "template"}],
-        "space": {"key": "DOCS"}
+        "space": {"key": "DOCS"},
     }
 
 
@@ -84,19 +84,14 @@ def sample_blueprint():
         "name": "Project Plan",
         "description": "Blueprint for project planning",
         "contentBlueprintId": "com.atlassian.confluence.plugins.confluence-software-project:project-plan-blueprint",
-        "moduleCompleteKey": "com.atlassian.confluence.plugins.confluence-software-project:project-plan-blueprint"
+        "moduleCompleteKey": "com.atlassian.confluence.plugins.confluence-software-project:project-plan-blueprint",
     }
 
 
 @pytest.fixture
 def sample_space():
     """Sample space data from API."""
-    return {
-        "id": "789",
-        "key": "DOCS",
-        "name": "Documentation",
-        "type": "global"
-    }
+    return {"id": "789", "key": "DOCS", "name": "Documentation", "type": "global"}
 
 
 @pytest.fixture
@@ -110,9 +105,6 @@ def sample_page():
         "space": {"key": "DOCS"},
         "version": {"number": 1},
         "body": {
-            "storage": {
-                "value": "<p>Test content</p>",
-                "representation": "storage"
-            }
-        }
+            "storage": {"value": "<p>Test content</p>", "representation": "storage"}
+        },
     }

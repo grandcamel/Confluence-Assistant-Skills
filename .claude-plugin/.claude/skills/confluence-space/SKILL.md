@@ -52,7 +52,6 @@ confluence space create --key ~username --name "Personal Space" --type personal
 - `--name, -n` - Space name (required)
 - `--description, -d` - Space description
 - `--type` - Space type: global (default) or personal
-- `--profile` - Confluence profile to use
 - `--output, -o` - Output format: text or json
 
 ### get_space.py
@@ -67,7 +66,6 @@ confluence space get DOCS --output json
 
 **Arguments:**
 - `space_key` - Space key (required)
-- `--profile` - Confluence profile
 - `--output, -o` - Output format
 
 ### list_spaces.py
@@ -94,7 +92,6 @@ confluence space list --limit 10
 - `--query, -q` - Search query
 - `--status` - Filter by status: current or archived
 - `--limit, -l` - Maximum results
-- `--profile` - Confluence profile
 - `--output, -o` - Output format
 
 ### update_space.py
@@ -113,7 +110,6 @@ confluence space update DOCS --homepage 12345
 - `--name, -n` - New space name
 - `--description, -d` - New description
 - `--homepage` - Homepage page ID
-- `--profile` - Confluence profile
 - `--output, -o` - Output format
 
 ### delete_space.py
@@ -129,7 +125,6 @@ confluence space delete DOCS --force
 **Arguments:**
 - `space_key` - Space key (required)
 - `--force, -f` - Skip confirmation
-- `--profile` - Confluence profile
 
 ### get_space_content.py
 
@@ -150,10 +145,9 @@ confluence space content DOCS --include-archived
 **Arguments:**
 - `space_key` - Space key (required)
 - `--depth` - Content depth: root, children, or all (default)
-- `--status` - Filter by status
+- `--status` - Filter by status (current, archived, draft)
 - `--include-archived` - Include archived content
 - `--limit, -l` - Maximum results
-- `--profile` - Confluence profile
 - `--output, -o` - Output format
 
 ### get_space_settings.py
@@ -167,7 +161,6 @@ confluence space settings DOCS
 
 **Arguments:**
 - `space_key` - Space key (required)
-- `--profile` - Confluence profile
 - `--output, -o` - Output format
 
 ## Examples

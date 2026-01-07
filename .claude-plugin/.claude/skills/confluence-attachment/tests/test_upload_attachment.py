@@ -2,11 +2,9 @@
 Unit tests for upload_attachment.py
 """
 
-import pytest
-import sys
-from pathlib import Path
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import MagicMock
 
+import pytest
 
 
 class TestUploadAttachment:
@@ -21,7 +19,7 @@ class TestUploadAttachment:
 
     def test_validate_page_id_invalid(self):
         """Test that invalid page IDs fail validation."""
-        from confluence_assistant_skills_lib import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("")
@@ -43,7 +41,7 @@ class TestUploadAttachment:
 
     def test_validate_file_path_not_exists(self):
         """Test file path validation with non-existent file."""
-        from confluence_assistant_skills_lib import validate_file_path, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_file_path
 
         with pytest.raises(ValidationError) as exc_info:
             validate_file_path("/nonexistent/file.txt")
@@ -52,7 +50,7 @@ class TestUploadAttachment:
 
     def test_validate_file_path_is_directory(self, tmp_path):
         """Test file path validation when path is a directory."""
-        from confluence_assistant_skills_lib import validate_file_path, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_file_path
 
         with pytest.raises(ValidationError) as exc_info:
             validate_file_path(tmp_path)
@@ -62,41 +60,45 @@ class TestUploadAttachment:
     def test_upload_attachment_basic(self, mock_client, sample_attachment, test_file):
         """Test basic attachment upload."""
         # Mock the upload_file method
-        mock_client.upload_file = MagicMock(return_value={
-            "results": [sample_attachment]
-        })
+        mock_client.upload_file = MagicMock(
+            return_value={"results": [sample_attachment]}
+        )
 
         page_id = "123456"
         result = mock_client.upload_file(
             f"/api/v2/pages/{page_id}/attachments",
             test_file,
-            operation="upload attachment"
+            operation="upload attachment",
         )
 
         assert result["results"][0]["id"] == "att123456"
         assert result["results"][0]["title"] == "test-file.pdf"
         mock_client.upload_file.assert_called_once()
 
-    def test_upload_attachment_with_comment(self, mock_client, sample_attachment, test_file):
+    def test_upload_attachment_with_comment(
+        self, mock_client, sample_attachment, test_file
+    ):
         """Test attachment upload with comment."""
         attachment_with_comment = sample_attachment.copy()
         attachment_with_comment["comment"] = "Test comment"
 
-        mock_client.upload_file = MagicMock(return_value={
-            "results": [attachment_with_comment]
-        })
+        mock_client.upload_file = MagicMock(
+            return_value={"results": [attachment_with_comment]}
+        )
 
         page_id = "123456"
         result = mock_client.upload_file(
             f"/api/v2/pages/{page_id}/attachments",
             test_file,
             additional_data={"comment": "Test comment"},
-            operation="upload attachment"
+            operation="upload attachment",
         )
 
         assert result["results"][0]["comment"] == "Test comment"
 
-    def test_upload_multiple_file_types(self, mock_client, test_file, test_pdf_file, test_image_file):
+    def test_upload_multiple_file_types(
+        self, mock_client, test_file, test_pdf_file, test_image_file
+    ):
         """Test uploading different file types."""
         from confluence_assistant_skills_lib import validate_file_path
 
@@ -142,7 +144,7 @@ class TestAttachmentValidation:
 
     def test_allowed_extensions(self, tmp_path):
         """Test file extension validation."""
-        from confluence_assistant_skills_lib import validate_file_path, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_file_path
 
         # Create test files
         pdf_file = tmp_path / "doc.pdf"
@@ -155,8 +157,10 @@ class TestAttachmentValidation:
         exe_file.write_bytes(b"exe")
 
         # Allow specific extensions
-        assert validate_file_path(pdf_file, allowed_extensions=['.pdf']).suffix == '.pdf'
+        assert (
+            validate_file_path(pdf_file, allowed_extensions=[".pdf"]).suffix == ".pdf"
+        )
 
         # Reject disallowed extensions
         with pytest.raises(ValidationError):
-            validate_file_path(exe_file, allowed_extensions=['.pdf', '.txt'])
+            validate_file_path(exe_file, allowed_extensions=[".pdf", ".txt"])

@@ -23,9 +23,12 @@ def page() -> None:
     default="storage",
     help="Body format (default: storage)",
 )
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_page(
@@ -33,7 +36,6 @@ def get_page(
     page_id: str,
     body: bool,
     body_format: str,
-    profile: str | None,
     output: str,
 ) -> None:
     """Get a Confluence page by ID."""
@@ -42,8 +44,6 @@ def get_page(
         argv.append("--body")
     if body_format != "storage":
         argv.extend(["--format", body_format])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -51,36 +51,51 @@ def get_page(
 
 
 @page.command(name="create")
-@click.argument("space_key")
-@click.argument("title")
-@click.option("--body", help="Page body content (Markdown or XHTML)")
-@click.option("--body-file", type=click.Path(exists=True), help="Read body from file")
-@click.option("--parent-id", help="Parent page ID")
-@click.option("--profile", "-p", help="Confluence profile to use")
+@click.option("--space", "-s", required=True, help="Space key")
+@click.option("--title", "-t", required=True, help="Page title")
+@click.option("--body", "-b", help="Page body content (Markdown or XHTML)")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--file",
+    "-f",
+    "body_file",
+    type=click.Path(exists=True),
+    help="Read body from file",
+)
+@click.option("--parent", "-p", "parent_id", help="Parent page ID")
+@click.option(
+    "--status",
+    type=click.Choice(["current", "draft"]),
+    default="current",
+    help="Page status",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def create_page(
     ctx: click.Context,
-    space_key: str,
+    space: str,
     title: str,
     body: str | None,
     body_file: str | None,
     parent_id: str | None,
-    profile: str | None,
+    status: str,
     output: str,
 ) -> None:
     """Create a new Confluence page."""
-    argv = [space_key, title]
+    argv = ["--space", space, "--title", title]
     if body:
         argv.extend(["--body", body])
     if body_file:
-        argv.extend(["--body-file", body_file])
+        argv.extend(["--file", body_file])
     if parent_id:
-        argv.extend(["--parent-id", parent_id])
-    if profile:
-        argv.extend(["--profile", profile])
+        argv.extend(["--parent", parent_id])
+    if status != "current":
+        argv.extend(["--status", status])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -89,13 +104,25 @@ def create_page(
 
 @page.command(name="update")
 @click.argument("page_id")
-@click.option("--title", help="New page title")
-@click.option("--body", help="New page body content")
-@click.option("--body-file", type=click.Path(exists=True), help="Read body from file")
-@click.option("--version-message", help="Version change message")
-@click.option("--profile", "-p", help="Confluence profile to use")
+@click.option("--title", "-t", help="New page title")
+@click.option("--body", "-b", help="New page body content")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--file",
+    "-f",
+    "body_file",
+    type=click.Path(exists=True),
+    help="Read body from file",
+)
+@click.option("--message", "-m", "version_message", help="Version change message")
+@click.option(
+    "--status", type=click.Choice(["current", "draft"]), help="Change page status"
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def update_page(
@@ -105,7 +132,7 @@ def update_page(
     body: str | None,
     body_file: str | None,
     version_message: str | None,
-    profile: str | None,
+    status: str | None,
     output: str,
 ) -> None:
     """Update an existing Confluence page."""
@@ -115,11 +142,11 @@ def update_page(
     if body:
         argv.extend(["--body", body])
     if body_file:
-        argv.extend(["--body-file", body_file])
+        argv.extend(["--file", body_file])
     if version_message:
-        argv.extend(["--version-message", version_message])
-    if profile:
-        argv.extend(["--profile", profile])
+        argv.extend(["--message", version_message])
+    if status:
+        argv.extend(["--status", status])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -128,54 +155,60 @@ def update_page(
 
 @page.command(name="delete")
 @click.argument("page_id")
-@click.option("--confirm", is_flag=True, help="Skip confirmation prompt")
-@click.option("--profile", "-p", help="Confluence profile to use")
+@click.option("--force", "-f", is_flag=True, help="Skip confirmation prompt")
+@click.option(
+    "--permanent", is_flag=True, help="Permanently delete (cannot be recovered)"
+)
 @click.pass_context
 def delete_page(
     ctx: click.Context,
     page_id: str,
-    confirm: bool,
-    profile: str | None,
+    force: bool,
+    permanent: bool,
 ) -> None:
     """Delete a Confluence page."""
     argv = [page_id]
-    if confirm:
-        argv.append("--confirm")
-    if profile:
-        argv.extend(["--profile", profile])
+    if force:
+        argv.append("--force")
+    if permanent:
+        argv.append("--permanent")
 
     ctx.exit(call_skill_main("confluence-page", "delete_page", argv))
 
 
 @page.command(name="copy")
 @click.argument("page_id")
-@click.option("--destination-space", help="Destination space key")
-@click.option("--destination-parent-id", help="Destination parent page ID")
-@click.option("--new-title", help="New title for copied page")
-@click.option("--profile", "-p", help="Confluence profile to use")
+@click.option("--title", "-t", help="New page title (default: 'Copy of [original]')")
+@click.option("--space", "-s", help="Target space key")
+@click.option("--parent", "-p", "parent_id", help="Target parent page ID")
+@click.option("--include-children", is_flag=True, help="Copy child pages recursively")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def copy_page(
     ctx: click.Context,
     page_id: str,
-    destination_space: str | None,
-    destination_parent_id: str | None,
-    new_title: str | None,
-    profile: str | None,
+    title: str | None,
+    space: str | None,
+    parent_id: str | None,
+    include_children: bool,
     output: str,
 ) -> None:
     """Copy a Confluence page."""
     argv = [page_id]
-    if destination_space:
-        argv.extend(["--destination-space", destination_space])
-    if destination_parent_id:
-        argv.extend(["--destination-parent-id", destination_parent_id])
-    if new_title:
-        argv.extend(["--new-title", new_title])
-    if profile:
-        argv.extend(["--profile", profile])
+    if title:
+        argv.extend(["--title", title])
+    if space:
+        argv.extend(["--space", space])
+    if parent_id:
+        argv.extend(["--parent", parent_id])
+    if include_children:
+        argv.append("--include-children")
     if output != "text":
         argv.extend(["--output", output])
 
@@ -184,29 +217,33 @@ def copy_page(
 
 @page.command(name="move")
 @click.argument("page_id")
-@click.option("--target-space", help="Target space key")
-@click.option("--target-parent-id", help="Target parent page ID")
-@click.option("--profile", "-p", help="Confluence profile to use")
+@click.option("--space", "-s", help="Target space key")
+@click.option("--parent", "-p", "parent_id", help="Target parent page ID")
+@click.option("--root", is_flag=True, help="Move to space root (no parent)")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def move_page(
     ctx: click.Context,
     page_id: str,
-    target_space: str | None,
-    target_parent_id: str | None,
-    profile: str | None,
+    space: str | None,
+    parent_id: str | None,
+    root: bool,
     output: str,
 ) -> None:
     """Move a Confluence page."""
     argv = [page_id]
-    if target_space:
-        argv.extend(["--target-space", target_space])
-    if target_parent_id:
-        argv.extend(["--target-parent-id", target_parent_id])
-    if profile:
-        argv.extend(["--profile", profile])
+    if space:
+        argv.extend(["--space", space])
+    if parent_id:
+        argv.extend(["--parent", parent_id])
+    if root:
+        argv.append("--root")
     if output != "text":
         argv.extend(["--output", output])
 
@@ -215,25 +252,35 @@ def move_page(
 
 @page.command(name="versions")
 @click.argument("page_id")
-@click.option("--limit", "-l", type=int, default=10, help="Maximum versions to show")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--limit",
+    "-l",
+    type=int,
+    default=25,
+    help="Maximum versions to return (default: 25)",
+)
+@click.option("--detailed", is_flag=True, help="Show full version details")
+@click.option(
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_page_versions(
     ctx: click.Context,
     page_id: str,
     limit: int,
-    profile: str | None,
+    detailed: bool,
     output: str,
 ) -> None:
     """Get version history for a page."""
     argv = [page_id]
-    if limit != 10:
+    if limit != 25:
         argv.extend(["--limit", str(limit)])
-    if profile:
-        argv.extend(["--profile", profile])
+    if detailed:
+        argv.append("--detailed")
     if output != "text":
         argv.extend(["--output", output])
 
@@ -242,11 +289,16 @@ def get_page_versions(
 
 @page.command(name="restore")
 @click.argument("page_id")
-@click.argument("version", type=int)
-@click.option("--message", help="Restore message")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--version", "-v", type=int, required=True, help="Version number to restore"
+)
+@click.option("--message", "-m", help="Version message for the restoration")
+@click.option(
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def restore_version(
@@ -254,15 +306,12 @@ def restore_version(
     page_id: str,
     version: int,
     message: str | None,
-    profile: str | None,
     output: str,
 ) -> None:
     """Restore a page to a previous version."""
-    argv = [page_id, str(version)]
+    argv = [page_id, "--version", str(version)]
     if message:
         argv.extend(["--message", message])
-    if profile:
-        argv.extend(["--profile", profile])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -279,24 +328,34 @@ def blog() -> None:
 @blog.command(name="get")
 @click.argument("blogpost_id")
 @click.option("--body", is_flag=True, help="Include body content")
-@click.option("--profile", "-p", help="Confluence profile to use")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--format",
+    "body_format",
+    type=click.Choice(["storage", "view", "markdown"]),
+    default="storage",
+    help="Body format (default: storage)",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def get_blogpost(
     ctx: click.Context,
     blogpost_id: str,
     body: bool,
-    profile: str | None,
+    body_format: str,
     output: str,
 ) -> None:
     """Get a blog post by ID."""
     argv = [blogpost_id]
     if body:
         argv.append("--body")
-    if profile:
-        argv.extend(["--profile", profile])
+    if body_format != "storage":
+        argv.extend(["--format", body_format])
     if output != "text":
         argv.extend(["--output", output])
 
@@ -304,32 +363,47 @@ def get_blogpost(
 
 
 @blog.command(name="create")
-@click.argument("space_key")
-@click.argument("title")
-@click.option("--body", help="Blog post body content")
-@click.option("--body-file", type=click.Path(exists=True), help="Read body from file")
-@click.option("--profile", "-p", help="Confluence profile to use")
+@click.option("--space", "-s", required=True, help="Space key")
+@click.option("--title", "-t", required=True, help="Blog post title")
+@click.option("--body", "-b", help="Blog post body content")
 @click.option(
-    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+    "--file",
+    "-f",
+    "body_file",
+    type=click.Path(exists=True),
+    help="Read body from file",
+)
+@click.option(
+    "--status",
+    type=click.Choice(["current", "draft"]),
+    default="current",
+    help="Blog post status",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
 @click.pass_context
 def create_blogpost(
     ctx: click.Context,
-    space_key: str,
+    space: str,
     title: str,
     body: str | None,
     body_file: str | None,
-    profile: str | None,
+    status: str,
     output: str,
 ) -> None:
     """Create a new blog post."""
-    argv = [space_key, title]
+    argv = ["--space", space, "--title", title]
     if body:
         argv.extend(["--body", body])
     if body_file:
-        argv.extend(["--body-file", body_file])
-    if profile:
-        argv.extend(["--profile", profile])
+        argv.extend(["--file", body_file])
+    if status != "current":
+        argv.extend(["--status", status])
     if output != "text":
         argv.extend(["--output", output])
 

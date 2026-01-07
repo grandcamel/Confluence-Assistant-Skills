@@ -96,7 +96,6 @@ All commands support these global options:
 
 | Option | Description |
 |--------|-------------|
-| `--profile, -p` | Configuration profile to use |
 | `--output, -o` | Output format: `text` or `json` |
 | `--verbose, -v` | Enable verbose output |
 | `--quiet, -q` | Suppress non-essential output |
@@ -133,48 +132,21 @@ from confluence_assistant_skills_lib import (
 
 ## Configuration System
 
-### Configuration Priority (highest to lowest)
-
-1. **Environment variables** - Override everything
-2. **settings.local.json** - Personal settings (gitignored)
-3. **settings.json** - Team defaults (committed)
-4. **Built-in defaults** - Fallback values
-
 ### Environment Variables
+
+All configuration is done through environment variables:
 
 ```bash
 export CONFLUENCE_SITE_URL="https://your-site.atlassian.net"
 export CONFLUENCE_EMAIL="your-email@example.com"
 export CONFLUENCE_API_TOKEN="your-api-token"
-export CONFLUENCE_PROFILE="production"  # Optional, defaults to "default"
 ```
 
-### Profile Configuration
-
-Profiles allow switching between different Confluence instances:
-
-```json
-{
-  "confluence": {
-    "default_profile": "production",
-    "profiles": {
-      "production": {
-        "url": "https://company.atlassian.net",
-        "default_space": "DOCS"
-      },
-      "sandbox": {
-        "url": "https://company-sandbox.atlassian.net",
-        "default_space": "TEST"
-      }
-    }
-  }
-}
-```
-
-Use profiles:
-```bash
-confluence page get 12345 --profile sandbox
-```
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `CONFLUENCE_SITE_URL` | Yes | Confluence Cloud site URL (e.g., `https://your-site.atlassian.net`) |
+| `CONFLUENCE_EMAIL` | Yes | Atlassian account email for API authentication |
+| `CONFLUENCE_API_TOKEN` | Yes | API token from [Atlassian Account Settings](https://id.atlassian.com/manage-profile/security/api-tokens) |
 
 ## Error Handling Strategy
 
@@ -259,7 +231,7 @@ Tests are configured via centralized files at the project root:
 - `pytest.ini` - Test paths, markers, import mode (`--import-mode=importlib`)
 - `conftest.py` - Shared fixtures (`temp_path`, `temp_dir`) and pytest hooks
 
-The `--profile` and `--live` options are defined in the root `conftest.py` and available to all tests.
+The `--live` option is defined in the root `conftest.py` and available to all tests.
 
 ### Unit Tests
 
@@ -281,18 +253,16 @@ pytest --cov=confluence_assistant_skills_lib --cov-report=html
 
 ```bash
 # Run all live integration tests
-pytest .claude/skills/*/tests/live_integration/ --profile=sandbox -v
+pytest .claude/skills/*/tests/live_integration/ --live -v
 
 # Run live tests for a specific skill
-pytest .claude/skills/confluence-page/tests/live_integration/ \
-    --profile=sandbox \
-    -v
+pytest .claude/skills/confluence-page/tests/live_integration/ --live -v
 
 # Use existing space instead of creating temporary one
-pytest --profile=sandbox --space-key=EXISTING -v
+pytest --live --space-key=EXISTING -v
 
 # Keep test space after tests (for debugging)
-pytest --profile=sandbox --keep-space -v
+pytest --live --keep-space -v
 
 # Skip destructive tests
 pytest --ignore-glob="**/test_delete*"
@@ -333,7 +303,6 @@ def main(argv: list[str] | None = None):
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument('space_key', help='Space key')
-    parser.add_argument('--profile', '-p', help='Confluence profile')
     parser.add_argument('--output', '-o', choices=['text', 'json'], default='text')
     args = parser.parse_args(argv)
 
@@ -341,7 +310,7 @@ def main(argv: list[str] | None = None):
     space_key = validate_space_key(args.space_key)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Perform operation
     result = client.get(f'/api/v2/spaces/{space_key}')
@@ -544,23 +513,9 @@ chore: update dependencies
 ### Setup
 
 1. Create a test space in your Confluence instance
-2. Configure a test profile:
-
-```json
-{
-  "confluence": {
-    "profiles": {
-      "test": {
-        "url": "https://your-site.atlassian.net",
-        "default_space": "TEST"
-      }
-    }
-  }
-}
-```
-
-3. Set credentials:
+2. Set environment variables:
 ```bash
+export CONFLUENCE_SITE_URL="https://your-site.atlassian.net"
 export CONFLUENCE_EMAIL="your-email@example.com"
 export CONFLUENCE_API_TOKEN="your-token"
 ```
@@ -569,25 +524,25 @@ export CONFLUENCE_API_TOKEN="your-token"
 
 ```bash
 # All live tests
-pytest .claude/skills/*/tests/live_integration/ --profile=test -v
+pytest .claude/skills/*/tests/live_integration/ --live -v
 
 # Specific skill
-pytest .claude/skills/confluence-page/tests/live_integration/ --profile=test -v
+pytest .claude/skills/confluence-page/tests/live_integration/ --live -v
 
 # With verbose output
-pytest -v -s --profile=test
+pytest -v -s --live
 
 # Use existing space (faster, no cleanup)
-pytest --profile=test --space-key=MYTEST -v
+pytest --live --space-key=MYTEST -v
 
 # Keep space after tests (for debugging)
-pytest --profile=test --keep-space -v
+pytest --live --keep-space -v
 ```
 
 ### Test Fixtures
 
 Shared fixtures are defined in:
-- **Root `conftest.py`** - `temp_path`, `temp_dir`, pytest hooks
+- **Root `conftest.py`** - `temp_path`, `temp_dir`, pytest hooks, `--live` option
 - **`.claude/skills/shared/tests/conftest.py`** - `mock_client`, `sample_page`, etc.
 - **`.claude/skills/shared/tests/live_integration/conftest.py`** - `confluence_client`, `test_space`, `test_page`
 

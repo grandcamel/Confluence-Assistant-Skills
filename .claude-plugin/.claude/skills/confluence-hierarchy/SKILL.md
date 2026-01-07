@@ -36,7 +36,6 @@ confluence hierarchy ancestors <page_id> --output json
 **Options:**
 - `--breadcrumb` - Display as breadcrumb path (Root > Parent > Current)
 - `--output` - Output format: text (default) or json
-- `--profile` - Confluence profile to use
 
 **Examples:**
 - Get ancestors: `confluence hierarchy ancestors 12345`
@@ -57,7 +56,6 @@ confluence hierarchy children <page_id> --sort title
 - `--limit` - Maximum number of children to retrieve (default: 25, max: 250)
 - `--sort` - Sort by: title, id, or created
 - `--output` - Output format: text (default) or json
-- `--profile` - Confluence profile to use
 
 **Examples:**
 - Get children: `confluence hierarchy children 12345`
@@ -77,7 +75,6 @@ confluence hierarchy descendants <page_id> --output json
 **Options:**
 - `--max-depth` - Maximum depth to traverse (default: unlimited)
 - `--output` - Output format: text (default) or json
-- `--profile` - Confluence profile to use
 
 **Examples:**
 - Get all descendants: `confluence hierarchy descendants 12345`
@@ -98,7 +95,6 @@ confluence hierarchy tree <page_id> --stats
 - `--max-depth` - Maximum depth to traverse (default: unlimited)
 - `--stats` - Show tree statistics (total pages, max depth, leaf pages)
 - `--output` - Output format: text (default) or json
-- `--profile` - Confluence profile to use
 
 **Examples:**
 - Get page tree: `confluence hierarchy tree 12345`
@@ -118,7 +114,6 @@ confluence hierarchy reorder <parent_id> --reverse
 **Options:**
 - `--order` - Comma-separated child page IDs in desired order
 - `--reverse` - Reverse current order
-- `--profile` - Confluence profile to use
 
 **Examples:**
 - Show current order: `confluence hierarchy reorder 12345`

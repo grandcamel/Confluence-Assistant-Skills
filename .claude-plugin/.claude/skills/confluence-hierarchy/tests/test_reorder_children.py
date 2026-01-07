@@ -2,12 +2,13 @@
 Unit tests for reorder_children.py
 """
 
-import pytest
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add scripts to path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 
 class TestReorderChildren:
@@ -17,17 +18,17 @@ class TestReorderChildren:
         """Test validating page order input."""
         # Valid comma-separated IDs
         order_str = "200,201,202"
-        page_ids = [id.strip() for id in order_str.split(',')]
+        page_ids = [id.strip() for id in order_str.split(",")]
 
         assert len(page_ids) == 3
-        assert page_ids == ['200', '201', '202']
+        assert page_ids == ["200", "201", "202"]
 
     def test_validate_all_numeric_ids(self):
         """Test that all IDs are numeric."""
         from confluence_assistant_skills_lib import validate_page_id
 
         order_str = "200,201,202"
-        page_ids = [id.strip() for id in order_str.split(',')]
+        page_ids = [id.strip() for id in order_str.split(",")]
 
         # All should be valid
         for page_id in page_ids:
@@ -55,13 +56,12 @@ class TestReorderChildren:
         new_order = ["200", "201", "202"]
 
         # Mock successful reorder
-        mock_client.setup_response('put', {'status': 'success'})
+        mock_client.setup_response("put", {"status": "success"})
 
         # Simulate API call (actual endpoint TBD)
         # PUT /api/v2/pages/{parent_id}/children/order
         result = mock_client.put(
-            f'/api/v2/pages/{parent_id}/children/order',
-            json_data={'order': new_order}
+            f"/api/v2/pages/{parent_id}/children/order", json_data={"order": new_order}
         )
 
         # Verify call was made
@@ -69,39 +69,39 @@ class TestReorderChildren:
 
     def test_verify_children_exist(self, mock_client, sample_children):
         """Test verifying all children exist before reordering."""
-        mock_client.setup_response('get', sample_children)
+        mock_client.setup_response("get", sample_children)
 
         # Get current children
-        result = mock_client.get('/api/v2/pages/123456/children')
-        current_children = result['results']
-        current_ids = [c['id'] for c in current_children]
+        result = mock_client.get("/api/v2/pages/123456/children")
+        current_children = result["results"]
+        current_ids = [c["id"] for c in current_children]
 
         # Verify proposed order contains valid IDs
-        proposed_order = ['200', '201']
+        proposed_order = ["200", "201"]
         for page_id in proposed_order:
             assert page_id in current_ids
 
     def test_reject_missing_children_in_order(self):
         """Test that order must include all children."""
         current_children = [
-            {'id': '200', 'title': 'Child 1'},
-            {'id': '201', 'title': 'Child 2'},
-            {'id': '202', 'title': 'Child 3'}
+            {"id": "200", "title": "Child 1"},
+            {"id": "201", "title": "Child 2"},
+            {"id": "202", "title": "Child 3"},
         ]
-        current_ids = set(c['id'] for c in current_children)
+        current_ids = {c["id"] for c in current_children}
 
         # Proposed order is missing one child
-        proposed_order = ['200', '201']
+        proposed_order = ["200", "201"]
         proposed_ids = set(proposed_order)
 
         # Should detect missing children
         missing = current_ids - proposed_ids
         assert len(missing) == 1
-        assert '202' in missing
+        assert "202" in missing
 
     def test_reject_duplicate_ids_in_order(self):
         """Test rejection of duplicate IDs in order."""
-        proposed_order = ['200', '201', '200']  # Duplicate
+        proposed_order = ["200", "201", "200"]  # Duplicate
 
         # Check for duplicates
         unique_ids = set(proposed_order)
@@ -112,33 +112,35 @@ class TestReorderChildren:
     def test_reject_extra_ids_in_order(self):
         """Test rejection of IDs not in current children."""
         current_children = [
-            {'id': '200', 'title': 'Child 1'},
-            {'id': '201', 'title': 'Child 2'}
+            {"id": "200", "title": "Child 1"},
+            {"id": "201", "title": "Child 2"},
         ]
-        current_ids = set(c['id'] for c in current_children)
+        current_ids = {c["id"] for c in current_children}
 
         # Proposed order includes non-existent child
-        proposed_order = ['200', '201', '999']
+        proposed_order = ["200", "201", "999"]
         proposed_ids = set(proposed_order)
 
         # Should detect extra IDs
         extra = proposed_ids - current_ids
         assert len(extra) == 1
-        assert '999' in extra
+        assert "999" in extra
 
     def test_reorder_output_success(self):
         """Test success message format."""
         parent_id = "123456"
-        new_order = ['200', '201', '202']
+        new_order = ["200", "201", "202"]
 
-        message = f"Successfully reordered {len(new_order)} children of page {parent_id}"
-        assert 'Successfully reordered 3 children' in message
+        message = (
+            f"Successfully reordered {len(new_order)} children of page {parent_id}"
+        )
+        assert "Successfully reordered 3 children" in message
 
     def test_preserve_order_specification(self):
         """Test that specified order is preserved."""
-        proposed_order = ['202', '200', '201']
+        proposed_order = ["202", "200", "201"]
 
         # Order should be exactly as specified
-        assert proposed_order[0] == '202'
-        assert proposed_order[1] == '200'
-        assert proposed_order[2] == '201'
+        assert proposed_order[0] == "202"
+        assert proposed_order[1] == "200"
+        assert proposed_order[2] == "201"

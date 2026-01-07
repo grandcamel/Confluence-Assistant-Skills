@@ -2,22 +2,22 @@
 Confluence Analytics Skill - Test Configuration
 """
 
-import sys
 import json
-import pytest
-from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from typing import Optional
+from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 
 
 @pytest.fixture
 def mock_response():
     """Factory for creating mock HTTP responses."""
+
     def _create_response(
         status_code: int = 200,
-        json_data: dict = None,
+        json_data: Optional[dict] = None,
         text: str = "",
-        headers: dict = None,
+        headers: Optional[dict] = None,
     ):
         response = Mock()
         response.status_code = status_code
@@ -40,11 +40,11 @@ def mock_client(mock_response):
     """Create a mock Confluence client."""
     from confluence_assistant_skills_lib import ConfluenceClient
 
-    with patch.object(ConfluenceClient, '_create_session'):
+    with patch.object(ConfluenceClient, "_create_session"):
         client = ConfluenceClient(
             base_url="https://test.atlassian.net",
             email="test@example.com",
-            api_token="test-token"
+            api_token="test-token",
         )
 
         client.session = MagicMock()
@@ -70,9 +70,9 @@ def sample_page():
         "history": {
             "latest": True,
             "createdBy": {"displayName": "John Doe"},
-            "createdDate": "2024-01-01T10:00:00.000Z"
+            "createdDate": "2024-01-01T10:00:00.000Z",
         },
-        "_links": {"webui": "/wiki/spaces/TEST/pages/123456"}
+        "_links": {"webui": "/wiki/spaces/TEST/pages/123456"},
     }
 
 
@@ -86,7 +86,7 @@ def sample_page_history():
         "version": {
             "number": 5,
             "when": "2024-01-15T10:30:00.000Z",
-            "by": {"displayName": "John Doe"}
+            "by": {"displayName": "John Doe"},
         },
         "history": {
             "latest": True,
@@ -96,11 +96,11 @@ def sample_page_history():
                 "publishers": {
                     "users": [
                         {"displayName": "John Doe", "username": "jdoe"},
-                        {"displayName": "Jane Smith", "username": "jsmith"}
+                        {"displayName": "Jane Smith", "username": "jsmith"},
                     ]
                 }
-            }
-        }
+            },
+        },
     }
 
 
@@ -115,7 +115,7 @@ def sample_search_results():
                     "type": "page",
                     "title": "Popular Page 1",
                     "space": {"key": "TEST"},
-                    "_links": {"webui": "/wiki/spaces/TEST/pages/123456"}
+                    "_links": {"webui": "/wiki/spaces/TEST/pages/123456"},
                 }
             },
             {
@@ -124,14 +124,14 @@ def sample_search_results():
                     "type": "page",
                     "title": "Popular Page 2",
                     "space": {"key": "TEST"},
-                    "_links": {"webui": "/wiki/spaces/TEST/pages/123457"}
+                    "_links": {"webui": "/wiki/spaces/TEST/pages/123457"},
                 }
-            }
+            },
         ],
         "start": 0,
         "limit": 25,
         "size": 2,
-        "_links": {}
+        "_links": {},
     }
 
 
@@ -146,8 +146,8 @@ def sample_watchers():
                     "type": "known",
                     "accountId": "user1",
                     "email": "user1@example.com",
-                    "displayName": "User One"
-                }
+                    "displayName": "User One",
+                },
             },
             {
                 "type": "known",
@@ -155,11 +155,11 @@ def sample_watchers():
                     "type": "known",
                     "accountId": "user2",
                     "email": "user2@example.com",
-                    "displayName": "User Two"
-                }
-            }
+                    "displayName": "User Two",
+                },
+            },
         ],
         "start": 0,
         "limit": 25,
-        "size": 2
+        "size": 2,
     }

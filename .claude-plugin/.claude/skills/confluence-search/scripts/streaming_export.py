@@ -10,22 +10,29 @@ Examples:
     python streaming_export.py "space = 'DOCS'" --output docs.csv --resume
 """
 
-import sys
 import argparse
-import json
 import csv
+import json
+import sys
 import time
-from pathlib import Path
 from datetime import datetime, timezone
+from pathlib import Path
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, ValidationError, validate_cql,
-    validate_file_path, print_success, print_info, print_warning,
+    ValidationError,
+    get_confluence_client,
+    handle_errors,
+    print_info,
+    print_success,
+    print_warning,
+    validate_cql,
 )
 
 
 def get_checkpoint_path(output_file):
     """Get path to checkpoint file for given output file."""
-    return Path(str(output_file) + '.checkpoint')
+    return Path(str(output_file) + ".checkpoint")
+
 
 def load_checkpoint(output_file):
     """
@@ -48,7 +55,10 @@ def load_checkpoint(output_file):
         print_warning(f"Could not load checkpoint: {e}")
         return None
 
-def save_checkpoint(output_file, cql, last_start, total_exported, batch_size, export_format):
+
+def save_checkpoint(
+    output_file, cql, last_start, total_exported, batch_size, export_format
+):
     """
     Save checkpoint data.
 
@@ -69,10 +79,11 @@ def save_checkpoint(output_file, cql, last_start, total_exported, batch_size, ex
         "total_exported": total_exported,
         "batch_size": batch_size,
         "format": export_format,
-        "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
 
     checkpoint_file.write_text(json.dumps(checkpoint, indent=2))
+
 
 def delete_checkpoint(output_file):
     """Delete checkpoint file."""
@@ -80,6 +91,7 @@ def delete_checkpoint(output_file):
 
     if checkpoint_file.exists():
         checkpoint_file.unlink()
+
 
 def extract_record(result):
     """
@@ -92,33 +104,34 @@ def extract_record(result):
         Dict of record data
     """
     # Handle both v1 search results and direct content
-    content = result.get('content', result)
+    content = result.get("content", result)
 
     record = {
-        'id': content.get('id', ''),
-        'type': content.get('type', ''),
-        'title': content.get('title', ''),
+        "id": content.get("id", ""),
+        "type": content.get("type", ""),
+        "title": content.get("title", ""),
     }
 
     # Space info
-    space = content.get('space', {})
+    space = content.get("space", {})
     if isinstance(space, dict):
-        record['space'] = space.get('key', space.get('id', ''))
+        record["space"] = space.get("key", space.get("id", ""))
     else:
-        record['space'] = str(space) if space else ''
+        record["space"] = str(space) if space else ""
 
     # Dates
-    record['created'] = content.get('createdAt', content.get('created', ''))
-    record['lastModified'] = result.get('lastModified', '')
+    record["created"] = content.get("createdAt", content.get("created", ""))
+    record["lastModified"] = result.get("lastModified", "")
 
     # URL
-    links = content.get('_links', {})
-    record['url'] = links.get('webui', '')
+    links = content.get("_links", {})
+    record["url"] = links.get("webui", "")
 
     # Excerpt (if available)
-    record['excerpt'] = result.get('excerpt', '')
+    record["excerpt"] = result.get("excerpt", "")
 
     return record
+
 
 def export_batch_csv(records, output_file, columns, is_first_batch):
     """
@@ -130,16 +143,17 @@ def export_batch_csv(records, output_file, columns, is_first_batch):
         columns: List of column names
         is_first_batch: Whether this is the first batch (write headers)
     """
-    mode = 'w' if is_first_batch else 'a'
+    mode = "w" if is_first_batch else "a"
 
-    with open(output_file, mode, newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=columns, extrasaction='ignore')
+    with output_file.open(mode, newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=columns, extrasaction="ignore")
 
         if is_first_batch:
             writer.writeheader()
 
         for record in records:
             writer.writerow(record)
+
 
 def export_batch_json(records, output_file, is_first_batch, is_last_batch):
     """
@@ -151,28 +165,27 @@ def export_batch_json(records, output_file, is_first_batch, is_last_batch):
         is_first_batch: Whether this is the first batch
         is_last_batch: Whether this is the last batch
     """
-    mode = 'w' if is_first_batch else 'a'
+    mode = "w" if is_first_batch else "a"
 
-    with open(output_file, mode, encoding='utf-8') as f:
+    with output_file.open(mode, encoding="utf-8") as f:
         if is_first_batch:
-            f.write('[\n')
+            f.write("[\n")
 
         for i, record in enumerate(records):
-            if not is_first_batch and i == 0:
-                f.write(',\n')
-            elif i > 0:
-                f.write(',\n')
+            if (not is_first_batch and i == 0) or i > 0:
+                f.write(",\n")
 
-            f.write('  ' + json.dumps(record, ensure_ascii=False))
+            f.write("  " + json.dumps(record, ensure_ascii=False))
 
         if is_last_batch:
-            f.write('\n]\n')
+            f.write("\n]\n")
+
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Export large search result sets with streaming',
-        epilog='''
+        description="Export large search result sets with streaming",
+        epilog="""
 Examples:
   # Export all pages in DOCS space to CSV
   python streaming_export.py "space = 'DOCS' AND type = page" --output docs.csv
@@ -185,22 +198,27 @@ Examples:
 
   # Custom batch size
   python streaming_export.py "type = page" --output pages.csv --batch-size 50
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    parser.add_argument('cql', help='CQL query')
-    parser.add_argument('--output', '-o', required=True,
-                        help='Output file path (CSV or JSON)')
-    parser.add_argument('--format', '-f', choices=['csv', 'json'],
-                        help='Output format (default: inferred from file extension)')
-    parser.add_argument('--columns', help='Comma-separated list of columns for CSV')
-    parser.add_argument('--batch-size', type=int, default=100,
-                        help='Records per batch (default: 100)')
-    parser.add_argument('--resume', action='store_true',
-                        help='Resume from last checkpoint')
-    parser.add_argument('--profile', help='Confluence profile to use')
-
+    parser.add_argument("cql", help="CQL query")
+    parser.add_argument(
+        "--output", "-o", required=True, help="Output file path (CSV or JSON)"
+    )
+    parser.add_argument(
+        "--format",
+        "-f",
+        choices=["csv", "json"],
+        help="Output format (default: inferred from file extension)",
+    )
+    parser.add_argument("--columns", help="Comma-separated list of columns for CSV")
+    parser.add_argument(
+        "--batch-size", type=int, default=100, help="Records per batch (default: 100)"
+    )
+    parser.add_argument(
+        "--resume", action="store_true", help="Resume from last checkpoint"
+    )
     args = parser.parse_args(argv)
 
     # Determine format
@@ -210,10 +228,10 @@ Examples:
     if not export_format:
         # Infer from extension
         ext = output_file.suffix.lower()
-        if ext == '.json':
-            export_format = 'json'
-        elif ext == '.csv':
-            export_format = 'csv'
+        if ext == ".json":
+            export_format = "json"
+        elif ext == ".csv":
+            export_format = "csv"
         else:
             raise ValidationError(
                 "Could not infer format from file extension. "
@@ -227,10 +245,10 @@ Examples:
 
     # Parse columns
     if args.columns:
-        columns = [c.strip() for c in args.columns.split(',')]
+        columns = [c.strip() for c in args.columns.split(",")]
     else:
         # Default columns
-        columns = ['id', 'type', 'title', 'space', 'created', 'lastModified', 'url']
+        columns = ["id", "type", "title", "space", "created", "lastModified", "url"]
 
     # Check for resume
     checkpoint = None
@@ -238,20 +256,24 @@ Examples:
         checkpoint = load_checkpoint(output_file)
 
         if checkpoint:
-            print_info(f"Resuming from checkpoint: {checkpoint['total_exported']} records exported")
+            print_info(
+                f"Resuming from checkpoint: {checkpoint['total_exported']} records exported"
+            )
 
             # Verify query matches
-            if checkpoint['cql'] != args.cql:
-                print_warning("CQL query differs from checkpoint. Starting fresh export.")
+            if checkpoint["cql"] != args.cql:
+                print_warning(
+                    "CQL query differs from checkpoint. Starting fresh export."
+                )
                 checkpoint = None
         else:
             print_warning("No checkpoint found. Starting fresh export.")
 
     # Determine starting position
     if checkpoint:
-        start = checkpoint['last_start'] + checkpoint['batch_size']
-        total_exported = checkpoint['total_exported']
-        cql = checkpoint['cql']
+        start = checkpoint["last_start"] + checkpoint["batch_size"]
+        total_exported = checkpoint["total_exported"]
+        cql = checkpoint["cql"]
         is_first_batch = False
     else:
         start = 0
@@ -261,10 +283,10 @@ Examples:
 
         # Clear output file if starting fresh
         if output_file.exists() and not args.resume:
-            print_warning(f"Output file exists. Will be overwritten.")
+            print_warning("Output file exists. Will be overwritten.")
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     print_info(f"Exporting results for: {cql}")
     print_info(f"Output: {output_file} ({export_format})")
@@ -282,15 +304,17 @@ Examples:
 
             # Fetch batch
             params = {
-                'cql': cql,
-                'limit': batch_size,
-                'start': start,
-                'expand': 'content.space'
+                "cql": cql,
+                "limit": batch_size,
+                "start": start,
+                "expand": "content.space",
             }
 
-            response = client.get('/rest/api/search', params=params, operation='CQL search')
+            response = client.get(
+                "/rest/api/search", params=params, operation="CQL search"
+            )
 
-            results = response.get('results', [])
+            results = response.get("results", [])
 
             if not results:
                 has_more = False
@@ -300,7 +324,7 @@ Examples:
             records = [extract_record(r) for r in results]
 
             # Export batch
-            if export_format == 'csv':
+            if export_format == "csv":
                 export_batch_csv(records, output_file, columns, is_first_batch)
             else:
                 # Check if this is the last batch
@@ -313,7 +337,9 @@ Examples:
             is_first_batch = False
 
             # Save checkpoint
-            save_checkpoint(output_file, cql, start, total_exported, batch_size, export_format)
+            save_checkpoint(
+                output_file, cql, start, total_exported, batch_size, export_format
+            )
 
             # Show progress
             elapsed = time.time() - start_time
@@ -331,7 +357,9 @@ Examples:
     except KeyboardInterrupt:
         print()
         print_warning("Export interrupted. Checkpoint saved.")
-        print_info(f"Resume with: python streaming_export.py \"{cql}\" --output {output_file} --resume")
+        print_info(
+            f'Resume with: python streaming_export.py "{cql}" --output {output_file} --resume'
+        )
         sys.exit(1)
 
     except Exception as e:
@@ -345,13 +373,14 @@ Examples:
     # Final stats
     elapsed = time.time() - start_time
     print()
-    print("="*60)
+    print("=" * 60)
     print_success(f"Export complete: {total_exported} records")
     print_info(f"Output file: {output_file}")
     print_info(f"Format: {export_format}")
     print_info(f"Time: {elapsed:.1f} seconds")
-    print_info(f"Rate: {total_exported/elapsed:.1f} records/second")
-    print("="*60)
+    print_info(f"Rate: {total_exported / elapsed:.1f} records/second")
+    print("=" * 60)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

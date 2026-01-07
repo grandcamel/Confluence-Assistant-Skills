@@ -39,9 +39,9 @@ def get_skills_root_dir() -> Path:
         return cwd_skills
 
     raise RuntimeError(
-        f"Could not locate skills directory. "
-        f"Set CONFLUENCE_SKILLS_ROOT environment variable or ensure "
-        f".claude-plugin/.claude/skills exists in the current directory."
+        "Could not locate skills directory. "
+        "Set CONFLUENCE_SKILLS_ROOT environment variable or ensure "
+        ".claude-plugin/.claude/skills exists in the current directory."
     )
 
 
@@ -80,7 +80,7 @@ def run_skill_script_subprocess(
     if not script_path.exists():
         raise FileNotFoundError(f"Script not found: {script_path}")
 
-    command = [sys.executable, str(script_path)] + argv
+    command = [sys.executable, str(script_path), *argv]
 
     try:
         result = subprocess.run(
@@ -154,7 +154,9 @@ def call_skill_main(
             result = module.main(argv)
             return 0 if result is None else int(result)
 
-        raise AttributeError(f"Module {script_name} has no 'main' or 'execute_skill' function")
+        raise AttributeError(
+            f"Module {script_name} has no 'main' or 'execute_skill' function"
+        )
 
     except click.exceptions.Exit as e:
         # Script exited via Click - return the exit code (don't treat as error)

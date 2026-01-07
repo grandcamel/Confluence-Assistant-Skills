@@ -3,7 +3,6 @@ Unit tests for delete_property.py
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
 
 
 class TestDeleteProperty:
@@ -11,29 +10,33 @@ class TestDeleteProperty:
 
     def test_delete_property_success(self, mock_client):
         """Test successful deletion of a property."""
-        mock_client.setup_response('delete', {})
+        mock_client.setup_response("delete", {})
 
-        result = mock_client.delete('/rest/api/content/12345/property/my-property')
+        result = mock_client.delete("/rest/api/content/12345/property/my-property")
 
         # DELETE typically returns empty response on success
         assert result == {}
 
     def test_delete_property_not_found(self, mock_client):
         """Test deletion of non-existent property."""
-        mock_client.setup_response('delete', {'message': 'Property not found'}, status_code=404)
+        mock_client.setup_response(
+            "delete", {"message": "Property not found"}, status_code=404
+        )
 
         # Would verify NotFoundError is raised
 
     def test_delete_property_invalid_content_id(self):
         """Test deletion with invalid content ID."""
-        from confluence_assistant_skills_lib import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("")
 
     def test_delete_property_permission_denied(self, mock_client):
         """Test deletion without permission."""
-        mock_client.setup_response('delete', {'message': 'Permission denied'}, status_code=403)
+        mock_client.setup_response(
+            "delete", {"message": "Permission denied"}, status_code=403
+        )
 
         # Would verify PermissionError is raised
 
@@ -54,16 +57,16 @@ class TestDeleteMultipleProperties:
     def test_delete_all_properties_by_prefix(self, mock_client, sample_properties):
         """Test deleting properties matching a prefix."""
         # First get all properties
-        mock_client.setup_response('get', sample_properties)
+        mock_client.setup_response("get", sample_properties)
 
-        properties = mock_client.get('/rest/api/content/12345/property')
+        properties = mock_client.get("/rest/api/content/12345/property")
 
         # Filter by prefix
         prefix = "property-"
-        matching = [p for p in properties['results'] if p['key'].startswith(prefix)]
+        matching = [p for p in properties["results"] if p["key"].startswith(prefix)]
 
         assert len(matching) == 2
-        assert all(p['key'].startswith(prefix) for p in matching)
+        assert all(p["key"].startswith(prefix) for p in matching)
 
     def test_confirm_deletion_required(self):
         """Test that deletion requires confirmation for safety."""

@@ -3,7 +3,6 @@ Unit tests for unwatch_page.py
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
 
 
 class TestUnwatchPage:
@@ -11,35 +10,32 @@ class TestUnwatchPage:
 
     def test_unwatch_page_success(self, mock_client):
         """Test successful page unwatching."""
-        mock_client.setup_response('delete', {})
+        mock_client.setup_response("delete", {})
 
         result = mock_client.delete(
-            f'/rest/api/user/watch/content/123456',
-            operation='unwatch page'
+            "/rest/api/user/watch/content/123456", operation="unwatch page"
         )
 
-        assert result == {} or result.get('success') is True
+        assert result == {} or result.get("success") is True
 
     def test_unwatch_page_not_watching(self, mock_client):
         """Test unwatching a page that wasn't being watched."""
         # API should return success even if not watching
-        mock_client.setup_response('delete', {})
+        mock_client.setup_response("delete", {})
 
         result = mock_client.delete(
-            f'/rest/api/user/watch/content/123456',
-            operation='unwatch page'
+            "/rest/api/user/watch/content/123456", operation="unwatch page"
         )
 
         # Should succeed without error
-        assert result == {} or result.get('success') is True
+        assert result == {} or result.get("success") is True
 
     def test_unwatch_page_not_found(self, mock_client, mock_response):
         """Test unwatching a non-existent page."""
         from confluence_assistant_skills_lib import handle_confluence_error
 
         error_response = mock_response(
-            status_code=404,
-            json_data={"message": "Page not found"}
+            status_code=404, json_data={"message": "Page not found"}
         )
 
         with pytest.raises(Exception):
@@ -47,7 +43,7 @@ class TestUnwatchPage:
 
     def test_unwatch_page_validation(self):
         """Test page ID validation."""
-        from confluence_assistant_skills_lib import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("")

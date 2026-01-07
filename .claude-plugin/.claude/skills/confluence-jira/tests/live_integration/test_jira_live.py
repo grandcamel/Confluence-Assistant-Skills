@@ -5,50 +5,47 @@ Tests JIRA integration operations against a real Confluence instance.
 Note: These tests require a connected JIRA instance.
 
 Usage:
-    pytest test_jira_live.py --profile development -v
+    pytest test_jira_live.py --live -v
 """
 
-import pytest
+import contextlib
 import uuid
-import sys
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
-def pytest_addoption(parser):
-    try:
-        parser.addoption("--profile", action="store", default=None, help="Confluence profile")
-    except ValueError:
-        pass
 
 @pytest.fixture(scope="session")
-def confluence_client(request):
-    profile = request.config.getoption("--profile", default=None)
-    return get_confluence_client(profile=profile)
+def confluence_client():
+    return get_confluence_client()
+
 
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': f'JIRA Test Page {uuid.uuid4().hex[:8]}',
-            'body': {'representation': 'storage', 'value': '<p>Test.</p>'}
-        }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": f"JIRA Test Page {uuid.uuid4().hex[:8]}",
+            "body": {"representation": "storage", "value": "<p>Test.</p>"},
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.mark.integration
 class TestEmbedJiraIssueLive:
@@ -58,58 +55,59 @@ class TestEmbedJiraIssueLive:
         """Test creating a page with a JIRA issue macro."""
         # This creates a page with JIRA macro - the macro may not render
         # if JIRA isn't connected, but the page should still be created
-        jira_macro = '''
+        jira_macro = """
         <ac:structured-macro ac:name="jira">
             <ac:parameter ac:name="server">System JIRA</ac:parameter>
             <ac:parameter ac:name="key">TEST-1</ac:parameter>
         </ac:structured-macro>
-        '''
+        """
 
         page = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': f'JIRA Embed Test {uuid.uuid4().hex[:8]}',
-                'body': {
-                    'representation': 'storage',
-                    'value': f'<p>Issue below:</p>{jira_macro}'
-                }
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": f"JIRA Embed Test {uuid.uuid4().hex[:8]}",
+                "body": {
+                    "representation": "storage",
+                    "value": f"<p>Issue below:</p>{jira_macro}",
+                },
+            },
         )
 
         try:
-            assert page['id'] is not None
+            assert page["id"] is not None
         finally:
             confluence_client.delete(f"/api/v2/pages/{page['id']}")
 
     def test_create_page_with_jira_filter(self, confluence_client, test_space):
         """Test creating a page with a JIRA filter/JQL macro."""
-        jql_macro = '''
+        jql_macro = """
         <ac:structured-macro ac:name="jira">
             <ac:parameter ac:name="server">System JIRA</ac:parameter>
             <ac:parameter ac:name="jqlQuery">project = TEST</ac:parameter>
             <ac:parameter ac:name="maximumIssues">5</ac:parameter>
         </ac:structured-macro>
-        '''
+        """
 
         page = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': f'JQL Filter Test {uuid.uuid4().hex[:8]}',
-                'body': {
-                    'representation': 'storage',
-                    'value': f'<p>Filter results:</p>{jql_macro}'
-                }
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": f"JQL Filter Test {uuid.uuid4().hex[:8]}",
+                "body": {
+                    "representation": "storage",
+                    "value": f"<p>Filter results:</p>{jql_macro}",
+                },
+            },
         )
 
         try:
-            assert page['id'] is not None
+            assert page["id"] is not None
         finally:
             confluence_client.delete(f"/api/v2/pages/{page['id']}")
+
 
 @pytest.mark.integration
 class TestGetLinkedIssuesLive:
@@ -122,15 +120,16 @@ class TestGetLinkedIssuesLive:
         try:
             links = confluence_client.get(
                 f"/rest/api/content/{test_page['id']}",
-                params={'expand': 'metadata.properties'}
+                params={"expand": "metadata.properties"},
             )
 
-            assert 'id' in links
+            assert "id" in links
             # metadata may contain link properties
 
         except Exception:
             # JIRA integration may not be available
             pytest.skip("JIRA integration not available")
+
 
 @pytest.mark.integration
 class TestJiraApplicationLinkLive:
@@ -155,60 +154,61 @@ class TestJiraApplicationLinkLive:
         except Exception:
             pytest.skip("JIRA integration endpoint not available")
 
+
 @pytest.mark.integration
 class TestPageWithJiraContentLive:
     """Live tests for pages with JIRA-related content."""
 
     def test_update_page_with_jira_macro(self, confluence_client, test_page):
         """Test updating a page to add JIRA macro."""
-        version = test_page['version']['number']
+        version = test_page["version"]["number"]
 
-        jira_macro = '''
+        jira_macro = """
         <ac:structured-macro ac:name="jira">
             <ac:parameter ac:name="server">System JIRA</ac:parameter>
             <ac:parameter ac:name="key">DEMO-1</ac:parameter>
         </ac:structured-macro>
-        '''
+        """
 
         updated = confluence_client.put(
             f"/api/v2/pages/{test_page['id']}",
             json_data={
-                'id': test_page['id'],
-                'status': 'current',
-                'title': test_page['title'],
-                'version': {'number': version + 1},
-                'body': {
-                    'representation': 'storage',
-                    'value': f'<p>Updated with JIRA:</p>{jira_macro}'
-                }
-            }
+                "id": test_page["id"],
+                "status": "current",
+                "title": test_page["title"],
+                "version": {"number": version + 1},
+                "body": {
+                    "representation": "storage",
+                    "value": f"<p>Updated with JIRA:</p>{jira_macro}",
+                },
+            },
         )
 
-        assert updated['version']['number'] == version + 1
+        assert updated["version"]["number"] == version + 1
 
     def test_create_roadmap_macro(self, confluence_client, test_space):
         """Test creating a page with JIRA roadmap macro."""
-        roadmap_macro = '''
+        roadmap_macro = """
         <ac:structured-macro ac:name="jiraroadmap">
             <ac:parameter ac:name="server">System JIRA</ac:parameter>
             <ac:parameter ac:name="jqlQuery">project = DEMO</ac:parameter>
         </ac:structured-macro>
-        '''
+        """
 
         page = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': f'Roadmap Test {uuid.uuid4().hex[:8]}',
-                'body': {
-                    'representation': 'storage',
-                    'value': f'<p>Roadmap:</p>{roadmap_macro}'
-                }
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": f"Roadmap Test {uuid.uuid4().hex[:8]}",
+                "body": {
+                    "representation": "storage",
+                    "value": f"<p>Roadmap:</p>{roadmap_macro}",
+                },
+            },
         )
 
         try:
-            assert page['id'] is not None
+            assert page["id"] is not None
         finally:
             confluence_client.delete(f"/api/v2/pages/{page['id']}")

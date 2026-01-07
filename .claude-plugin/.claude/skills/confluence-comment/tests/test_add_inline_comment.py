@@ -3,7 +3,6 @@ Unit tests for add_inline_comment.py
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
 
 
 class TestAddInlineComment:
@@ -12,12 +11,12 @@ class TestAddInlineComment:
     def test_add_inline_comment_basic(self, mock_client, sample_comment):
         """Test adding an inline comment."""
         inline_comment = sample_comment.copy()
-        inline_comment['inlineProperties'] = {
-            'originalSelection': 'selected text',
-            'textSelection': 'selected text'
+        inline_comment["inlineProperties"] = {
+            "originalSelection": "selected text",
+            "textSelection": "selected text",
         }
 
-        mock_client.setup_response('post', inline_comment)
+        mock_client.setup_response("post", inline_comment)
 
         # Would verify POST /api/v2/pages/{page_id}/inline-comments
 
@@ -36,9 +35,8 @@ class TestAddInlineComment:
 
     def test_add_inline_comment_page_not_found(self, mock_client):
         """Test adding inline comment to non-existent page."""
-        from confluence_assistant_skills_lib import NotFoundError
 
-        mock_client.setup_response('post', {}, status_code=404)
+        mock_client.setup_response("post", {}, status_code=404)
         # Would verify NotFoundError is raised
 
 
@@ -47,7 +45,7 @@ class TestInlineCommentValidation:
 
     def test_page_id_required(self):
         """Test that page ID is required."""
-        from confluence_assistant_skills_lib import validate_page_id, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("")
@@ -66,5 +64,6 @@ class TestInlineCommentValidation:
         selection = "   "
         if not selection.strip():
             from confluence_assistant_skills_lib import ValidationError
+
             with pytest.raises(ValidationError):
                 raise ValidationError("Text selection is required")

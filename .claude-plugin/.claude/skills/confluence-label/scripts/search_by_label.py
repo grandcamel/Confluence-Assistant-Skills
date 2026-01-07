@@ -8,15 +8,24 @@ Examples:
     python search_by_label.py api --type page --limit 50
 """
 
-import sys
 import argparse
+from typing import Optional
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, validate_label, validate_space_key,
-    validate_limit, print_success, format_search_results, format_json,
+    format_json,
+    format_search_results,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+    validate_label,
+    validate_limit,
+    validate_space_key,
 )
 
 
-def build_cql_query(label: str, space: str = None, content_type: str = None) -> str:
+def build_cql_query(
+    label: str, space: Optional[str] = None, content_type: Optional[str] = None
+) -> str:
     """Build CQL query for label search."""
     query_parts = [f'label = "{label}"']
 
@@ -26,30 +35,44 @@ def build_cql_query(label: str, space: str = None, content_type: str = None) -> 
     if content_type:
         query_parts.append(f'type = "{content_type}"')
 
-    return ' AND '.join(query_parts)
+    return " AND ".join(query_parts)
+
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Search for Confluence content by label',
-        epilog='''
+        description="Search for Confluence content by label",
+        epilog="""
 Examples:
   python search_by_label.py documentation
   python search_by_label.py approved --space DOCS
   python search_by_label.py api --type page --limit 50
   python search_by_label.py tutorial --output json
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('label', help='Label to search for')
-    parser.add_argument('--space', '-s', help='Filter by space key')
-    parser.add_argument('--type', '-t', choices=['page', 'blogpost', 'comment'],
-                        help='Filter by content type')
-    parser.add_argument('--limit', '-l', type=int, default=25,
-                        help='Maximum number of results (default: 25)')
-    parser.add_argument('--profile', '-p', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("label", help="Label to search for")
+    parser.add_argument("--space", "-s", help="Filter by space key")
+    parser.add_argument(
+        "--type",
+        "-t",
+        choices=["page", "blogpost", "comment"],
+        help="Filter by content type",
+    )
+    parser.add_argument(
+        "--limit",
+        "-l",
+        type=int,
+        default=25,
+        help="Maximum number of results (default: 25)",
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate inputs
@@ -64,25 +87,26 @@ Examples:
     cql = build_cql_query(label_name, space=space_key, content_type=args.type)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Search using CQL
     results = []
     for result in client.paginate(
-        '/api/v2/search',
-        params={'cql': cql},
+        "/api/v2/search",
+        params={"cql": cql},
         limit=limit,
-        operation=f'search by label {label_name}'
+        operation=f"search by label {label_name}",
     ):
         results.append(result)
 
     # Output
-    if args.output == 'json':
+    if args.output == "json":
         print(format_json(results))
     else:
         print(format_search_results(results, show_labels=True))
         if results:
             print_success(f"Found {len(results)} result(s) with label '{label_name}'")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

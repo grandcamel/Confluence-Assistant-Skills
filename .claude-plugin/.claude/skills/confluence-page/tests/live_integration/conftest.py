@@ -2,44 +2,48 @@
 Shared fixtures for confluence-page live integration tests.
 Imports fixtures from shared conftest and adds skill-specific ones.
 
-Note: The --profile option is defined in the root conftest.py.
+Uses environment variables: CONFLUENCE_API_TOKEN, CONFLUENCE_EMAIL, CONFLUENCE_SITE_URL
 """
 
-import pytest
+import contextlib
 import uuid
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
+
 @pytest.fixture(scope="session")
 def confluence_client(request):
-    profile = request.config.getoption("--profile", default=None)
-    return get_confluence_client(profile=profile)
+    return get_confluence_client()
+
 
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': f'Test Page {uuid.uuid4().hex[:8]}',
-            'body': {'representation': 'storage', 'value': '<p>Test.</p>'}
-        }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": f"Test Page {uuid.uuid4().hex[:8]}",
+            "body": {"representation": "storage", "value": "<p>Test.</p>"},
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.fixture
 def current_user(confluence_client):
-    return confluence_client.get('/rest/api/user/current')
+    return confluence_client.get("/rest/api/user/current")

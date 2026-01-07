@@ -7,33 +7,43 @@ Examples:
     python restore_version.py 12345 --version 5 --message "Restoring to known good state"
 """
 
-import sys
 import argparse
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, ValidationError, validate_page_id,
-    print_success, print_warning, format_page, format_json,
+    ValidationError,
+    format_json,
+    format_page,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+    print_warning,
+    validate_page_id,
 )
 
 
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Restore a Confluence page to a previous version',
-        epilog='''
+        description="Restore a Confluence page to a previous version",
+        epilog="""
 Examples:
   python restore_version.py 12345 --version 5
   python restore_version.py 12345 --version 5 --message "Restoring"
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('page_id', help='Page ID')
-    parser.add_argument('--version', '-v', type=int, required=True,
-                        help='Version number to restore')
-    parser.add_argument('--message', '-m',
-                        help='Version message for the restoration')
-    parser.add_argument('--profile', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("page_id", help="Page ID")
+    parser.add_argument(
+        "--version", "-v", type=int, required=True, help="Version number to restore"
+    )
+    parser.add_argument("--message", "-m", help="Version message for the restoration")
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate
@@ -43,15 +53,12 @@ Examples:
         raise ValidationError("Version number must be at least 1")
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get current page info
-    current_page = client.get(
-        f'/api/v2/pages/{page_id}',
-        operation='get current page'
-    )
+    current_page = client.get(f"/api/v2/pages/{page_id}", operation="get current page")
 
-    current_version = current_page.get('version', {}).get('number', 1)
+    current_version = current_page.get("version", {}).get("number", 1)
 
     if args.version >= current_version:
         raise ValidationError(
@@ -62,15 +69,12 @@ Examples:
 
     # Get the historical version content using v1 API
     historical = client.get(
-        f'/rest/api/content/{page_id}',
-        params={
-            'version': args.version,
-            'expand': 'body.storage,version'
-        },
-        operation='get historical version'
+        f"/rest/api/content/{page_id}",
+        params={"version": args.version, "expand": "body.storage,version"},
+        operation="get historical version",
     )
 
-    historical_body = historical.get('body', {}).get('storage', {}).get('value', '')
+    historical_body = historical.get("body", {}).get("storage", {}).get("value", "")
 
     if not historical_body:
         raise ValidationError(f"Could not retrieve content for version {args.version}")
@@ -79,31 +83,25 @@ Examples:
     version_message = args.message or f"Restored to version {args.version}"
 
     restore_data = {
-        'id': page_id,
-        'status': current_page.get('status', 'current'),
-        'title': current_page.get('title'),
-        'version': {
-            'number': current_version + 1,
-            'message': version_message
-        },
-        'body': {
-            'representation': 'storage',
-            'value': historical_body
-        }
+        "id": page_id,
+        "status": current_page.get("status", "current"),
+        "title": current_page.get("title"),
+        "version": {"number": current_version + 1, "message": version_message},
+        "body": {"representation": "storage", "value": historical_body},
     }
 
     # Confirm
-    print_warning(f"Restoring page '{current_page.get('title')}' from version {current_version} to version {args.version}")
+    print_warning(
+        f"Restoring page '{current_page.get('title')}' from version {current_version} to version {args.version}"
+    )
 
     # Restore by creating a new version with old content
     result = client.put(
-        f'/api/v2/pages/{page_id}',
-        json_data=restore_data,
-        operation='restore version'
+        f"/api/v2/pages/{page_id}", json_data=restore_data, operation="restore version"
     )
 
     # Output
-    if args.output == 'json':
+    if args.output == "json":
         print(format_json(result))
     else:
         print(format_page(result))
@@ -113,5 +111,6 @@ Examples:
         f"New version number: {current_version + 1}"
     )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

@@ -2,22 +2,22 @@
 Confluence Attachment Skill - Test Configuration
 """
 
-import sys
 import json
-import pytest
-from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from typing import Optional
+from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 
 
 @pytest.fixture
 def mock_response():
     """Factory for creating mock HTTP responses."""
+
     def _create_response(
         status_code: int = 200,
-        json_data: dict = None,
+        json_data: Optional[dict] = None,
         text: str = "",
-        headers: dict = None,
+        headers: Optional[dict] = None,
     ):
         response = Mock()
         response.status_code = status_code
@@ -40,11 +40,11 @@ def mock_client(mock_response):
     """Create a mock Confluence client."""
     from confluence_assistant_skills_lib import ConfluenceClient
 
-    with patch.object(ConfluenceClient, '_create_session'):
+    with patch.object(ConfluenceClient, "_create_session"):
         client = ConfluenceClient(
             base_url="https://test.atlassian.net",
             email="test@example.com",
-            api_token="test-token"
+            api_token="test-token",
         )
 
         client.session = MagicMock()
@@ -69,11 +69,8 @@ def sample_attachment():
         "webuiLink": "/wiki/download/attachments/123456/test-file.pdf",
         "downloadLink": "/wiki/download/attachments/123456/test-file.pdf",
         "mediaType": "application/pdf",
-        "version": {
-            "number": 1,
-            "createdAt": "2024-01-01T00:00:00.000Z"
-        },
-        "pageId": "123456"
+        "version": {"number": 1, "createdAt": "2024-01-01T00:00:00.000Z"},
+        "pageId": "123456",
     }
 
 
@@ -85,7 +82,7 @@ def sample_page():
         "status": "current",
         "title": "Test Page",
         "spaceId": "789",
-        "_links": {"webui": "/wiki/spaces/TEST/pages/123456"}
+        "_links": {"webui": "/wiki/spaces/TEST/pages/123456"},
     }
 
 

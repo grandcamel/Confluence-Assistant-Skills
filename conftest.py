@@ -10,11 +10,10 @@ This root conftest.py centralizes:
 - Project structure fixtures
 """
 
-import json
-import pytest
 import tempfile
 from pathlib import Path
 
+import pytest
 
 # =============================================================================
 # PYTEST HOOKS
@@ -22,12 +21,6 @@ from pathlib import Path
 
 def pytest_addoption(parser):
     """Add custom command-line options."""
-    parser.addoption(
-        "--profile",
-        action="store",
-        default=None,
-        help="Confluence profile for live integration tests"
-    )
     parser.addoption(
         "--live",
         action="store_true",
@@ -45,9 +38,9 @@ def pytest_configure(config):
 
 
 def pytest_collection_modifyitems(config, items):
-    """Skip live tests unless --profile or --live is provided."""
-    if not config.getoption("--profile") and not config.getoption("--live"):
-        skip_live = pytest.mark.skip(reason="Need --profile or --live to run")
+    """Skip live tests unless --live is provided."""
+    if not config.getoption("--live"):
+        skip_live = pytest.mark.skip(reason="Need --live to run")
         for item in items:
             if "live" in item.keywords:
                 item.add_marker(skip_live)

@@ -2,33 +2,30 @@
 Live integration tests for JIRA roadmap macro operations.
 
 Usage:
-    pytest test_jira_roadmap_live.py --profile development -v
+    pytest test_jira_roadmap_live.py --live -v
 """
 
-import pytest
 import uuid
-import sys
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
-def pytest_addoption(parser):
-    try:
-        parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
 
 @pytest.fixture(scope="session")
-def confluence_client(request):
-    profile = request.config.getoption("--profile", default=None)
-    return get_confluence_client(profile=profile)
+def confluence_client():
+    return get_confluence_client()
+
 
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.mark.integration
 class TestJiraRoadmapLive:
@@ -38,7 +35,7 @@ class TestJiraRoadmapLive:
         """Test creating a roadmap-style table."""
         title = f"Roadmap Test {uuid.uuid4().hex[:8]}"
 
-        content = '''<table>
+        content = """<table>
             <tr>
                 <th>Quarter</th>
                 <th>Feature</th>
@@ -60,20 +57,20 @@ class TestJiraRoadmapLive:
                     <ac:parameter ac:name="title">In Progress</ac:parameter>
                 </ac:structured-macro></td>
             </tr>
-        </table>'''
+        </table>"""
 
         page = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': title,
-                'body': {'representation': 'storage', 'value': content}
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": title,
+                "body": {"representation": "storage", "value": content},
+            },
         )
 
         try:
-            assert page['id'] is not None
+            assert page["id"] is not None
         finally:
             confluence_client.delete(f"/api/v2/pages/{page['id']}")
 
@@ -81,25 +78,25 @@ class TestJiraRoadmapLive:
         """Test creating a page with panel macro for highlights."""
         title = f"Panel Test {uuid.uuid4().hex[:8]}"
 
-        content = '''<ac:structured-macro ac:name="panel">
+        content = """<ac:structured-macro ac:name="panel">
             <ac:parameter ac:name="title">Key Milestone</ac:parameter>
             <ac:rich-text-body>
                 <p>Important roadmap milestone description.</p>
             </ac:rich-text-body>
-        </ac:structured-macro>'''
+        </ac:structured-macro>"""
 
         page = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': title,
-                'body': {'representation': 'storage', 'value': content}
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": title,
+                "body": {"representation": "storage", "value": content},
+            },
         )
 
         try:
-            assert page['id'] is not None
+            assert page["id"] is not None
         finally:
             confluence_client.delete(f"/api/v2/pages/{page['id']}")
 
@@ -107,24 +104,24 @@ class TestJiraRoadmapLive:
         """Test creating a page with expand macro for details."""
         title = f"Expand Test {uuid.uuid4().hex[:8]}"
 
-        content = '''<ac:structured-macro ac:name="expand">
+        content = """<ac:structured-macro ac:name="expand">
             <ac:parameter ac:name="title">Click to expand details</ac:parameter>
             <ac:rich-text-body>
                 <p>Detailed information here.</p>
             </ac:rich-text-body>
-        </ac:structured-macro>'''
+        </ac:structured-macro>"""
 
         page = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': title,
-                'body': {'representation': 'storage', 'value': content}
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": title,
+                "body": {"representation": "storage", "value": content},
+            },
         )
 
         try:
-            assert page['id'] is not None
+            assert page["id"] is not None
         finally:
             confluence_client.delete(f"/api/v2/pages/{page['id']}")

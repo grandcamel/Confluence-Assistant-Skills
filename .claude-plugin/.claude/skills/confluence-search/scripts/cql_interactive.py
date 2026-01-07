@@ -10,20 +10,27 @@ Examples:
     python cql_interactive.py --type page
 """
 
-import sys
 import argparse
-from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, ValidationError, validate_cql,
-    validate_space_key, print_success, print_info, format_search_results,
-)
+import sys
+from pathlib import Path
 
+from confluence_assistant_skills_lib import (
+    ValidationError,
+    format_search_results,
+    get_confluence_client,
+    handle_errors,
+    print_info,
+    print_success,
+    validate_cql,
+    validate_space_key,
+)
 
 # Import field/operator definitions from cql_suggest
 SCRIPT_DIR = Path(__file__).parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
 try:
-    from cql_suggest import CQL_FIELDS, CQL_OPERATORS, CQL_FUNCTIONS, get_field_values
+    from cql_suggest import CQL_FIELDS, CQL_FUNCTIONS, CQL_OPERATORS, get_field_values
 except ImportError:
     # Fallback if cql_suggest not found
     CQL_FIELDS = []
@@ -32,6 +39,7 @@ except ImportError:
 
     def get_field_values(client, field_name):
         return []
+
 
 def prompt_choice(prompt, choices, allow_custom=False):
     """
@@ -51,7 +59,7 @@ def prompt_choice(prompt, choices, allow_custom=False):
     # Display choices
     for i, choice in enumerate(choices, 1):
         if isinstance(choice, dict):
-            label = choice.get('label', choice.get('value', str(choice)))
+            label = choice.get("label", choice.get("value", str(choice)))
             print(f"  {i}. {label}")
         else:
             print(f"  {i}. {choice}")
@@ -65,7 +73,7 @@ def prompt_choice(prompt, choices, allow_custom=False):
         try:
             selection = input("Select (number or 'q' to quit): ").strip()
 
-            if selection.lower() == 'q':
+            if selection.lower() == "q":
                 print("Cancelled.")
                 sys.exit(0)
 
@@ -74,7 +82,7 @@ def prompt_choice(prompt, choices, allow_custom=False):
             if 0 <= idx < len(choices):
                 choice = choices[idx]
                 if isinstance(choice, dict):
-                    return choice.get('value', choice)
+                    return choice.get("value", choice)
                 return choice
 
             elif allow_custom and idx == len(choices):
@@ -86,6 +94,7 @@ def prompt_choice(prompt, choices, allow_custom=False):
 
         except (ValueError, KeyError):
             print("Invalid input. Enter a number.")
+
 
 def quote_value(value, field_type):
     """
@@ -117,6 +126,7 @@ def quote_value(value, field_type):
     # Quote strings
     return f"'{value}'"
 
+
 def build_condition(client):
     """
     Build a single CQL condition interactively.
@@ -130,28 +140,28 @@ def build_condition(client):
     # Select field
     field = prompt_choice(
         "Select field:",
-        [{"value": f['name'], "label": f"{f['name']} - {f['description']}"} for f in CQL_FIELDS]
+        [
+            {"value": f["name"], "label": f"{f['name']} - {f['description']}"}
+            for f in CQL_FIELDS
+        ],
     )
 
-    field_def = next((f for f in CQL_FIELDS if f['name'] == field), None)
+    field_def = next((f for f in CQL_FIELDS if f["name"] == field), None)
     if not field_def:
         raise ValidationError(f"Unknown field: {field}")
 
-    field_type = field_def['type']
+    field_type = field_def["type"]
 
     # Select operator
-    valid_operators = field_def.get('operators', ['=', '!='])
-    operator = prompt_choice(
-        f"Select operator for '{field}':",
-        valid_operators
-    )
+    valid_operators = field_def.get("operators", ["=", "!="])
+    operator = prompt_choice(f"Select operator for '{field}':", valid_operators)
 
     # Get value
-    if operator in ['in', 'not in']:
+    if operator in ["in", "not in"]:
         # Multiple values
         print(f"\nEnter values for '{field}' (comma-separated):")
         values_str = input("> ").strip()
-        values = [v.strip() for v in values_str.split(',')]
+        values = [v.strip() for v in values_str.split(",")]
         quoted_values = [quote_value(v, field_type) for v in values]
         value = f"({', '.join(quoted_values)})"
 
@@ -161,9 +171,7 @@ def build_condition(client):
 
         if suggestions:
             value = prompt_choice(
-                f"Select value for '{field}':",
-                suggestions,
-                allow_custom=True
+                f"Select value for '{field}':", suggestions, allow_custom=True
             )
         else:
             print(f"\nEnter value for '{field}':")
@@ -173,6 +181,7 @@ def build_condition(client):
 
     # Build condition
     return f"{field} {operator} {value}"
+
 
 def build_query_interactive(client, initial_parts=None):
     """
@@ -191,9 +200,9 @@ def build_query_interactive(client, initial_parts=None):
         # Show current query
         if parts:
             current = " ".join(parts)
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print(f"Current query: {current}")
-            print('='*60)
+            print("=" * 60)
 
         # Build a condition
         condition = build_condition(client)
@@ -202,12 +211,7 @@ def build_query_interactive(client, initial_parts=None):
         # Ask what to do next
         next_action = prompt_choice(
             "What next?",
-            [
-                "Add AND condition",
-                "Add OR condition",
-                "Add ORDER BY",
-                "Finish query"
-            ]
+            ["Add AND condition", "Add OR condition", "Add ORDER BY", "Finish query"],
         )
 
         if next_action == "Add AND condition":
@@ -230,11 +234,12 @@ def build_query_interactive(client, initial_parts=None):
 
     return " ".join(parts)
 
+
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Interactive CQL query builder',
-        epilog='''
+        description="Interactive CQL query builder",
+        epilog="""
 Examples:
   # Start with blank query
   python cql_interactive.py
@@ -247,23 +252,31 @@ Examples:
 
   # Combine pre-filters
   python cql_interactive.py --space DOCS --type page
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    parser.add_argument('--space', help='Pre-filter by space key')
-    parser.add_argument('--type', choices=['page', 'blogpost', 'comment', 'attachment'],
-                        help='Pre-filter by content type')
-    parser.add_argument('--profile', help='Confluence profile to use')
-    parser.add_argument('--limit', '-l', type=int, default=25,
-                        help='Maximum results to show (default: 25)')
-    parser.add_argument('--execute', action='store_true',
-                        help='Execute query after building')
+    parser.add_argument("--space", help="Pre-filter by space key")
+    parser.add_argument(
+        "--type",
+        choices=["page", "blogpost", "comment", "attachment"],
+        help="Pre-filter by content type",
+    )
+    parser.add_argument(
+        "--limit",
+        "-l",
+        type=int,
+        default=25,
+        help="Maximum results to show (default: 25)",
+    )
+    parser.add_argument(
+        "--execute", action="store_true", help="Execute query after building"
+    )
 
     args = parser.parse_args(argv)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Build initial parts from pre-filters
     initial_parts = []
@@ -279,9 +292,9 @@ Examples:
         initial_parts.append("AND")
 
     # Show welcome
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("  Interactive CQL Query Builder")
-    print("="*60)
+    print("=" * 60)
     print("\nBuild a CQL query step-by-step.")
     print("Enter 'q' at any prompt to quit.\n")
 
@@ -292,12 +305,12 @@ Examples:
     query = build_query_interactive(client, initial_parts)
 
     # Remove trailing AND/OR if present
-    query = query.rstrip().rstrip('AND').rstrip('OR').strip()
+    query = query.rstrip().rstrip("AND").rstrip("OR").strip()
 
     # Show final query
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Final Query:")
-    print("="*60)
+    print("=" * 60)
     print(query)
     print()
 
@@ -308,38 +321,34 @@ Examples:
     # Ask if user wants to execute
     if not args.execute:
         execute = input("\nExecute this query? (y/n): ").strip().lower()
-        if execute != 'y':
+        if execute != "y":
             print("\nQuery built but not executed.")
-            print(f"To execute later, use:\n  python cql_search.py \"{query}\"")
+            print(f'To execute later, use:\n  python cql_search.py "{query}"')
             return
 
     # Execute query
     print_info(f"Executing query with limit={args.limit}...")
 
-    params = {
-        'cql': query,
-        'limit': min(args.limit, 50),
-        'expand': 'content.space'
-    }
+    params = {"cql": query, "limit": min(args.limit, 50), "expand": "content.space"}
 
     results = []
     start = 0
 
     while len(results) < args.limit:
-        params['start'] = start
-        response = client.get('/rest/api/search', params=params, operation='CQL search')
+        params["start"] = start
+        response = client.get("/rest/api/search", params=params, operation="CQL search")
 
-        batch = response.get('results', [])
+        batch = response.get("results", [])
         if not batch:
             break
 
         results.extend(batch)
         start += len(batch)
 
-        if len(batch) < params['limit']:
+        if len(batch) < params["limit"]:
             break
 
-    results = results[:args.limit]
+    results = results[: args.limit]
 
     # Show results
     print()
@@ -349,23 +358,27 @@ Examples:
 
     # Offer to save query
     save = input("\nSave this query to history? (y/n): ").strip().lower()
-    if save == 'y':
+    if save == "y":
         # Import and use cql_history if available
         try:
             import json
             from datetime import datetime, timezone
 
-            history_file = Path.home() / '.confluence_cql_history.json'
+            history_file = Path.home() / ".confluence_cql_history.json"
             history = []
 
             if history_file.exists():
                 history = json.loads(history_file.read_text())
 
-            history.append({
-                'query': query,
-                'timestamp': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
-                'results_count': len(results)
-            })
+            history.append(
+                {
+                    "query": query,
+                    "timestamp": datetime.now(timezone.utc)
+                    .isoformat()
+                    .replace("+00:00", "Z"),
+                    "results_count": len(results),
+                }
+            )
 
             # Keep last 100 queries
             history = history[-100:]
@@ -376,5 +389,6 @@ Examples:
         except Exception as e:
             print(f"Warning: Could not save to history: {e}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

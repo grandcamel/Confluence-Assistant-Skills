@@ -64,7 +64,6 @@ confluence page create --space DOCS --title "Draft Page" --body "WIP" --status d
 - `--file, -f` - Read body from file (Markdown supported)
 - `--parent, -p` - Parent page ID
 - `--status` - Page status: current (default) or draft
-- `--profile` - Confluence profile to use
 - `--output, -o` - Output format: text or json
 
 ### get_page.py
@@ -90,7 +89,6 @@ confluence page get 12345 --output json
 - `page_id` - Page ID (required)
 - `--body` - Include body content
 - `--format` - Body format: storage, view, or markdown
-- `--profile` - Confluence profile
 - `--output, -o` - Output format: text or json
 
 ### update_page.py
@@ -122,7 +120,6 @@ confluence page update 12345 --status draft
 - `--file, -f` - Read body from file
 - `--message, -m` - Version message
 - `--status` - New status: current or draft
-- `--profile` - Confluence profile
 - `--output, -o` - Output format
 
 ### delete_page.py
@@ -145,7 +142,6 @@ confluence page delete 12345 --force
 - `page_id` - Page ID (required)
 - `--permanent` - Permanently delete (cannot be recovered)
 - `--force, -f` - Skip confirmation prompt
-- `--profile` - Confluence profile
 
 ### create_blogpost.py
 
@@ -164,7 +160,6 @@ confluence page blog create --space BLOG --title "From MD" --file post.md
 - `--title, -t` - Blog post title (required)
 - `--body, -b` - Blog post content
 - `--file, -f` - Read body from file
-- `--profile` - Confluence profile
 - `--output, -o` - Output format
 
 ### get_blogpost.py
@@ -180,7 +175,6 @@ confluence page blog get 67890 --body
 - `blogpost_id` - Blog post ID (required)
 - `--body` - Include body content
 - `--format` - Body format
-- `--profile` - Confluence profile
 - `--output, -o` - Output format
 
 ### copy_page.py
@@ -205,7 +199,6 @@ confluence page copy 12345 --title "Page Copy" --include-children
 - `--space, -s` - Target space key
 - `--parent, -p` - Target parent page ID
 - `--include-children` - Copy child pages recursively
-- `--profile` - Confluence profile
 - `--output, -o` - Output format
 
 ### move_page.py
@@ -229,7 +222,6 @@ confluence page move 12345 --space NEWSPACE --root
 - `--space, -s` - Target space key
 - `--parent, -p` - Target parent page ID
 - `--root` - Move to space root (no parent)
-- `--profile` - Confluence profile
 
 ### get_page_versions.py
 
@@ -251,7 +243,6 @@ confluence page versions 12345 --detailed
 - `page_id` - Page ID (required)
 - `--limit, -l` - Maximum versions to return
 - `--detailed` - Show full version details
-- `--profile` - Confluence profile
 - `--output, -o` - Output format
 
 ### restore_version.py
@@ -271,7 +262,6 @@ confluence page restore 12345 --version 5 --message "Restoring to known good sta
 - `page_id` - Page ID (required)
 - `--version, -v` - Version number to restore (required)
 - `--message, -m` - Version message for the restoration
-- `--profile` - Confluence profile
 
 ## Examples
 

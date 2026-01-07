@@ -50,7 +50,6 @@ confluence property get 12345 --output json
 - `content_id` - Content ID (required)
 - `--key, -k` - Specific property key to retrieve
 - `--expand` - Comma-separated fields to expand (e.g., version)
-- `--profile, -p` - Confluence profile to use
 - `--output, -o` - Output format: text or json
 
 ### set_property.py
@@ -78,7 +77,6 @@ confluence property set 12345 my-property --value "updated" --update
 - `--file, -f` - Read value from JSON file
 - `--update` - Update existing property (fetches current version)
 - `--version` - Explicit version number for update
-- `--profile, -p` - Confluence profile to use
 - `--output, -o` - Output format: text or json
 
 **Value Types:**
@@ -104,7 +102,6 @@ confluence property delete 12345 my-property --force
 - `content_id` - Content ID (required)
 - `key` - Property key to delete (required)
 - `--force` - Delete without confirmation
-- `--profile, -p` - Confluence profile to use
 
 ### list_properties.py
 List and filter content properties.
@@ -137,7 +134,6 @@ confluence property list 12345 --output json
 - `--sort` - Sort by: key or version (default: key)
 - `--expand` - Comma-separated fields to expand
 - `--verbose, -v` - Show detailed information
-- `--profile, -p` - Confluence profile to use
 - `--output, -o` - Output format: text or json
 
 ## API Reference

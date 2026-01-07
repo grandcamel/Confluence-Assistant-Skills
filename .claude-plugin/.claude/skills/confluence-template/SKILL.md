@@ -48,7 +48,6 @@ confluence template list --limit 50
 - `--space`: Filter templates by space key
 - `--type`: Filter by template type (page or blogpost)
 - `--blueprints`: List blueprints instead of templates
-- `--profile`: Confluence profile to use
 - `--output`, `-o`: Output format (text or json)
 - `--limit`: Maximum number of results (default: 100)
 
@@ -78,7 +77,6 @@ confluence template get tmpl-123 --output json
 - `--body`: Include template body content
 - `--format`: Body format (storage or markdown)
 - `--blueprint`: Get blueprint instead of template
-- `--profile`: Confluence profile to use
 - `--output`, `-o`: Output format (text or json)
 
 ### create_from_template.py
@@ -114,7 +112,6 @@ confluence template create-from --template tmpl-123 --space DOCS --title "Page" 
 - `--labels`: Comma-separated labels
 - `--content`: Custom HTML/XHTML content
 - `--file`: File with content (Markdown or HTML)
-- `--profile`: Confluence profile to use
 - `--output`, `-o`: Output format (text or json)
 
 ### create_template.py
@@ -153,7 +150,6 @@ confluence template create --name "Custom" --space DOCS --blueprint-id com.atlas
 - `--labels`: Comma-separated labels
 - `--type`: Template type - page or blogpost (default: page)
 - `--blueprint-id`: Base on existing blueprint
-- `--profile`: Confluence profile to use
 - `--output`, `-o`: Output format (text or json)
 
 ### update_template.py
@@ -194,7 +190,6 @@ confluence template update tmpl-123 --name "New Name" --description "New desc" -
 - `--file`: File with new content (Markdown or HTML)
 - `--add-labels`: Comma-separated labels to add
 - `--remove-labels`: Comma-separated labels to remove
-- `--profile`: Confluence profile to use
 - `--output`, `-o`: Output format (text or json)
 
 Note: At least one field must be specified to update.

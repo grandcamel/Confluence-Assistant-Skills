@@ -4,21 +4,20 @@ Pytest fixtures for confluence-search skill tests.
 Extends the shared fixtures with search-specific test data.
 """
 
-import pytest
 import json
-import sys
-from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
-
+import pytest
 
 # =============================================================================
 # Mock Fixtures (from shared conftest)
 # =============================================================================
 
+
 @pytest.fixture
 def mock_response():
     """Factory for creating mock HTTP responses."""
+
     def _create_response(
         status_code: int = 200,
         json_data=None,
@@ -46,11 +45,11 @@ def mock_client(mock_response):
     """Create a mock Confluence client."""
     from confluence_assistant_skills_lib import ConfluenceClient
 
-    with patch.object(ConfluenceClient, '_create_session'):
+    with patch.object(ConfluenceClient, "_create_session"):
         client = ConfluenceClient(
             base_url="https://test.atlassian.net",
             email="test@example.com",
-            api_token="test-token"
+            api_token="test-token",
         )
 
         # Create a mock session
@@ -79,16 +78,14 @@ def sample_search_results():
                     "spaceId": "789",
                 },
                 "excerpt": "This is a <em>test</em> page with content...",
-                "lastModified": "2024-01-15T10:30:00.000Z"
+                "lastModified": "2024-01-15T10:30:00.000Z",
             }
         ],
-        "_links": {
-            "next": "/rest/api/search?cql=space=TEST&cursor=abc123"
-        },
+        "_links": {"next": "/rest/api/search?cql=space=TEST&cursor=abc123"},
         "limit": 25,
         "size": 1,
         "start": 0,
-        "totalSize": 1
+        "totalSize": 1,
     }
 
 
@@ -99,8 +96,12 @@ def sample_cql_fields():
         {"name": "space", "type": "string", "description": "Space key"},
         {"name": "title", "type": "string", "description": "Page title"},
         {"name": "text", "type": "string", "description": "Full text search"},
-        {"name": "type", "type": "enum", "description": "Content type",
-         "values": ["page", "blogpost", "comment", "attachment"]},
+        {
+            "name": "type",
+            "type": "enum",
+            "description": "Content type",
+            "values": ["page", "blogpost", "comment", "attachment"],
+        },
         {"name": "label", "type": "string", "description": "Content label"},
         {"name": "creator", "type": "string", "description": "Content creator"},
         {"name": "created", "type": "date", "description": "Creation date"},
@@ -150,17 +151,17 @@ def sample_query_history():
         {
             "query": "space = 'DOCS' AND type = page",
             "timestamp": "2024-01-15T10:30:00.000Z",
-            "results_count": 42
+            "results_count": 42,
         },
         {
             "query": "label = 'api' AND creator = currentUser()",
             "timestamp": "2024-01-14T15:45:00.000Z",
-            "results_count": 15
+            "results_count": 15,
         },
         {
             "query": "text ~ 'documentation' ORDER BY lastModified DESC",
             "timestamp": "2024-01-13T09:20:00.000Z",
-            "results_count": 128
+            "results_count": 128,
         },
     ]
 

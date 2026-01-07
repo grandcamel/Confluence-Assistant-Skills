@@ -2,13 +2,13 @@
 Unit tests for embed_jira_issues.py
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add scripts to path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 
 class TestEmbedJiraIssues:
@@ -33,7 +33,7 @@ class TestEmbedJiraIssues:
 
     def test_validate_issue_keys_invalid(self):
         """Test invalid issue keys."""
-        from confluence_assistant_skills_lib import validate_issue_key, ValidationError
+        from confluence_assistant_skills_lib import ValidationError, validate_issue_key
 
         with pytest.raises(ValidationError):
             validate_issue_key("")
@@ -50,9 +50,9 @@ class TestEmbedJiraIssues:
 
         result = create_jira_macro(issue_key="PROJ-123")
 
-        assert 'ac:structured-macro' in result
+        assert "ac:structured-macro" in result
         assert 'ac:name="jira"' in result
-        assert 'PROJ-123' in result
+        assert "PROJ-123" in result
 
     def test_create_jira_issues_macro_jql(self):
         """Test creating JIRA issues macro with JQL."""
@@ -61,9 +61,9 @@ class TestEmbedJiraIssues:
         jql = "project = PROJ AND status = Open"
         result = create_jira_issues_macro(jql=jql)
 
-        assert 'ac:structured-macro' in result
+        assert "ac:structured-macro" in result
         assert 'ac:name="jira"' in result
-        assert 'jqlQuery' in result
+        assert "jqlQuery" in result
         assert jql in result
 
     def test_create_jira_issues_macro_multiple_keys(self):
@@ -73,30 +73,30 @@ class TestEmbedJiraIssues:
         keys = ["PROJ-123", "PROJ-456", "PROJ-789"]
         result = create_jira_issues_macro(issue_keys=keys)
 
-        assert 'ac:structured-macro' in result
+        assert "ac:structured-macro" in result
         assert 'ac:name="jira"' in result
-        assert 'jqlQuery' in result
+        assert "jqlQuery" in result
         # Should contain keys in JQL format
         for key in keys:
             assert key in result
 
     def test_embed_issues_get_page(self, mock_client, sample_page):
         """Test getting existing page content."""
-        mock_client.setup_response('get', sample_page)
+        mock_client.setup_response("get", sample_page)
 
         page = mock_client.get(f"/rest/api/content/{sample_page['id']}")
 
-        assert page['id'] == sample_page['id']
-        assert page['title'] == sample_page['title']
+        assert page["id"] == sample_page["id"]
+        assert page["title"] == sample_page["title"]
 
     def test_embed_issues_update_page(self, mock_client, sample_page):
         """Test updating page with JIRA macro."""
         # Setup - get page first
-        mock_client.setup_response('get', sample_page)
+        mock_client.setup_response("get", sample_page)
 
         # Then update
         updated_page = {**sample_page, "version": {"number": 2}}
-        mock_client.setup_response('put', updated_page)
+        mock_client.setup_response("put", updated_page)
 
         # This would be called by the script
         # Verify the structure is correct
@@ -159,10 +159,7 @@ class TestMacroParameters:
         """Test macro includes server ID when provided."""
         from embed_jira_issues import create_jira_macro
 
-        result = create_jira_macro(
-            issue_key="PROJ-123",
-            server_id="abc-123-def-456"
-        )
+        result = create_jira_macro(issue_key="PROJ-123", server_id="abc-123-def-456")
 
         assert "server" in result.lower() or "serverid" in result.lower()
         assert "abc-123-def-456" in result
@@ -172,10 +169,7 @@ class TestMacroParameters:
         from embed_jira_issues import create_jira_issues_macro
 
         columns = ["key", "summary", "status", "assignee"]
-        result = create_jira_issues_macro(
-            jql="project = PROJ",
-            columns=columns
-        )
+        result = create_jira_issues_macro(jql="project = PROJ", columns=columns)
 
         # Check if columns are included
         for col in columns:
@@ -185,9 +179,6 @@ class TestMacroParameters:
         """Test JIRA issues macro with result count."""
         from embed_jira_issues import create_jira_issues_macro
 
-        result = create_jira_issues_macro(
-            jql="project = PROJ",
-            max_results=10
-        )
+        result = create_jira_issues_macro(jql="project = PROJ", max_results=10)
 
         assert "10" in result or "count" in result.lower()

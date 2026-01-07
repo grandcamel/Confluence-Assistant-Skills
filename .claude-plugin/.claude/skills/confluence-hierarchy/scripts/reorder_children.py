@@ -12,16 +12,20 @@ Examples:
     python reorder_children.py 12345 --reverse
 """
 
-import sys
 import argparse
-from typing import List
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, ValidationError, validate_page_id,
-    print_success, print_warning, print_info,
+    ValidationError,
+    get_confluence_client,
+    handle_errors,
+    print_info,
+    print_success,
+    print_warning,
+    validate_page_id,
 )
 
 
-def parse_order(order_str: str) -> List[str]:
+def parse_order(order_str: str) -> list[str]:
     """
     Parse comma-separated page IDs.
 
@@ -37,7 +41,7 @@ def parse_order(order_str: str) -> List[str]:
     if not order_str:
         raise ValidationError("Order string cannot be empty")
 
-    page_ids = [id.strip() for id in order_str.split(',')]
+    page_ids = [id.strip() for id in order_str.split(",")]
 
     # Validate each ID
     validated_ids = []
@@ -47,10 +51,8 @@ def parse_order(order_str: str) -> List[str]:
 
     return validated_ids
 
-def validate_order(
-    proposed_order: List[str],
-    current_children: List[dict]
-) -> None:
+
+def validate_order(proposed_order: list[str], current_children: list[dict]) -> None:
     """
     Validate that proposed order matches current children.
 
@@ -61,7 +63,7 @@ def validate_order(
     Raises:
         ValidationError: If order is invalid
     """
-    current_ids = set(c['id'] for c in current_children)
+    current_ids = {c["id"] for c in current_children}
     proposed_ids = set(proposed_order)
 
     # Check for duplicates
@@ -85,11 +87,12 @@ def validate_order(
             f"Order contains {len(extra)} invalid page ID(s): {', '.join(extra)}"
         )
 
+
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Reorder child pages of a Confluence page',
-        epilog='''
+        description="Reorder child pages of a Confluence page",
+        epilog="""
 Examples:
   python reorder_children.py 12345 200,201,202
   python reorder_children.py 12345 --order 200,201,202
@@ -98,38 +101,39 @@ Examples:
 Note: As of this implementation, the Confluence v2 API may not fully support
 page reordering. This script provides validation and structure for when the
 API supports it. Check the Confluence API documentation for current capabilities.
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('parent_id', help='Parent page ID')
-    parser.add_argument('order', nargs='?', help='Comma-separated child page IDs in desired order')
-    parser.add_argument('--order', '-o', dest='order_flag',
-                        help='Comma-separated child page IDs (alternative to positional arg)')
-    parser.add_argument('--reverse', action='store_true',
-                        help='Reverse current order')
-    parser.add_argument('--profile', help='Confluence profile to use')
+    parser.add_argument("parent_id", help="Parent page ID")
+    parser.add_argument(
+        "order", nargs="?", help="Comma-separated child page IDs in desired order"
+    )
+    parser.add_argument(
+        "--order",
+        "-o",
+        dest="order_flag",
+        help="Comma-separated child page IDs (alternative to positional arg)",
+    )
+    parser.add_argument("--reverse", action="store_true", help="Reverse current order")
     args = parser.parse_args(argv)
 
     # Validate parent ID
     parent_id = validate_page_id(args.parent_id)
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get parent page info
-    parent = client.get(
-        f'/api/v2/pages/{parent_id}',
-        operation='get parent page'
-    )
+    parent = client.get(f"/api/v2/pages/{parent_id}", operation="get parent page")
 
     # Get current children
     children_data = client.get(
-        f'/api/v2/pages/{parent_id}/children',
-        params={'limit': 250},
-        operation='get current children'
+        f"/api/v2/pages/{parent_id}/children",
+        params={"limit": 250},
+        operation="get current children",
     )
 
-    current_children = children_data.get('results', [])
+    current_children = children_data.get("results", [])
 
     if not current_children:
         print_warning(f"Page '{parent['title']}' has no children to reorder")
@@ -138,7 +142,7 @@ API supports it. Check the Confluence API documentation for current capabilities
     # Determine new order
     if args.reverse:
         # Reverse current order
-        new_order = [c['id'] for c in reversed(current_children)]
+        new_order = [c["id"] for c in reversed(current_children)]
         print_info("Reversing current order")
     else:
         # Parse order from arguments
@@ -159,10 +163,10 @@ API supports it. Check the Confluence API documentation for current capabilities
 
     # Display proposed order
     print(f"Proposed order for children of '{parent['title']}':\n")
-    child_lookup = {c['id']: c for c in current_children}
+    child_lookup = {c["id"]: c for c in current_children}
     for i, page_id in enumerate(new_order, 1):
         child = child_lookup.get(page_id, {})
-        title = child.get('title', 'Unknown')
+        title = child.get("title", "Unknown")
         print(f"{i}. {title} (ID: {page_id})")
 
     # Note about API limitations
@@ -178,5 +182,6 @@ API supports it. Check the Confluence API documentation for current capabilities
 
     print_success(f"Validated order for {len(new_order)} children")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

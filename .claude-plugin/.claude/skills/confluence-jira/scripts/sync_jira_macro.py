@@ -10,13 +10,17 @@ Examples:
     python sync_jira_macro.py 12345 --update-jql "project = PROJ AND status = Open"
 """
 
-import sys
 import argparse
 import re
-from typing import Optional
+
 from confluence_assistant_skills_lib import (
-    get_confluence_client, handle_errors, ValidationError, validate_page_id,
-    validate_jql_query, print_success, format_json,
+    ValidationError,
+    format_json,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+    validate_jql_query,
+    validate_page_id,
 )
 
 
@@ -35,13 +39,12 @@ def find_jira_macros(content: str) -> list:
     matches = []
 
     for match in re.finditer(pattern, content, re.DOTALL):
-        matches.append({
-            'start': match.start(),
-            'end': match.end(),
-            'content': match.group(0)
-        })
+        matches.append(
+            {"start": match.start(), "end": match.end(), "content": match.group(0)}
+        )
 
     return matches
+
 
 def update_jql_in_macro(macro_content: str, new_jql: str) -> str:
     """
@@ -68,13 +71,15 @@ def update_jql_in_macro(macro_content: str, new_jql: str) -> str:
         updated = re.sub(pattern, replacer, macro_content)
     else:
         # Add new parameter (insert before closing tag)
-        param = f'<ac:parameter ac:name="jqlQuery">{html.escape(new_jql)}</ac:parameter>'
+        param = (
+            f'<ac:parameter ac:name="jqlQuery">{html.escape(new_jql)}</ac:parameter>'
+        )
         updated = macro_content.replace(
-            '</ac:structured-macro>',
-            f'{param}\n</ac:structured-macro>'
+            "</ac:structured-macro>", f"{param}\n</ac:structured-macro>"
         )
 
     return updated
+
 
 def touch_page(content: str) -> str:
     """
@@ -89,11 +94,12 @@ def touch_page(content: str) -> str:
     # Add and remove a comment to trigger update
     return content
 
+
 @handle_errors
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description='Sync/refresh JIRA macro content in a Confluence page',
-        epilog='''
+        description="Sync/refresh JIRA macro content in a Confluence page",
+        epilog="""
 Examples:
   # Force page update to refresh macros
   python sync_jira_macro.py 12345
@@ -103,16 +109,23 @@ Examples:
 
   # Update specific macro by index
   python sync_jira_macro.py 12345 --update-jql "status = Done" --macro-index 0
-        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('page_id', help='Page ID containing JIRA macros')
-    parser.add_argument('--update-jql', help='Update JQL query in macros')
-    parser.add_argument('--macro-index', type=int,
-                        help='Index of macro to update (0-based, default: all)')
-    parser.add_argument('--profile', help='Confluence profile to use')
-    parser.add_argument('--output', '-o', choices=['text', 'json'], default='text',
-                        help='Output format (default: text)')
+    parser.add_argument("page_id", help="Page ID containing JIRA macros")
+    parser.add_argument("--update-jql", help="Update JQL query in macros")
+    parser.add_argument(
+        "--macro-index",
+        type=int,
+        help="Index of macro to update (0-based, default: all)",
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args(argv)
 
     # Validate inputs
@@ -124,23 +137,23 @@ Examples:
         new_jql = None
 
     # Get client
-    client = get_confluence_client(profile=args.profile)
+    client = get_confluence_client()
 
     # Get page content (v1 API for XHTML)
     page = client.get(
-        f'/rest/api/content/{page_id}',
-        params={'expand': 'body.storage,version'},
-        operation='get page'
+        f"/rest/api/content/{page_id}",
+        params={"expand": "body.storage,version"},
+        operation="get page",
     )
 
-    content = page['body']['storage']['value']
-    current_version = page['version']['number']
+    content = page["body"]["storage"]["value"]
+    current_version = page["version"]["number"]
 
     # Find JIRA macros
     macros = find_jira_macros(content)
 
     if not macros:
-        if args.output == 'json':
+        if args.output == "json":
             print(format_json({"error": "No JIRA macros found in page"}))
         else:
             print(f"No JIRA macros found in page {page_id}")
@@ -160,29 +173,25 @@ Examples:
                 )
 
             macro = macros[args.macro_index]
-            new_macro = update_jql_in_macro(macro['content'], new_jql)
+            new_macro = update_jql_in_macro(macro["content"], new_jql)
             updated_content = (
-                content[:macro['start']] +
-                new_macro +
-                content[macro['end']:]
+                content[: macro["start"]] + new_macro + content[macro["end"] :]
             )
             updated_count = 1
         else:
             # Update all macros
             offset = 0
             for macro in macros:
-                new_macro = update_jql_in_macro(macro['content'], new_jql)
-                start = macro['start'] + offset
-                end = macro['end'] + offset
+                new_macro = update_jql_in_macro(macro["content"], new_jql)
+                start = macro["start"] + offset
+                end = macro["end"] + offset
 
                 updated_content = (
-                    updated_content[:start] +
-                    new_macro +
-                    updated_content[end:]
+                    updated_content[:start] + new_macro + updated_content[end:]
                 )
 
                 # Adjust offset for next iteration
-                offset += len(new_macro) - len(macro['content'])
+                offset += len(new_macro) - len(macro["content"])
                 updated_count += 1
     else:
         # Just touch the page to trigger refresh
@@ -190,32 +199,23 @@ Examples:
 
     # Update page
     update_data = {
-        'version': {
-            'number': current_version + 1
-        },
-        'type': page['type'],
-        'title': page['title'],
-        'body': {
-            'storage': {
-                'value': updated_content,
-                'representation': 'storage'
-            }
-        }
+        "version": {"number": current_version + 1},
+        "type": page["type"],
+        "title": page["title"],
+        "body": {"storage": {"value": updated_content, "representation": "storage"}},
     }
 
     result = client.put(
-        f'/rest/api/content/{page_id}',
-        json_data=update_data,
-        operation='update page'
+        f"/rest/api/content/{page_id}", json_data=update_data, operation="update page"
     )
 
     # Output
-    if args.output == 'json':
+    if args.output == "json":
         output_data = {
             "page_id": page_id,
-            "version": result['version']['number'],
+            "version": result["version"]["number"],
             "macros_found": len(macros),
-            "macros_updated": updated_count
+            "macros_updated": updated_count,
         }
         print(format_json(output_data))
     else:
@@ -228,5 +228,6 @@ Examples:
 
     print_success(f"Synced JIRA macros in page {page_id}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

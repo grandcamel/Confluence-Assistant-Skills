@@ -29,7 +29,6 @@ Add a footer comment to a Confluence page.
 ```bash
 confluence comment add PAGE_ID "Comment text"
 confluence comment add PAGE_ID --file comment.txt
-confluence comment add PAGE_ID "Great page!" --profile production
 ```
 
 **Arguments:**
@@ -38,7 +37,6 @@ confluence comment add PAGE_ID "Great page!" --profile production
 
 **Options:**
 - `--file`, `-f` - Read comment body from file
-- `--profile` - Confluence profile to use
 - `--output`, `-o` - Output format (text or json)
 
 ### get_comments.py
@@ -59,7 +57,6 @@ confluence comment list PAGE_ID --output json
 **Options:**
 - `--limit`, `-l` - Maximum number of comments to retrieve
 - `--sort`, `-s` - Sort order (created or -created for newest first)
-- `--profile` - Confluence profile to use
 - `--output`, `-o` - Output format (text or json)
 
 ### update_comment.py
@@ -70,7 +67,6 @@ Update an existing comment's body.
 ```bash
 confluence comment update COMMENT_ID "Updated text"
 confluence comment update COMMENT_ID --file updated.txt
-confluence comment update COMMENT_ID "Fixed typo" --profile production
 ```
 
 **Arguments:**
@@ -79,7 +75,6 @@ confluence comment update COMMENT_ID "Fixed typo" --profile production
 
 **Options:**
 - `--file`, `-f` - Read updated body from file
-- `--profile` - Confluence profile to use
 - `--output`, `-o` - Output format (text or json)
 
 ### delete_comment.py
@@ -90,7 +85,6 @@ Delete a comment from a Confluence page.
 ```bash
 confluence comment delete COMMENT_ID
 confluence comment delete COMMENT_ID --force
-confluence comment delete COMMENT_ID --profile production
 ```
 
 **Arguments:**
@@ -98,7 +92,6 @@ confluence comment delete COMMENT_ID --profile production
 
 **Options:**
 - `--force`, `-f` - Skip confirmation prompt
-- `--profile` - Confluence profile to use
 
 ### add_inline_comment.py
 
@@ -107,7 +100,6 @@ Add an inline comment to specific text in a Confluence page.
 **Usage:**
 ```bash
 confluence comment add-inline PAGE_ID "selected text" "Comment about this text"
-confluence comment add-inline PAGE_ID "text" "Needs revision" --profile production
 ```
 
 **Arguments:**
@@ -116,7 +108,6 @@ confluence comment add-inline PAGE_ID "text" "Needs revision" --profile producti
 - `body` - Comment body text
 
 **Options:**
-- `--profile` - Confluence profile to use
 - `--output`, `-o` - Output format (text or json)
 
 **Note:** The text selection must match existing text in the page content.
@@ -129,7 +120,6 @@ Mark a comment as resolved or reopen it.
 ```bash
 confluence comment resolve COMMENT_ID --resolve
 confluence comment resolve COMMENT_ID --unresolve
-confluence comment resolve COMMENT_ID --resolve --profile production
 ```
 
 **Arguments:**
@@ -138,7 +128,6 @@ confluence comment resolve COMMENT_ID --resolve --profile production
 **Options:**
 - `--resolve`, `-r` - Mark comment as resolved
 - `--unresolve`, `-u` - Mark comment as unresolved/open
-- `--profile` - Confluence profile to use
 - `--output`, `-o` - Output format (text or json)
 
 **Note:** Exactly one of --resolve or --unresolve must be specified.
@@ -225,4 +214,3 @@ This skill uses the shared library:
 - Comment IDs are numeric strings (same validation as page IDs)
 - Resolution status is tracked separately from comment body
 - Deletion requires confirmation unless --force is used
-- All scripts support --profile for multi-instance configurations

@@ -30,9 +30,8 @@ Retrieve the list of permissions assigned to a space.
 
 **Usage:**
 ```bash
-confluence permission space get SPACE_ID
-confluence permission space get 123456 --output json
-confluence permission space get 123456 --profile production
+confluence permission space get SPACE_KEY
+confluence permission space get DOCS --output json
 ```
 
 **Output:** Lists all users and groups with their assigned operations (read, write, administer, etc.)
@@ -42,9 +41,9 @@ Grant a permission to a user or group for a space.
 
 **Usage:**
 ```bash
-confluence permission space add SPACE_KEY user:email@example.com read
-confluence permission space add DOCS group:confluence-users write
-confluence permission space add TEST user:account-id:123456 administer
+confluence permission space add SPACE_KEY --user email@example.com --operation read
+confluence permission space add DOCS --group confluence-users --operation write
+confluence permission space add TEST --user account-id:123456 --operation administer
 ```
 
 **Valid Operations:**
@@ -62,8 +61,8 @@ Revoke a permission from a user or group for a space.
 
 **Usage:**
 ```bash
-confluence permission space remove SPACE_KEY user:email@example.com read
-confluence permission space remove DOCS group:confluence-users write
+confluence permission space remove SPACE_KEY --user email@example.com --operation read
+confluence permission space remove DOCS --group confluence-users --operation write
 ```
 
 ### get_page_restrictions.py
@@ -73,7 +72,6 @@ List restrictions on a page (who can read/edit).
 ```bash
 confluence permission page get PAGE_ID
 confluence permission page get 123456 --output json
-confluence permission page get 123456 --profile production
 ```
 
 **Output:** Shows read and update restrictions with users and groups
@@ -83,29 +81,23 @@ Add a restriction to limit page access.
 
 **Usage:**
 ```bash
-confluence permission page add PAGE_ID read user:email@example.com
-confluence permission page add 123456 update group:confluence-users
-confluence permission page add 123456 read user:account-id:123456
+confluence permission page add PAGE_ID --operation read --user email@example.com
+confluence permission page add 123456 --operation update --group confluence-users
+confluence permission page add 123456 --operation read --user account-id:123456
 ```
 
 **Restriction Types:**
 - `read` - Who can view the page
 - `update` - Who can edit the page
 
-**Principal Format:**
-- `user:email@example.com` - User by email
-- `user:username` - User by username
-- `user:account-id:123456` - User by account ID
-- `group:groupname` - Group by name
-
 ### remove_page_restriction.py
 Remove a restriction from a page.
 
 **Usage:**
 ```bash
-confluence permission page remove PAGE_ID read user:email@example.com
-confluence permission page remove 123456 update group:confluence-users
-confluence permission page remove 123456 read --all
+confluence permission page remove PAGE_ID --operation read --user email@example.com
+confluence permission page remove 123456 --operation update --group confluence-users
+confluence permission page remove 123456 --operation read --all
 ```
 
 Use `--all` to remove all restrictions of a type (makes page accessible to all space members).
@@ -118,32 +110,32 @@ Use `--all` to remove all restrictions of a type (makes page accessible to all s
 confluence permission page get 123456
 
 # Add read restriction to specific users
-confluence permission page add 123456 read user:john@example.com
-confluence permission page add 123456 read user:jane@example.com
+confluence permission page add 123456 --operation read --user john@example.com
+confluence permission page add 123456 --operation read --user jane@example.com
 
 # Add edit restriction to admins group
-confluence permission page add 123456 update group:confluence-administrators
+confluence permission page add 123456 --operation update --group confluence-administrators
 ```
 
 ### Grant space access to a team
 ```bash
 # Add read permission for the team
-confluence permission space add TEAMSPACE group:engineering-team read
+confluence permission space add TEAMSPACE --group engineering-team --operation read
 
 # Add write permission for contributors
-confluence permission space add TEAMSPACE group:engineering-leads write
+confluence permission space add TEAMSPACE --group engineering-leads --operation write
 
 # Verify permissions
-confluence permission space get 789
+confluence permission space get TEAMSPACE
 ```
 
 ### Remove all restrictions from a page
 ```bash
 # Remove all read restrictions (make viewable to all space members)
-confluence permission page remove 123456 read --all
+confluence permission page remove 123456 --operation read --all
 
 # Remove all update restrictions (make editable to all space members)
-confluence permission page remove 123456 update --all
+confluence permission page remove 123456 --operation update --all
 ```
 
 ## Important Notes

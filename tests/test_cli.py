@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
@@ -224,19 +224,59 @@ class TestCommentCommands:
 class TestLabelCommands:
     """Test label command group."""
 
-    def test_label_add(self, runner: CliRunner) -> None:
-        """Test label add command."""
+    def test_label_add_single(self, runner: CliRunner) -> None:
+        """Test label add command with single label."""
         with patch("confluence_assistant_skills.cli.commands.label_cmds.call_skill_main") as mock:
             mock.return_value = 0
-            result = runner.invoke(cli, ["label", "add", "12345", "tag1", "tag2"])
+            result = runner.invoke(cli, ["label", "add", "12345", "--label", "documentation"])
             assert result.exit_code == 0
             mock.assert_called_once()
             args = mock.call_args[0]
             assert args[0] == "confluence-label"
             assert args[1] == "add_label"
             assert "12345" in args[2]
-            assert "tag1" in args[2]
-            assert "tag2" in args[2]
+            assert "--label" in args[2]
+            assert "documentation" in args[2]
+
+    def test_label_add_multiple(self, runner: CliRunner) -> None:
+        """Test label add command with multiple comma-separated labels."""
+        with patch("confluence_assistant_skills.cli.commands.label_cmds.call_skill_main") as mock:
+            mock.return_value = 0
+            result = runner.invoke(cli, ["label", "add", "12345", "--labels", "doc,approved,v2"])
+            assert result.exit_code == 0
+            mock.assert_called_once()
+            args = mock.call_args[0]
+            assert args[0] == "confluence-label"
+            assert args[1] == "add_label"
+            assert "12345" in args[2]
+            assert "--labels" in args[2]
+            assert "doc,approved,v2" in args[2]
+
+    def test_label_add_requires_label_or_labels(self, runner: CliRunner) -> None:
+        """Test label add command requires --label or --labels."""
+        result = runner.invoke(cli, ["label", "add", "12345"])
+        assert result.exit_code != 0
+        assert "Either --label or --labels is required" in result.output
+
+    def test_label_remove(self, runner: CliRunner) -> None:
+        """Test label remove command."""
+        with patch("confluence_assistant_skills.cli.commands.label_cmds.call_skill_main") as mock:
+            mock.return_value = 0
+            result = runner.invoke(cli, ["label", "remove", "12345", "--label", "draft"])
+            assert result.exit_code == 0
+            mock.assert_called_once()
+            args = mock.call_args[0]
+            assert args[0] == "confluence-label"
+            assert args[1] == "remove_label"
+            assert "12345" in args[2]
+            assert "--label" in args[2]
+            assert "draft" in args[2]
+
+    def test_label_remove_requires_label(self, runner: CliRunner) -> None:
+        """Test label remove command requires --label."""
+        result = runner.invoke(cli, ["label", "remove", "12345"])
+        assert result.exit_code != 0
+        assert "Missing option" in result.output or "required" in result.output.lower()
 
 
 class TestAttachmentCommands:
@@ -389,17 +429,6 @@ class TestJiraCommands:
 
 class TestGlobalOptions:
     """Test global CLI options."""
-
-    def test_profile_option(self, runner: CliRunner) -> None:
-        """Test --profile global option."""
-        with patch("confluence_assistant_skills.cli.commands.page_cmds.call_skill_main") as mock:
-            mock.return_value = 0
-            result = runner.invoke(cli, ["--profile", "test", "page", "get", "12345"])
-            assert result.exit_code == 0
-            args = mock.call_args[0]
-            # Profile should be passed through context, not directly to the skill
-            # The profile is handled in the command itself
-            mock.assert_called_once()
 
     def test_output_option(self, runner: CliRunner) -> None:
         """Test --output global option."""

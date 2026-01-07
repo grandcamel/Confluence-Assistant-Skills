@@ -2,50 +2,47 @@
 Live integration tests for view statistics operations.
 
 Usage:
-    pytest test_view_stats_live.py --profile development -v
+    pytest test_view_stats_live.py --live -v
 """
 
-import pytest
+import contextlib
 import uuid
-import sys
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
-def pytest_addoption(parser):
-    try:
-        parser.addoption("--profile", action="store", default=None)
-    except ValueError:
-        pass
 
 @pytest.fixture(scope="session")
-def confluence_client(request):
-    profile = request.config.getoption("--profile", default=None)
-    return get_confluence_client(profile=profile)
+def confluence_client():
+    return get_confluence_client()
+
 
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': f'View Stats Test {uuid.uuid4().hex[:8]}',
-            'body': {'representation': 'storage', 'value': '<p>Test.</p>'}
-        }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": f"View Stats Test {uuid.uuid4().hex[:8]}",
+            "body": {"representation": "storage", "value": "<p>Test.</p>"},
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.mark.integration
 class TestViewStatsLive:
@@ -55,33 +52,30 @@ class TestViewStatsLive:
         """Test that page can be queried for view info."""
         # Read the page to increment view count
         page = confluence_client.get(f"/api/v2/pages/{test_page['id']}")
-        assert page['id'] == test_page['id']
+        assert page["id"] == test_page["id"]
 
     def test_get_popular_content(self, confluence_client, test_space):
         """Test querying for popular content in space."""
         # Search for most viewed content
         results = confluence_client.get(
-            '/rest/api/search',
+            "/rest/api/search",
             params={
-                'cql': f'space = "{test_space["key"]}" ORDER BY lastModified DESC',
-                'limit': 10
-            }
+                "cql": f'space = "{test_space["key"]}" ORDER BY lastModified DESC',
+                "limit": 10,
+            },
         )
 
-        assert 'results' in results
+        assert "results" in results
 
     def test_get_recently_viewed(self, confluence_client):
         """Test getting recently viewed content for current user."""
         # This uses the user's history
         try:
             history = confluence_client.get(
-                '/rest/api/content/search',
-                params={
-                    'cql': 'lastModified >= now("-7d")',
-                    'limit': 10
-                }
+                "/rest/api/content/search",
+                params={"cql": 'lastModified >= now("-7d")', "limit": 10},
             )
-            assert 'results' in history or history is not None
+            assert "results" in history or history is not None
         except Exception:
             # Some instances may not support this
             pass

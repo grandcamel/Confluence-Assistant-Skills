@@ -4,50 +4,47 @@ Live integration tests for confluence-comment skill.
 Tests comment operations against a real Confluence instance.
 
 Usage:
-    pytest test_comment_live.py --profile development -v
+    pytest test_comment_live.py --live -v
 """
 
-import pytest
+import contextlib
 import uuid
-import sys
+
+import pytest
+
 from confluence_assistant_skills_lib import (
     get_confluence_client,
 )
 
-def pytest_addoption(parser):
-    try:
-        parser.addoption("--profile", action="store", default=None, help="Confluence profile")
-    except ValueError:
-        pass
 
 @pytest.fixture(scope="session")
-def confluence_client(request):
-    profile = request.config.getoption("--profile", default=None)
-    return get_confluence_client(profile=profile)
+def confluence_client():
+    return get_confluence_client()
+
 
 @pytest.fixture(scope="session")
 def test_space(confluence_client):
-    spaces = confluence_client.get('/api/v2/spaces', params={'limit': 1})
-    if not spaces.get('results'):
+    spaces = confluence_client.get("/api/v2/spaces", params={"limit": 1})
+    if not spaces.get("results"):
         pytest.skip("No spaces available")
-    return spaces['results'][0]
+    return spaces["results"][0]
+
 
 @pytest.fixture
 def test_page(confluence_client, test_space):
     page = confluence_client.post(
-        '/api/v2/pages',
+        "/api/v2/pages",
         json_data={
-            'spaceId': test_space['id'],
-            'status': 'current',
-            'title': f'Comment Test Page {uuid.uuid4().hex[:8]}',
-            'body': {'representation': 'storage', 'value': '<p>Test content.</p>'}
-        }
+            "spaceId": test_space["id"],
+            "status": "current",
+            "title": f"Comment Test Page {uuid.uuid4().hex[:8]}",
+            "body": {"representation": "storage", "value": "<p>Test content.</p>"},
+        },
     )
     yield page
-    try:
+    with contextlib.suppress(Exception):
         confluence_client.delete(f"/api/v2/pages/{page['id']}")
-    except Exception:
-        pass
+
 
 @pytest.mark.integration
 class TestAddCommentLive:
@@ -57,21 +54,21 @@ class TestAddCommentLive:
         """Test adding a footer comment to a page."""
         # Use v1 API (v2 doesn't support POST for comments)
         comment = confluence_client.post(
-            '/rest/api/content',
+            "/rest/api/content",
             json_data={
-                'type': 'comment',
-                'container': {'id': test_page['id'], 'type': 'page'},
-                'body': {
-                    'storage': {
-                        'representation': 'storage',
-                        'value': '<p>Test comment from live test.</p>'
+                "type": "comment",
+                "container": {"id": test_page["id"], "type": "page"},
+                "body": {
+                    "storage": {
+                        "representation": "storage",
+                        "value": "<p>Test comment from live test.</p>",
                     }
-                }
-            }
+                },
+            },
         )
 
-        assert comment['id'] is not None
-        assert 'body' in comment
+        assert comment["id"] is not None
+        assert "body" in comment
 
     def test_add_multiple_comments(self, confluence_client, test_page):
         """Test adding multiple comments."""
@@ -79,22 +76,23 @@ class TestAddCommentLive:
         comments = []
         for i in range(3):
             comment = confluence_client.post(
-                '/rest/api/content',
+                "/rest/api/content",
                 json_data={
-                    'type': 'comment',
-                    'container': {'id': test_page['id'], 'type': 'page'},
-                    'body': {
-                        'storage': {
-                            'representation': 'storage',
-                            'value': f'<p>Comment {i + 1}</p>'
+                    "type": "comment",
+                    "container": {"id": test_page["id"], "type": "page"},
+                    "body": {
+                        "storage": {
+                            "representation": "storage",
+                            "value": f"<p>Comment {i + 1}</p>",
                         }
-                    }
-                }
+                    },
+                },
             )
             comments.append(comment)
 
         assert len(comments) == 3
-        assert all(c['id'] for c in comments)
+        assert all(c["id"] for c in comments)
+
 
 @pytest.mark.integration
 class TestGetCommentsLive:
@@ -104,12 +102,14 @@ class TestGetCommentsLive:
         """Test getting comments from a page."""
         # Add a comment first using v1 API
         confluence_client.post(
-            '/rest/api/content',
+            "/rest/api/content",
             json_data={
-                'type': 'comment',
-                'container': {'id': test_page['id'], 'type': 'page'},
-                'body': {'storage': {'representation': 'storage', 'value': '<p>Test</p>'}}
-            }
+                "type": "comment",
+                "container": {"id": test_page["id"], "type": "page"},
+                "body": {
+                    "storage": {"representation": "storage", "value": "<p>Test</p>"}
+                },
+            },
         )
 
         # Get comments
@@ -117,30 +117,31 @@ class TestGetCommentsLive:
             f"/api/v2/pages/{test_page['id']}/footer-comments"
         )
 
-        assert 'results' in comments
-        assert len(comments['results']) >= 1
+        assert "results" in comments
+        assert len(comments["results"]) >= 1
 
     def test_get_comments_empty_page(self, confluence_client, test_space):
         """Test getting comments from a page with no comments."""
         # Create fresh page
         page = confluence_client.post(
-            '/api/v2/pages',
+            "/api/v2/pages",
             json_data={
-                'spaceId': test_space['id'],
-                'status': 'current',
-                'title': f'Empty Comments {uuid.uuid4().hex[:8]}',
-                'body': {'representation': 'storage', 'value': '<p>No comments.</p>'}
-            }
+                "spaceId": test_space["id"],
+                "status": "current",
+                "title": f"Empty Comments {uuid.uuid4().hex[:8]}",
+                "body": {"representation": "storage", "value": "<p>No comments.</p>"},
+            },
         )
 
         try:
             comments = confluence_client.get(
                 f"/api/v2/pages/{page['id']}/footer-comments"
             )
-            assert 'results' in comments
-            assert len(comments['results']) == 0
+            assert "results" in comments
+            assert len(comments["results"]) == 0
         finally:
             confluence_client.delete(f"/api/v2/pages/{page['id']}")
+
 
 @pytest.mark.integration
 class TestUpdateCommentLive:
@@ -150,25 +151,30 @@ class TestUpdateCommentLive:
         """Test updating a comment's body."""
         # Create comment using v1 API
         comment = confluence_client.post(
-            '/rest/api/content',
+            "/rest/api/content",
             json_data={
-                'type': 'comment',
-                'container': {'id': test_page['id'], 'type': 'page'},
-                'body': {'storage': {'representation': 'storage', 'value': '<p>Original</p>'}}
-            }
+                "type": "comment",
+                "container": {"id": test_page["id"], "type": "page"},
+                "body": {
+                    "storage": {"representation": "storage", "value": "<p>Original</p>"}
+                },
+            },
         )
 
         # Update it using v1 API
         updated = confluence_client.put(
             f"/rest/api/content/{comment['id']}",
             json_data={
-                'type': 'comment',
-                'version': {'number': comment['version']['number'] + 1},
-                'body': {'storage': {'representation': 'storage', 'value': '<p>Updated</p>'}}
-            }
+                "type": "comment",
+                "version": {"number": comment["version"]["number"] + 1},
+                "body": {
+                    "storage": {"representation": "storage", "value": "<p>Updated</p>"}
+                },
+            },
         )
 
-        assert updated['version']['number'] == comment['version']['number'] + 1
+        assert updated["version"]["number"] == comment["version"]["number"] + 1
+
 
 @pytest.mark.integration
 class TestDeleteCommentLive:
@@ -178,15 +184,20 @@ class TestDeleteCommentLive:
         """Test deleting a comment."""
         # Create comment using v1 API
         comment = confluence_client.post(
-            '/rest/api/content',
+            "/rest/api/content",
             json_data={
-                'type': 'comment',
-                'container': {'id': test_page['id'], 'type': 'page'},
-                'body': {'storage': {'representation': 'storage', 'value': '<p>Delete me</p>'}}
-            }
+                "type": "comment",
+                "container": {"id": test_page["id"], "type": "page"},
+                "body": {
+                    "storage": {
+                        "representation": "storage",
+                        "value": "<p>Delete me</p>",
+                    }
+                },
+            },
         )
 
-        comment_id = comment['id']
+        comment_id = comment["id"]
 
         # Delete it using v1 API
         confluence_client.delete(f"/rest/api/content/{comment_id}")
@@ -195,5 +206,5 @@ class TestDeleteCommentLive:
         comments = confluence_client.get(
             f"/api/v2/pages/{test_page['id']}/footer-comments"
         )
-        comment_ids = [c['id'] for c in comments['results']]
+        comment_ids = [c["id"] for c in comments["results"]]
         assert comment_id not in comment_ids
