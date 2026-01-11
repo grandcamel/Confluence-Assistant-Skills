@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **CLI Framework**: Unified `confluence` command-line interface using Click
   - 13 command groups: page, space, search, comment, label, attachment, hierarchy, permission, analytics, watch, template, property, jira
-  - Global options: `--profile`, `--output`, `--verbose`, `--quiet`
+  - Global options: `--output`, `--verbose`, `--quiet`
   - Shell completion support for bash and zsh
 - **Package Installation**: Install via `pip install -e .` with `confluence` entry point
 - **Hybrid Dispatch**: CLI calls skill scripts directly with subprocess fallback

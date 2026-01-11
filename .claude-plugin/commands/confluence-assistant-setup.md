@@ -53,9 +53,7 @@ Ask the user for their Confluence credentials:
 
 3. **API Token**: Ask "Please paste your API token (I'll store it securely)"
 
-4. **Profile Name**: Ask "What would you like to name this profile? (default: production)"
-
-## Step 4: Configure Environment
+## Step 4: Configure Environment Variables
 
 Guide the user to set environment variables:
 
@@ -123,8 +121,7 @@ If authentication fails:
 - **Connection error**: Check the URL is correct and reachable.
 
 If the CLI is not found:
-- Ensure the plugin is installed: `pip install -e /path/to/plugin`
-- Or use direct script execution: `python "${CLAUDE_PLUGIN_ROOT}/skills/confluence-page/scripts/get_page.py" PAGE_ID`
+- Ensure the package is installed: `pip install confluence-assistant-skills`
 
 If import errors occur:
 - Ensure the library is installed: `pip install confluence-assistant-skills-lib>=0.1.0`

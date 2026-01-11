@@ -73,8 +73,8 @@ class TestWatchPage:
         with pytest.raises(Exception):
             handle_confluence_error(error_response, "watch page")
 
-    def test_watch_page_with_profile(self, mock_client, sample_watch_response):
-        """Test watching with a specific profile."""
+    def test_watch_page_basic_post(self, mock_client, sample_watch_response):
+        """Test basic watch page POST request."""
         mock_client.setup_response("post", sample_watch_response)
 
         result = mock_client.post(

@@ -50,7 +50,7 @@ This step will be performed once for all projects. The results confirm that `pip
 1.  **Create `src/confluence_assistant_skills/utils.py`**: Add the `SKILLS_ROOT_DIR` path resolution logic and the `run_skill_script_subprocess` helper function.
 2.  **Create `src/confluence_assistant_skills/cli/main.py`**:
     -   Define the root `cli` command using `@click.group()`.
-    -   Define global options: `--profile`, `--output`, `--verbose`, `--quiet`.
+    -   Define global options: `--output`, `--verbose`, `--quiet`.
     -   Import and add command groups from the `commands` directory.
 
 ### P2b.2: Command Group Implementation
