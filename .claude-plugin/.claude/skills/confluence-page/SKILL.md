@@ -89,9 +89,9 @@ This skill handles all CRUD operations for Confluence pages and blog posts, incl
 - Copying and moving pages
 - Version history and restoration
 
-## Available Scripts
+## CLI Commands
 
-### create_page.py
+### confluence page create
 
 Create a new Confluence page.
 
@@ -119,7 +119,7 @@ confluence page create --space DOCS --title "Draft Page" --body "WIP" --status d
 - `--status` - Page status: current (default) or draft
 - `--output, -o` - Output format: text or json
 
-### get_page.py
+### confluence page get
 
 Retrieve a page's content and metadata.
 
@@ -144,7 +144,7 @@ confluence page get 12345 --output json
 - `--format` - Body format: storage, view, or markdown
 - `--output, -o` - Output format: text or json
 
-### update_page.py
+### confluence page update
 
 Update an existing page.
 
@@ -175,7 +175,7 @@ confluence page update 12345 --status draft
 - `--status` - New status: current or draft
 - `--output, -o` - Output format
 
-### delete_page.py
+### confluence page delete
 
 Delete a page (move to trash or permanent delete).
 
@@ -196,7 +196,7 @@ confluence page delete 12345 --force
 - `--permanent` - Permanently delete (cannot be recovered)
 - `--force, -f` - Skip confirmation prompt
 
-### create_blogpost.py
+### confluence page blog create
 
 Create a new blog post.
 
@@ -215,7 +215,7 @@ confluence page blog create --space BLOG --title "From MD" --file post.md
 - `--file, -f` - Read body from file
 - `--output, -o` - Output format
 
-### get_blogpost.py
+### confluence page blog get
 
 Retrieve a blog post.
 
@@ -230,7 +230,7 @@ confluence page blog get 67890 --body
 - `--format` - Body format
 - `--output, -o` - Output format
 
-### copy_page.py
+### confluence page copy
 
 Copy a page to a new location.
 
@@ -254,7 +254,7 @@ confluence page copy 12345 --title "Page Copy" --include-children
 - `--include-children` - Copy child pages recursively
 - `--output, -o` - Output format
 
-### move_page.py
+### confluence page move
 
 Move a page to a new location.
 
@@ -276,7 +276,7 @@ confluence page move 12345 --space NEWSPACE --root
 - `--parent, -p` - Target parent page ID
 - `--root` - Move to space root (no parent)
 
-### get_page_versions.py
+### confluence page versions
 
 Get version history for a page.
 
@@ -298,7 +298,7 @@ confluence page versions 12345 --detailed
 - `--detailed` - Show full version details
 - `--output, -o` - Output format
 
-### restore_version.py
+### confluence page restore
 
 Restore a page to a previous version.
 

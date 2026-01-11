@@ -1,10 +1,94 @@
-"""Page management commands."""
+"""Page management commands - CLI-only implementation."""
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+from typing import Any
+
 import click
 
-from confluence_assistant_skills.utils import call_skill_main
+from confluence_assistant_skills_lib import (
+    ValidationError,
+    format_blogpost,
+    format_json,
+    format_page,
+    format_table,
+    format_version,
+    get_confluence_client,
+    handle_errors,
+    markdown_to_xhtml,
+    print_info,
+    print_success,
+    print_warning,
+    validate_limit,
+    validate_page_id,
+    validate_space_key,
+    validate_title,
+    xhtml_to_markdown,
+)
+
+
+def _read_body_from_file(file_path: Path) -> str:
+    """Read body content from a file."""
+    if not file_path.exists():
+        raise ValidationError(f"File not found: {file_path}")
+    return file_path.read_text(encoding="utf-8")
+
+
+def _is_markdown_file(file_path: Path) -> bool:
+    """Check if file is a Markdown file."""
+    return file_path.suffix.lower() in (".md", ".markdown")
+
+
+def _get_space_id(client: Any, space_key: str) -> str:
+    """Get space ID from space key."""
+    spaces = list(
+        client.paginate(
+            "/api/v2/spaces", params={"keys": space_key}, operation="get space"
+        )
+    )
+    if not spaces:
+        raise ValidationError(f"Space not found: {space_key}")
+    return spaces[0]["id"]
+
+
+def _copy_children(
+    client: Any, source_parent_id: str, target_parent_id: str, target_space_id: str
+) -> None:
+    """Recursively copy child pages."""
+    children = list(
+        client.paginate(
+            f"/api/v2/pages/{source_parent_id}/children",
+            params={"body-format": "storage"},
+            operation="get children",
+        )
+    )
+
+    for child in children:
+        child_id = child["id"]
+        child_title = child.get("title", "Untitled")
+
+        full_child = client.get(
+            f"/api/v2/pages/{child_id}",
+            params={"body-format": "storage"},
+            operation="get child page",
+        )
+
+        child_copy_data = {
+            "spaceId": target_space_id,
+            "status": full_child.get("status", "current"),
+            "title": child_title,
+            "parentId": target_parent_id,
+            "body": full_child.get("body", {}),
+        }
+
+        new_child = client.post(
+            "/api/v2/pages", json_data=child_copy_data, operation="copy child page"
+        )
+
+        print_info(f"  Copied child: {child_title}")
+        _copy_children(client, child_id, new_child["id"], target_space_id)
 
 
 @click.group()
@@ -30,35 +114,55 @@ def page() -> None:
     default="text",
     help="Output format",
 )
-@click.pass_context
+@handle_errors
 def get_page(
-    ctx: click.Context,
     page_id: str,
     body: bool,
     body_format: str,
     output: str,
 ) -> None:
     """Get a Confluence page by ID."""
-    argv = [page_id]
-    if body:
-        argv.append("--body")
-    if body_format != "storage":
-        argv.extend(["--format", body_format])
-    if output != "text":
-        argv.extend(["--output", output])
+    page_id = validate_page_id(page_id)
+    client = get_confluence_client()
 
-    ctx.exit(call_skill_main("confluence-page", "get_page", argv))
+    params = {}
+    if body:
+        params["body-format"] = "storage"
+
+    result = client.get(f"/api/v2/pages/{page_id}", params=params, operation="get page")
+
+    if body and body_format == "markdown":
+        body_data = result.get("body", {})
+        storage = body_data.get("storage", {}).get("value", "")
+        if storage:
+            result["body"]["markdown"] = xhtml_to_markdown(storage)
+
+    if output == "json":
+        click.echo(format_json(result))
+    else:
+        click.echo(format_page(result, detailed=body))
+
+        if body:
+            click.echo("\n--- Content ---")
+            body_data = result.get("body", {})
+
+            if body_format == "markdown" and "markdown" in body_data:
+                click.echo(body_data["markdown"])
+            elif "storage" in body_data:
+                click.echo(body_data["storage"].get("value", ""))
+
+    print_success(f"Retrieved page {page_id}")
 
 
 @page.command(name="create")
 @click.option("--space", "-s", required=True, help="Space key")
 @click.option("--title", "-t", required=True, help="Page title")
-@click.option("--body", "-b", help="Page body content (Markdown or XHTML)")
+@click.option("--body", "-b", "body_content", help="Page body content (Markdown or XHTML)")
 @click.option(
     "--file",
     "-f",
     "body_file",
-    type=click.Path(exists=True),
+    type=click.Path(exists=True, path_type=Path),
     help="Read body from file",
 )
 @click.option("--parent", "-p", "parent_id", help="Parent page ID")
@@ -75,42 +179,70 @@ def get_page(
     default="text",
     help="Output format",
 )
-@click.pass_context
+@handle_errors
 def create_page(
-    ctx: click.Context,
     space: str,
     title: str,
-    body: str | None,
-    body_file: str | None,
+    body_content: str | None,
+    body_file: Path | None,
     parent_id: str | None,
     status: str,
     output: str,
 ) -> None:
     """Create a new Confluence page."""
-    argv = ["--space", space, "--title", title]
-    if body:
-        argv.extend(["--body", body])
-    if body_file:
-        argv.extend(["--file", body_file])
-    if parent_id:
-        argv.extend(["--parent", parent_id])
-    if status != "current":
-        argv.extend(["--status", status])
-    if output != "text":
-        argv.extend(["--output", output])
+    space_key = validate_space_key(space)
+    title = validate_title(title)
 
-    ctx.exit(call_skill_main("confluence-page", "create_page", argv))
+    if parent_id:
+        parent_id = validate_page_id(parent_id, field_name="parent")
+
+    if body_file:
+        content = _read_body_from_file(body_file)
+        is_markdown = _is_markdown_file(body_file)
+    elif body_content:
+        content = body_content
+        is_markdown = False
+    else:
+        raise ValidationError("Either --body or --file is required")
+
+    client = get_confluence_client()
+    space_id = _get_space_id(client, space_key)
+
+    if is_markdown:
+        content = markdown_to_xhtml(content)
+
+    page_data: dict[str, Any] = {
+        "spaceId": space_id,
+        "status": status,
+        "title": title,
+        "body": {
+            "representation": "storage",
+            "value": content,
+        },
+    }
+
+    if parent_id:
+        page_data["parentId"] = parent_id
+
+    result = client.post("/api/v2/pages", json_data=page_data, operation="create page")
+
+    if output == "json":
+        click.echo(format_json(result))
+    else:
+        click.echo(format_page(result))
+
+    print_success(f"Created page '{title}' with ID {result['id']}")
 
 
 @page.command(name="update")
 @click.argument("page_id")
 @click.option("--title", "-t", help="New page title")
-@click.option("--body", "-b", help="New page body content")
+@click.option("--body", "-b", "body_content", help="New page body content")
 @click.option(
     "--file",
     "-f",
     "body_file",
-    type=click.Path(exists=True),
+    type=click.Path(exists=True, path_type=Path),
     help="Read body from file",
 )
 @click.option("--message", "-m", "version_message", help="Version change message")
@@ -124,33 +256,65 @@ def create_page(
     default="text",
     help="Output format",
 )
-@click.pass_context
+@handle_errors
 def update_page(
-    ctx: click.Context,
     page_id: str,
     title: str | None,
-    body: str | None,
-    body_file: str | None,
+    body_content: str | None,
+    body_file: Path | None,
     version_message: str | None,
     status: str | None,
     output: str,
 ) -> None:
     """Update an existing Confluence page."""
-    argv = [page_id]
-    if title:
-        argv.extend(["--title", title])
-    if body:
-        argv.extend(["--body", body])
-    if body_file:
-        argv.extend(["--file", body_file])
-    if version_message:
-        argv.extend(["--message", version_message])
-    if status:
-        argv.extend(["--status", status])
-    if output != "text":
-        argv.extend(["--output", output])
+    page_id = validate_page_id(page_id)
 
-    ctx.exit(call_skill_main("confluence-page", "update_page", argv))
+    if title:
+        title = validate_title(title)
+
+    if not any([title, body_content, body_file, status]):
+        raise ValidationError(
+            "At least one of --title, --body, --file, or --status is required"
+        )
+
+    content = None
+    is_markdown = False
+
+    if body_file:
+        content = _read_body_from_file(body_file)
+        is_markdown = _is_markdown_file(body_file)
+    elif body_content:
+        content = body_content
+
+    client = get_confluence_client()
+    current_page = client.get(f"/api/v2/pages/{page_id}", operation="get current page")
+    current_version = current_page.get("version", {}).get("number", 1)
+
+    update_data: dict[str, Any] = {
+        "id": page_id,
+        "status": status or current_page.get("status", "current"),
+        "title": title or current_page.get("title"),
+        "version": {"number": current_version + 1},
+    }
+
+    if version_message:
+        update_data["version"]["message"] = version_message
+
+    if content:
+        if is_markdown:
+            content = markdown_to_xhtml(content)
+        update_data["body"] = {"representation": "storage", "value": content}
+
+    result = client.put(
+        f"/api/v2/pages/{page_id}", json_data=update_data, operation="update page"
+    )
+
+    if output == "json":
+        click.echo(format_json(result))
+    else:
+        click.echo(format_page(result))
+
+    print_success(f"Updated page {page_id} to version {current_version + 1}")
 
 
 @page.command(name="delete")
@@ -159,21 +323,40 @@ def update_page(
 @click.option(
     "--permanent", is_flag=True, help="Permanently delete (cannot be recovered)"
 )
-@click.pass_context
+@handle_errors
 def delete_page(
-    ctx: click.Context,
     page_id: str,
     force: bool,
     permanent: bool,
 ) -> None:
     """Delete a Confluence page."""
-    argv = [page_id]
-    if force:
-        argv.append("--force")
-    if permanent:
-        argv.append("--permanent")
+    page_id = validate_page_id(page_id)
+    client = get_confluence_client()
 
-    ctx.exit(call_skill_main("confluence-page", "delete_page", argv))
+    page = client.get(f"/api/v2/pages/{page_id}", operation="get page")
+    page_title = page.get("title", "Unknown")
+
+    if not force:
+        action = "permanently delete" if permanent else "move to trash"
+        click.echo(f"\nYou are about to {action} the page: {page_title}")
+
+        if permanent:
+            print_warning("This action cannot be undone!")
+
+        if not click.confirm("\nAre you sure?", default=False):
+            click.echo("Delete cancelled.")
+            return
+
+    params = {}
+    if permanent:
+        params["purge"] = "true"
+
+    client.delete(f"/api/v2/pages/{page_id}", params=params, operation="delete page")
+
+    if permanent:
+        print_success(f"Permanently deleted page '{page_title}' (ID: {page_id})")
+    else:
+        print_success(f"Moved page '{page_title}' to trash (ID: {page_id})")
 
 
 @page.command(name="copy")
@@ -189,9 +372,8 @@ def delete_page(
     default="text",
     help="Output format",
 )
-@click.pass_context
+@handle_errors
 def copy_page(
-    ctx: click.Context,
     page_id: str,
     title: str | None,
     space: str | None,
@@ -200,19 +382,56 @@ def copy_page(
     output: str,
 ) -> None:
     """Copy a Confluence page."""
-    argv = [page_id]
-    if title:
-        argv.extend(["--title", title])
-    if space:
-        argv.extend(["--space", space])
-    if parent_id:
-        argv.extend(["--parent", parent_id])
-    if include_children:
-        argv.append("--include-children")
-    if output != "text":
-        argv.extend(["--output", output])
+    source_page_id = validate_page_id(page_id)
 
-    ctx.exit(call_skill_main("confluence-page", "copy_page", argv))
+    if parent_id:
+        parent_id = validate_page_id(parent_id, field_name="parent")
+
+    client = get_confluence_client()
+
+    source_page = client.get(
+        f"/api/v2/pages/{source_page_id}",
+        params={"body-format": "storage"},
+        operation="get source page",
+    )
+
+    source_title = source_page.get("title", "Untitled")
+    source_space_id = source_page.get("spaceId")
+
+    if title:
+        new_title = validate_title(title)
+    else:
+        new_title = f"Copy of {source_title}"
+
+    target_space_id = source_space_id
+    if space:
+        space_key = validate_space_key(space)
+        target_space_id = _get_space_id(client, space_key)
+
+    copy_data: dict[str, Any] = {
+        "spaceId": target_space_id,
+        "status": source_page.get("status", "current"),
+        "title": new_title,
+        "body": source_page.get("body", {}),
+    }
+
+    if parent_id:
+        copy_data["parentId"] = parent_id
+
+    print_info(f"Copying page '{source_title}' to '{new_title}'...")
+
+    result = client.post("/api/v2/pages", json_data=copy_data, operation="copy page")
+
+    if include_children:
+        print_info("Copying child pages...")
+        _copy_children(client, source_page_id, result["id"], target_space_id)
+
+    if output == "json":
+        click.echo(format_json(result))
+    else:
+        click.echo(format_page(result))
+
+    print_success(f"Copied page to '{new_title}' with ID {result['id']}")
 
 
 @page.command(name="move")
@@ -227,9 +446,8 @@ def copy_page(
     default="text",
     help="Output format",
 )
-@click.pass_context
+@handle_errors
 def move_page(
-    ctx: click.Context,
     page_id: str,
     space: str | None,
     parent_id: str | None,
@@ -237,17 +455,62 @@ def move_page(
     output: str,
 ) -> None:
     """Move a Confluence page."""
-    argv = [page_id]
-    if space:
-        argv.extend(["--space", space])
-    if parent_id:
-        argv.extend(["--parent", parent_id])
-    if root:
-        argv.append("--root")
-    if output != "text":
-        argv.extend(["--output", output])
+    page_id = validate_page_id(page_id)
 
-    ctx.exit(call_skill_main("confluence-page", "move_page", argv))
+    if parent_id:
+        parent_id = validate_page_id(parent_id, field_name="parent")
+
+    if not space and not parent_id and not root:
+        raise ValidationError(
+            "At least one of --space, --parent, or --root is required"
+        )
+
+    if parent_id and root:
+        raise ValidationError("Cannot specify both --parent and --root")
+
+    client = get_confluence_client()
+    current_page = client.get(f"/api/v2/pages/{page_id}", operation="get current page")
+    current_version = current_page.get("version", {}).get("number", 1)
+
+    if space:
+        space_key = validate_space_key(space)
+        target_space_id = _get_space_id(client, space_key)
+    else:
+        target_space_id = current_page.get("spaceId")
+
+    update_data: dict[str, Any] = {
+        "id": page_id,
+        "status": current_page.get("status", "current"),
+        "title": current_page.get("title"),
+        "spaceId": target_space_id,
+        "version": {"number": current_version + 1, "message": "Page moved"},
+    }
+
+    if root:
+        pass  # Don't include parentId to move to root
+    elif parent_id:
+        update_data["parentId"] = parent_id
+    elif current_page.get("parentId"):
+        update_data["parentId"] = current_page["parentId"]
+
+    result = client.put(
+        f"/api/v2/pages/{page_id}", json_data=update_data, operation="move page"
+    )
+
+    if output == "json":
+        click.echo(format_json(result))
+    else:
+        click.echo(format_page(result))
+
+    destination = []
+    if space:
+        destination.append(f"space {space}")
+    if parent_id:
+        destination.append(f"under parent {parent_id}")
+    elif root:
+        destination.append("to space root")
+
+    print_success(f"Moved page '{result['title']}' {' '.join(destination)}")
 
 
 @page.command(name="versions")
@@ -267,24 +530,80 @@ def move_page(
     default="text",
     help="Output format",
 )
-@click.pass_context
+@handle_errors
 def get_page_versions(
-    ctx: click.Context,
     page_id: str,
     limit: int,
     detailed: bool,
     output: str,
 ) -> None:
     """Get version history for a page."""
-    argv = [page_id]
-    if limit != 25:
-        argv.extend(["--limit", str(limit)])
-    if detailed:
-        argv.append("--detailed")
-    if output != "text":
-        argv.extend(["--output", output])
+    page_id = validate_page_id(page_id)
+    limit = validate_limit(limit, max_value=100)
 
-    ctx.exit(call_skill_main("confluence-page", "get_page_versions", argv))
+    client = get_confluence_client()
+
+    page = client.get(f"/api/v2/pages/{page_id}", operation="get page")
+
+    versions_response = client.get(
+        f"/rest/api/content/{page_id}/version",
+        params={"limit": limit},
+        operation="get versions",
+    )
+
+    versions = versions_response.get("results", [])
+
+    if output == "json":
+        click.echo(
+            format_json(
+                {
+                    "page": {
+                        "id": page_id,
+                        "title": page.get("title"),
+                        "currentVersion": page.get("version", {}).get("number"),
+                    },
+                    "versions": versions,
+                }
+            )
+        )
+    else:
+        click.echo(f"\nPage: {page.get('title')}")
+        click.echo(f"ID: {page_id}")
+        click.echo(f"Current Version: {page.get('version', {}).get('number', 1)}")
+        click.echo(f"\n{'=' * 60}")
+        click.echo("Version History:")
+        click.echo(f"{'=' * 60}\n")
+
+        if not versions:
+            click.echo("No version history available.")
+        elif detailed:
+            for version in versions:
+                click.echo(format_version(version))
+                click.echo()
+        else:
+            data = []
+            for v in versions:
+                data.append(
+                    {
+                        "version": v.get("number", "?"),
+                        "when": v.get("when", "")[:16] if v.get("when") else "N/A",
+                        "by": v.get("by", {}).get(
+                            "displayName",
+                            v.get("by", {}).get("username", "Unknown"),
+                        ),
+                        "message": v.get("message", "")[:40] or "-",
+                    }
+                )
+
+            click.echo(
+                format_table(
+                    data,
+                    columns=["version", "when", "by", "message"],
+                    headers=["Version", "Date", "Author", "Message"],
+                )
+            )
+
+    print_success(f"Retrieved {len(versions)} version(s) for page {page_id}")
 
 
 @page.command(name="restore")
@@ -300,22 +619,68 @@ def get_page_versions(
     default="text",
     help="Output format",
 )
-@click.pass_context
+@handle_errors
 def restore_version(
-    ctx: click.Context,
     page_id: str,
     version: int,
     message: str | None,
     output: str,
 ) -> None:
     """Restore a page to a previous version."""
-    argv = [page_id, "--version", str(version)]
-    if message:
-        argv.extend(["--message", message])
-    if output != "text":
-        argv.extend(["--output", output])
+    page_id = validate_page_id(page_id)
 
-    ctx.exit(call_skill_main("confluence-page", "restore_version", argv))
+    if version < 1:
+        raise ValidationError("Version number must be at least 1")
+
+    client = get_confluence_client()
+    current_page = client.get(f"/api/v2/pages/{page_id}", operation="get current page")
+    current_version = current_page.get("version", {}).get("number", 1)
+
+    if version >= current_version:
+        raise ValidationError(
+            f"Cannot restore to version {version}. "
+            f"Current version is {current_version}. "
+            f"Specify a version less than {current_version}."
+        )
+
+    historical = client.get(
+        f"/rest/api/content/{page_id}",
+        params={"version": version, "expand": "body.storage,version"},
+        operation="get historical version",
+    )
+
+    historical_body = historical.get("body", {}).get("storage", {}).get("value", "")
+
+    if not historical_body:
+        raise ValidationError(f"Could not retrieve content for version {version}")
+
+    version_message = message or f"Restored to version {version}"
+
+    restore_data: dict[str, Any] = {
+        "id": page_id,
+        "status": current_page.get("status", "current"),
+        "title": current_page.get("title"),
+        "version": {"number": current_version + 1, "message": version_message},
+        "body": {"representation": "storage", "value": historical_body},
+    }
+
+    print_warning(
+        f"Restoring page '{current_page.get('title')}' from version {current_version} to version {version}"
+    )
+
+    result = client.put(
+        f"/api/v2/pages/{page_id}", json_data=restore_data, operation="restore version"
+    )
+
+    if output == "json":
+        click.echo(format_json(result))
+    else:
+        click.echo(format_page(result))
+
+    print_success(
+        f"Restored page to version {version} content. "
+        f"New version number: {current_version + 1}"
+    )
 
 
 # Blog post commands
@@ -342,35 +707,58 @@ def blog() -> None:
     default="text",
     help="Output format",
 )
-@click.pass_context
+@handle_errors
 def get_blogpost(
-    ctx: click.Context,
     blogpost_id: str,
     body: bool,
     body_format: str,
     output: str,
 ) -> None:
     """Get a blog post by ID."""
-    argv = [blogpost_id]
-    if body:
-        argv.append("--body")
-    if body_format != "storage":
-        argv.extend(["--format", body_format])
-    if output != "text":
-        argv.extend(["--output", output])
+    blogpost_id = validate_page_id(blogpost_id, field_name="blogpost_id")
 
-    ctx.exit(call_skill_main("confluence-page", "get_blogpost", argv))
+    client = get_confluence_client()
+
+    params = {}
+    if body:
+        params["body-format"] = "storage"
+
+    result = client.get(
+        f"/api/v2/blogposts/{blogpost_id}", params=params, operation="get blog post"
+    )
+
+    if body and body_format == "markdown":
+        body_data = result.get("body", {})
+        storage = body_data.get("storage", {}).get("value", "")
+        if storage:
+            result["body"]["markdown"] = xhtml_to_markdown(storage)
+
+    if output == "json":
+        click.echo(format_json(result))
+    else:
+        click.echo(format_blogpost(result, detailed=body))
+
+        if body:
+            click.echo("\n--- Content ---")
+            body_data = result.get("body", {})
+
+            if body_format == "markdown" and "markdown" in body_data:
+                click.echo(body_data["markdown"])
+            elif "storage" in body_data:
+                click.echo(body_data["storage"].get("value", ""))
+
+    print_success(f"Retrieved blog post {blogpost_id}")
 
 
 @blog.command(name="create")
 @click.option("--space", "-s", required=True, help="Space key")
 @click.option("--title", "-t", required=True, help="Blog post title")
-@click.option("--body", "-b", help="Blog post body content")
+@click.option("--body", "-b", "body_content", help="Blog post body content")
 @click.option(
     "--file",
     "-f",
     "body_file",
-    type=click.Path(exists=True),
+    type=click.Path(exists=True, path_type=Path),
     help="Read body from file",
 )
 @click.option(
@@ -386,25 +774,48 @@ def get_blogpost(
     default="text",
     help="Output format",
 )
-@click.pass_context
+@handle_errors
 def create_blogpost(
-    ctx: click.Context,
     space: str,
     title: str,
-    body: str | None,
-    body_file: str | None,
+    body_content: str | None,
+    body_file: Path | None,
     status: str,
     output: str,
 ) -> None:
     """Create a new blog post."""
-    argv = ["--space", space, "--title", title]
-    if body:
-        argv.extend(["--body", body])
-    if body_file:
-        argv.extend(["--file", body_file])
-    if status != "current":
-        argv.extend(["--status", status])
-    if output != "text":
-        argv.extend(["--output", output])
+    space_key = validate_space_key(space)
+    title = validate_title(title)
 
-    ctx.exit(call_skill_main("confluence-page", "create_blogpost", argv))
+    if body_file:
+        content = _read_body_from_file(body_file)
+        is_markdown = _is_markdown_file(body_file)
+    elif body_content:
+        content = body_content
+        is_markdown = False
+    else:
+        raise ValidationError("Either --body or --file is required")
+
+    client = get_confluence_client()
+    space_id = _get_space_id(client, space_key)
+
+    if is_markdown:
+        content = markdown_to_xhtml(content)
+
+    blogpost_data: dict[str, Any] = {
+        "spaceId": space_id,
+        "status": status,
+        "title": title,
+        "body": {"representation": "storage", "value": content},
+    }
+
+    result = client.post(
+        "/api/v2/blogposts", json_data=blogpost_data, operation="create blog post"
+    )
+
+    if output == "json":
+        click.echo(format_json(result))
+    else:
+        click.echo(format_blogpost(result))
+
+    print_success(f"Created blog post '{title}' with ID {result['id']}")
