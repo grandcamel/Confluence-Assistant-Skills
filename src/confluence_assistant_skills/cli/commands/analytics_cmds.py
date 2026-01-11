@@ -8,7 +8,6 @@ from typing import Any
 import click
 
 from confluence_assistant_skills_lib import (
-    ValidationError,
     format_json,
     format_table,
     get_confluence_client,
@@ -20,17 +19,7 @@ from confluence_assistant_skills_lib import (
     validate_space_key,
 )
 
-
-def _get_space_by_key(client: Any, space_key: str) -> dict[str, Any]:
-    """Get space by key."""
-    spaces = list(client.paginate(
-        "/api/v2/spaces",
-        params={"keys": space_key},
-        operation="get space",
-    ))
-    if not spaces:
-        raise ValidationError(f"Space not found: {space_key}")
-    return spaces[0]
+from confluence_assistant_skills.cli.helpers import get_space_by_key
 
 
 @click.group()
@@ -330,7 +319,7 @@ def get_space_analytics(
     client = get_confluence_client()
 
     # Get space info
-    space = _get_space_by_key(client, space_key)
+    space = get_space_by_key(client, space_key)
     space_name = space.get("name", space_key)
     space_id = space.get("id")
 

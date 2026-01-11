@@ -7,7 +7,6 @@ from typing import Any
 import click
 
 from confluence_assistant_skills_lib import (
-    ValidationError,
     format_json,
     format_page,
     format_space,
@@ -21,17 +20,7 @@ from confluence_assistant_skills_lib import (
     validate_space_key,
 )
 
-
-def _get_space_by_key(client: Any, space_key: str) -> dict[str, Any]:
-    """Get space details by space key."""
-    spaces = list(
-        client.paginate(
-            "/api/v2/spaces", params={"keys": space_key}, operation="get space"
-        )
-    )
-    if not spaces:
-        raise ValidationError(f"Space not found: {space_key}")
-    return spaces[0]
+from confluence_assistant_skills.cli.helpers import get_space_by_key
 
 
 @click.group()
@@ -131,7 +120,7 @@ def get_space(
     space_key = validate_space_key(space_key)
     client = get_confluence_client()
 
-    result = _get_space_by_key(client, space_key)
+    result = get_space_by_key(client, space_key)
 
     if output == "json":
         click.echo(format_json(result))
@@ -230,7 +219,7 @@ def update_space(
     client = get_confluence_client()
 
     # Get current space
-    current_space = _get_space_by_key(client, space_key)
+    current_space = get_space_by_key(client, space_key)
     space_id = current_space["id"]
 
     update_data: dict[str, Any] = {
@@ -276,7 +265,7 @@ def delete_space(
     client = get_confluence_client()
 
     # Get space details first
-    current_space = _get_space_by_key(client, space_key)
+    current_space = get_space_by_key(client, space_key)
     space_id = current_space["id"]
     space_name = current_space.get("name", space_key)
 
@@ -339,7 +328,7 @@ def get_space_content(
     client = get_confluence_client()
 
     # Get space to verify it exists and get ID
-    current_space = _get_space_by_key(client, space_key)
+    current_space = get_space_by_key(client, space_key)
     space_id = current_space["id"]
 
     params: dict[str, Any] = {"limit": min(limit, 25)}
@@ -417,7 +406,7 @@ def get_space_settings(
     client = get_confluence_client()
 
     # Get space details with expanded info
-    current_space = _get_space_by_key(client, space_key)
+    current_space = get_space_by_key(client, space_key)
     space_id = current_space["id"]
 
     # Use v1 API for settings as v2 doesn't have a dedicated settings endpoint

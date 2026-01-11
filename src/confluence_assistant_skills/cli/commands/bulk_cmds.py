@@ -8,7 +8,6 @@ from typing import Any
 import click
 
 from confluence_assistant_skills_lib import (
-    ValidationError,
     format_json,
     format_table,
     get_confluence_client,
@@ -21,6 +20,8 @@ from confluence_assistant_skills_lib import (
     validate_page_id,
     validate_space_key,
 )
+
+from confluence_assistant_skills.cli.helpers import get_space_by_key
 
 
 def _search_pages_by_cql(
@@ -40,18 +41,6 @@ def _search_pages_by_cql(
         if len(pages) >= max_pages:
             break
     return pages
-
-
-def _get_space_by_key(client: Any, space_key: str) -> dict[str, Any]:
-    """Get space by key."""
-    spaces = list(client.paginate(
-        "/api/v2/spaces",
-        params={"keys": space_key},
-        operation="get space",
-    ))
-    if not spaces:
-        raise ValidationError(f"Space not found: {space_key}")
-    return spaces[0]
 
 
 @click.group()
@@ -334,7 +323,7 @@ def bulk_move(
     target_space_id = None
     if target_space:
         target_space = validate_space_key(target_space)
-        space_info = _get_space_by_key(client, target_space)
+        space_info = get_space_by_key(client, target_space)
         target_space_id = space_info.get("id")
 
     # Validate target parent if provided

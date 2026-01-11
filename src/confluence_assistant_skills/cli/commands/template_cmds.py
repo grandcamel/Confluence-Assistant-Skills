@@ -8,7 +8,6 @@ from typing import Any
 import click
 
 from confluence_assistant_skills_lib import (
-    ValidationError,
     format_json,
     format_table,
     get_confluence_client,
@@ -20,29 +19,11 @@ from confluence_assistant_skills_lib import (
     xhtml_to_markdown,
 )
 
-
-def _get_space_by_key(client: Any, space_key: str) -> dict[str, Any]:
-    """Get space by key."""
-    spaces = list(client.paginate(
-        "/api/v2/spaces",
-        params={"keys": space_key},
-        operation="get space",
-    ))
-    if not spaces:
-        raise ValidationError(f"Space not found: {space_key}")
-    return spaces[0]
-
-
-def _read_content_file(file_path: Path) -> str:
-    """Read content from a file."""
-    if not file_path.exists():
-        raise ValidationError(f"File not found: {file_path}")
-    return file_path.read_text(encoding="utf-8")
-
-
-def _is_markdown_file(file_path: Path) -> bool:
-    """Check if file is a Markdown file."""
-    return file_path.suffix.lower() in (".md", ".markdown")
+from confluence_assistant_skills.cli.helpers import (
+    get_space_by_key,
+    is_markdown_file,
+    read_file_content,
+)
 
 
 @click.group()
@@ -309,13 +290,13 @@ def create_template(
     client = get_confluence_client()
 
     # Get space info
-    space_info = _get_space_by_key(client, space)
+    space_info = get_space_by_key(client, space)
 
     # Read content
     body_content = content
     if content_file:
-        body_content = _read_content_file(content_file)
-        if _is_markdown_file(content_file):
+        body_content = read_file_content(content_file)
+        if is_markdown_file(content_file):
             body_content = markdown_to_xhtml(body_content)
 
     # Build template data
@@ -428,8 +409,8 @@ def update_template(
             }
         }
     elif content_file:
-        body_content = _read_content_file(content_file)
-        if _is_markdown_file(content_file):
+        body_content = read_file_content(content_file)
+        if is_markdown_file(content_file):
             body_content = markdown_to_xhtml(body_content)
         update_data["body"] = {
             "storage": {
@@ -523,14 +504,14 @@ def create_from_template(
     client = get_confluence_client()
 
     # Get space info
-    space_info = _get_space_by_key(client, space)
+    space_info = get_space_by_key(client, space)
     space_id = space_info.get("id")
 
     # Get template content if not overriding
     body_content = content
     if content_file:
-        body_content = _read_content_file(content_file)
-        if _is_markdown_file(content_file):
+        body_content = read_file_content(content_file)
+        if is_markdown_file(content_file):
             body_content = markdown_to_xhtml(body_content)
 
     if not body_content:

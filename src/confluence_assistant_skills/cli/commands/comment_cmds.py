@@ -8,7 +8,6 @@ from typing import Any
 import click
 
 from confluence_assistant_skills_lib import (
-    ValidationError,
     format_json,
     format_table,
     get_confluence_client,
@@ -19,6 +18,8 @@ from confluence_assistant_skills_lib import (
     validate_limit,
     validate_page_id,
 )
+
+from confluence_assistant_skills.cli.helpers import is_markdown_file, read_file_content
 
 
 def _format_comment(comment: dict[str, Any], detailed: bool = False) -> dict[str, Any]:
@@ -37,18 +38,6 @@ def _format_comment(comment: dict[str, Any], detailed: bool = False) -> dict[str
             formatted["body"] = body["storage"].get("value", "")[:200]
 
     return formatted
-
-
-def _read_body_from_file(file_path: Path) -> str:
-    """Read comment body from a file."""
-    if not file_path.exists():
-        raise ValidationError(f"File not found: {file_path}")
-    return file_path.read_text(encoding="utf-8")
-
-
-def _is_markdown_file(file_path: Path) -> bool:
-    """Check if file is a Markdown file."""
-    return file_path.suffix.lower() in (".md", ".markdown")
 
 
 @click.group()
@@ -186,8 +175,8 @@ def add_comment(
         raise ValidationError("Cannot specify both BODY argument and --file option")
 
     if body_file:
-        content = _read_body_from_file(body_file)
-        if _is_markdown_file(body_file):
+        content = read_file_content(body_file)
+        if is_markdown_file(body_file):
             content = markdown_to_xhtml(content)
     else:
         content = body or ""
@@ -329,8 +318,8 @@ def update_comment(
         raise ValidationError("Cannot specify both BODY argument and --file option")
 
     if body_file:
-        content = _read_body_from_file(body_file)
-        if _is_markdown_file(body_file):
+        content = read_file_content(body_file)
+        if is_markdown_file(body_file):
             content = markdown_to_xhtml(content)
     else:
         content = body or ""

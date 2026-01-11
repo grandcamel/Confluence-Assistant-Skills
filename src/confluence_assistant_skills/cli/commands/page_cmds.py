@@ -9,7 +9,6 @@ from typing import Any
 import click
 
 from confluence_assistant_skills_lib import (
-    ValidationError,
     format_blogpost,
     format_json,
     format_page,
@@ -28,29 +27,11 @@ from confluence_assistant_skills_lib import (
     xhtml_to_markdown,
 )
 
-
-def _read_body_from_file(file_path: Path) -> str:
-    """Read body content from a file."""
-    if not file_path.exists():
-        raise ValidationError(f"File not found: {file_path}")
-    return file_path.read_text(encoding="utf-8")
-
-
-def _is_markdown_file(file_path: Path) -> bool:
-    """Check if file is a Markdown file."""
-    return file_path.suffix.lower() in (".md", ".markdown")
-
-
-def _get_space_id(client: Any, space_key: str) -> str:
-    """Get space ID from space key."""
-    spaces = list(
-        client.paginate(
-            "/api/v2/spaces", params={"keys": space_key}, operation="get space"
-        )
-    )
-    if not spaces:
-        raise ValidationError(f"Space not found: {space_key}")
-    return spaces[0]["id"]
+from confluence_assistant_skills.cli.helpers import (
+    get_space_id,
+    is_markdown_file,
+    read_file_content,
+)
 
 
 def _copy_children(
@@ -197,8 +178,8 @@ def create_page(
         parent_id = validate_page_id(parent_id, field_name="parent")
 
     if body_file:
-        content = _read_body_from_file(body_file)
-        is_markdown = _is_markdown_file(body_file)
+        content = read_file_content(body_file)
+        is_markdown = is_markdown_file(body_file)
     elif body_content:
         content = body_content
         is_markdown = False
@@ -206,7 +187,7 @@ def create_page(
         raise ValidationError("Either --body or --file is required")
 
     client = get_confluence_client()
-    space_id = _get_space_id(client, space_key)
+    space_id = get_space_id(client, space_key)
 
     if is_markdown:
         content = markdown_to_xhtml(content)
@@ -281,8 +262,8 @@ def update_page(
     is_markdown = False
 
     if body_file:
-        content = _read_body_from_file(body_file)
-        is_markdown = _is_markdown_file(body_file)
+        content = read_file_content(body_file)
+        is_markdown = is_markdown_file(body_file)
     elif body_content:
         content = body_content
 
@@ -406,7 +387,7 @@ def copy_page(
     target_space_id = source_space_id
     if space:
         space_key = validate_space_key(space)
-        target_space_id = _get_space_id(client, space_key)
+        target_space_id = get_space_id(client, space_key)
 
     copy_data: dict[str, Any] = {
         "spaceId": target_space_id,
@@ -474,7 +455,7 @@ def move_page(
 
     if space:
         space_key = validate_space_key(space)
-        target_space_id = _get_space_id(client, space_key)
+        target_space_id = get_space_id(client, space_key)
     else:
         target_space_id = current_page.get("spaceId")
 
@@ -788,8 +769,8 @@ def create_blogpost(
     title = validate_title(title)
 
     if body_file:
-        content = _read_body_from_file(body_file)
-        is_markdown = _is_markdown_file(body_file)
+        content = read_file_content(body_file)
+        is_markdown = is_markdown_file(body_file)
     elif body_content:
         content = body_content
         is_markdown = False
@@ -797,7 +778,7 @@ def create_blogpost(
         raise ValidationError("Either --body or --file is required")
 
     client = get_confluence_client()
-    space_id = _get_space_id(client, space_key)
+    space_id = get_space_id(client, space_key)
 
     if is_markdown:
         content = markdown_to_xhtml(content)

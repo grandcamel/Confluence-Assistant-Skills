@@ -7,7 +7,6 @@ from typing import Any
 import click
 
 from confluence_assistant_skills_lib import (
-    ValidationError,
     format_json,
     format_table,
     get_confluence_client,
@@ -17,22 +16,12 @@ from confluence_assistant_skills_lib import (
     validate_space_key,
 )
 
+from confluence_assistant_skills.cli.helpers import get_space_by_key
+
 
 def _get_current_user(client: Any) -> dict[str, Any]:
     """Get current user info."""
     return client.get("/rest/api/user/current", operation="get current user")
-
-
-def _get_space_by_key(client: Any, space_key: str) -> dict[str, Any]:
-    """Get space by key."""
-    spaces = list(client.paginate(
-        "/api/v2/spaces",
-        params={"keys": space_key},
-        operation="get space",
-    ))
-    if not spaces:
-        raise ValidationError(f"Space not found: {space_key}")
-    return spaces[0]
 
 
 @click.group()
@@ -161,7 +150,7 @@ def watch_space(
     client = get_confluence_client()
 
     # Get space info
-    space = _get_space_by_key(client, space_key)
+    space = get_space_by_key(client, space_key)
     space_name = space.get("name", space_key)
 
     if unwatch:

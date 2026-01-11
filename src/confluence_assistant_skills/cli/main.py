@@ -25,20 +25,6 @@ from confluence_assistant_skills.cli.commands.template_cmds import template
 from confluence_assistant_skills.cli.commands.watch_cmds import watch
 
 
-class ContextObj:
-    """Context object passed to all commands."""
-
-    def __init__(
-        self,
-        output: str,
-        verbose: bool,
-        quiet: bool,
-    ) -> None:
-        self.output = output
-        self.verbose = verbose
-        self.quiet = quiet
-
-
 @click.group(invoke_without_command=True)
 @click.version_option(version=__version__, prog_name="confluence")
 @click.option(
@@ -81,13 +67,6 @@ def cli(
 
         confluence space list --output json
     """
-    ctx.ensure_object(dict)
-    ctx.obj = ContextObj(
-        output=output,
-        verbose=verbose,
-        quiet=quiet,
-    )
-
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
 
