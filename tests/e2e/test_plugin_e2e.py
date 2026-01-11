@@ -5,6 +5,7 @@ Run with: pytest tests/e2e/ -v --e2e-verbose
 Save responses: pytest tests/e2e/ -v --e2e-save-responses
 """
 
+from pathlib import Path
 
 import pytest
 
@@ -14,26 +15,19 @@ from .runner import E2ETestStatus
 pytestmark = [pytest.mark.e2e, pytest.mark.slow]
 
 
-# All 17 Confluence skills
-EXPECTED_SKILLS = [
-    "confluence-assistant",
-    "confluence-page",
-    "confluence-space",
-    "confluence-search",
-    "confluence-comment",
-    "confluence-attachment",
-    "confluence-label",
-    "confluence-template",
-    "confluence-property",
-    "confluence-permission",
-    "confluence-analytics",
-    "confluence-watch",
-    "confluence-hierarchy",
-    "confluence-jira",
-    "confluence-admin",
-    "confluence-bulk",
-    "confluence-ops",
-]
+def _discover_skills() -> list[str]:
+    """Dynamically discover skills from plugin directory."""
+    skills_dir = Path(__file__).parent.parent.parent / ".claude-plugin" / ".claude" / "skills"
+    if not skills_dir.exists():
+        return []
+    return sorted(
+        d.name for d in skills_dir.iterdir()
+        if d.is_dir() and d.name.startswith("confluence-")
+    )
+
+
+# Dynamically discover all Confluence skills
+EXPECTED_SKILLS = _discover_skills()
 
 
 class TestPluginInstallation:

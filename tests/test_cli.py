@@ -448,6 +448,118 @@ class TestJiraCommands:
             assert result.exit_code == 0
 
 
+class TestAdminCommands:
+    """Test admin command group."""
+
+    def test_admin_help(self, runner: CliRunner) -> None:
+        """Test admin help output."""
+        result = runner.invoke(cli, ["admin", "--help"])
+        assert result.exit_code == 0
+        assert "user" in result.output
+        assert "group" in result.output
+        assert "space" in result.output
+        assert "template" in result.output
+
+    def test_admin_user_search(self, runner: CliRunner) -> None:
+        """Test admin user search command."""
+        with patch("confluence_assistant_skills.cli.commands.admin_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.get.return_value = {
+                "results": [{"accountId": "123", "displayName": "Test User", "email": "test@example.com"}]
+            }
+            result = runner.invoke(cli, ["admin", "user", "search", "test"])
+            assert result.exit_code == 0
+
+    def test_admin_group_list(self, runner: CliRunner) -> None:
+        """Test admin group list command."""
+        with patch("confluence_assistant_skills.cli.commands.admin_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.get.return_value = {
+                "results": [{"name": "confluence-users", "id": "group-1"}],
+                "_links": {}
+            }
+            result = runner.invoke(cli, ["admin", "group", "list"])
+            assert result.exit_code == 0
+
+    def test_admin_template_list(self, runner: CliRunner) -> None:
+        """Test admin template list command."""
+        with patch("confluence_assistant_skills.cli.commands.admin_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.paginate.return_value = iter([{"id": "100", "key": "DOCS"}])
+            client.get.return_value = {
+                "results": [{"templateId": "1", "name": "Meeting Notes"}],
+                "_links": {}
+            }
+            result = runner.invoke(cli, ["admin", "template", "list", "--space", "DOCS"])
+            assert result.exit_code == 0
+
+
+class TestBulkCommands:
+    """Test bulk command group."""
+
+    def test_bulk_help(self, runner: CliRunner) -> None:
+        """Test bulk help output."""
+        result = runner.invoke(cli, ["bulk", "--help"])
+        assert result.exit_code == 0
+        assert "label" in result.output
+        assert "move" in result.output
+        assert "delete" in result.output
+
+    def test_bulk_label_add_dry_run(self, runner: CliRunner) -> None:
+        """Test bulk label add with dry-run."""
+        with patch("confluence_assistant_skills.cli.commands.bulk_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.paginate.return_value = iter([
+                {"content": {"id": "1", "title": "Page 1"}},
+                {"content": {"id": "2", "title": "Page 2"}},
+            ])
+            result = runner.invoke(cli, ["bulk", "label", "add", "--labels", "test-label", "--cql", "space=TEST", "--dry-run"])
+            assert result.exit_code == 0
+            assert "dry" in result.output.lower() or "would" in result.output.lower()
+
+    def test_bulk_delete_dry_run(self, runner: CliRunner) -> None:
+        """Test bulk delete with dry-run."""
+        with patch("confluence_assistant_skills.cli.commands.bulk_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.paginate.return_value = iter([
+                {"content": {"id": "1", "title": "Page 1"}},
+            ])
+            result = runner.invoke(cli, ["bulk", "delete", "--cql", "space=TEST AND label=delete-me", "--dry-run"])
+            assert result.exit_code == 0
+
+
+class TestOpsCommands:
+    """Test ops command group."""
+
+    def test_ops_help(self, runner: CliRunner) -> None:
+        """Test ops help output."""
+        result = runner.invoke(cli, ["ops", "--help"])
+        assert result.exit_code == 0
+        assert "cache" in result.output
+        assert "health" in result.output
+
+    def test_ops_cache_status(self, runner: CliRunner) -> None:
+        """Test ops cache-status command."""
+        result = runner.invoke(cli, ["ops", "cache-status"])
+        assert result.exit_code == 0
+        # Should output cache statistics
+        assert "cache" in result.output.lower() or "status" in result.output.lower()
+
+    def test_ops_health_check(self, runner: CliRunner) -> None:
+        """Test ops health-check command."""
+        with patch("confluence_assistant_skills.cli.commands.ops_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.get.return_value = {"accountId": "123", "displayName": "Test User"}
+            result = runner.invoke(cli, ["ops", "health-check"])
+            assert result.exit_code == 0
+
+
 class TestGlobalOptions:
     """Test global CLI options."""
 
