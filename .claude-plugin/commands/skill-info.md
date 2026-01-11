@@ -16,27 +16,30 @@ Get detailed information about the **$ARGUMENTS** skill.
 2. Present a summary including:
    - Full description
    - When to use this skill
-   - Available scripts/commands
+   - Available CLI commands
    - Example usage
    - Configuration requirements
 
 ## Skill Locations
 
 Skills are located at:
-- `.claude/skills/confluence-page/SKILL.md`
-- `.claude/skills/confluence-space/SKILL.md`
-- `.claude/skills/confluence-search/SKILL.md`
-- `.claude/skills/confluence-comment/SKILL.md`
-- `.claude/skills/confluence-attachment/SKILL.md`
-- `.claude/skills/confluence-label/SKILL.md`
-- `.claude/skills/confluence-template/SKILL.md`
-- `.claude/skills/confluence-property/SKILL.md`
-- `.claude/skills/confluence-permission/SKILL.md`
+- `.claude/skills/confluence-admin/SKILL.md`
 - `.claude/skills/confluence-analytics/SKILL.md`
-- `.claude/skills/confluence-watch/SKILL.md`
+- `.claude/skills/confluence-assistant/SKILL.md`
+- `.claude/skills/confluence-attachment/SKILL.md`
+- `.claude/skills/confluence-bulk/SKILL.md`
+- `.claude/skills/confluence-comment/SKILL.md`
 - `.claude/skills/confluence-hierarchy/SKILL.md`
 - `.claude/skills/confluence-jira/SKILL.md`
-- `.claude/skills/confluence-assistant/SKILL.md`
+- `.claude/skills/confluence-label/SKILL.md`
+- `.claude/skills/confluence-ops/SKILL.md`
+- `.claude/skills/confluence-page/SKILL.md`
+- `.claude/skills/confluence-permission/SKILL.md`
+- `.claude/skills/confluence-property/SKILL.md`
+- `.claude/skills/confluence-search/SKILL.md`
+- `.claude/skills/confluence-space/SKILL.md`
+- `.claude/skills/confluence-template/SKILL.md`
+- `.claude/skills/confluence-watch/SKILL.md`
 
 ## Output
 
