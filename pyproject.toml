@@ -67,7 +67,7 @@ where = ["src"]
 [tool.ruff]
 target-version = "py39"
 line-length = 88
-src = ["src", ".claude-plugin/.claude/skills"]
+src = ["src"]
 
 [tool.ruff.lint]
 select = [
