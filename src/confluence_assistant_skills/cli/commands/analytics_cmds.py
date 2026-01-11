@@ -7,6 +7,7 @@ from typing import Any
 
 import click
 
+from confluence_assistant_skills.cli.helpers import get_space_by_key
 from confluence_assistant_skills_lib import (
     format_json,
     format_table,
@@ -18,8 +19,6 @@ from confluence_assistant_skills_lib import (
     validate_page_id,
     validate_space_key,
 )
-
-from confluence_assistant_skills.cli.helpers import get_space_by_key
 
 
 @click.group()
@@ -260,7 +259,7 @@ def get_popular_content(
             "count": len(results),
         }))
     else:
-        click.echo(f"\nPopular Content")
+        click.echo("\nPopular Content")
         if space:
             click.echo(f"Space: {space}")
         if label:
@@ -334,7 +333,7 @@ def get_space_analytics(
     blog_cql = f'space = "{space_key}" AND type = blogpost{date_filter}'
 
     # Count pages
-    pages = list(client.paginate(
+    list(client.paginate(
         "/rest/api/search",
         params={"cql": page_cql, "limit": 1},
         operation="count pages",

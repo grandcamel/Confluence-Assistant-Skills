@@ -6,7 +6,9 @@ from typing import Any
 
 import click
 
+from confluence_assistant_skills.cli.helpers import get_space_by_key
 from confluence_assistant_skills_lib import (
+    ValidationError,
     format_json,
     format_table,
     get_confluence_client,
@@ -16,8 +18,6 @@ from confluence_assistant_skills_lib import (
     validate_page_id,
     validate_space_key,
 )
-
-from confluence_assistant_skills.cli.helpers import get_space_by_key
 
 
 @click.group()

@@ -7,7 +7,9 @@ from typing import Any
 
 import click
 
+from confluence_assistant_skills.cli.helpers import is_markdown_file, read_file_content
 from confluence_assistant_skills_lib import (
+    ValidationError,
     format_json,
     format_table,
     get_confluence_client,
@@ -18,8 +20,6 @@ from confluence_assistant_skills_lib import (
     validate_limit,
     validate_page_id,
 )
-
-from confluence_assistant_skills.cli.helpers import is_markdown_file, read_file_content
 
 
 def _format_comment(comment: dict[str, Any], detailed: bool = False) -> dict[str, Any]:
@@ -200,7 +200,7 @@ def add_comment(
     if output == "json":
         click.echo(format_json(result))
     else:
-        click.echo(f"\nComment added successfully")
+        click.echo("\nComment added successfully")
         click.echo(f"  ID: {result.get('id')}")
         click.echo(f"  Page: {page_id}")
         click.echo(f"  Created: {result.get('createdAt', '')[:16]}")
@@ -277,7 +277,7 @@ def add_inline_comment(
     if output == "json":
         click.echo(format_json(result))
     else:
-        click.echo(f"\nInline comment added successfully")
+        click.echo("\nInline comment added successfully")
         click.echo(f"  ID: {result.get('id')}")
         click.echo(f"  Selection: {selection[:50]}...")
         click.echo(f"  Page: {page_id}")
@@ -353,7 +353,7 @@ def update_comment(
     if output == "json":
         click.echo(format_json(result))
     else:
-        click.echo(f"\nComment updated successfully")
+        click.echo("\nComment updated successfully")
         click.echo(f"  ID: {result.get('id')}")
         click.echo(f"  Version: {current_version + 1}")
 

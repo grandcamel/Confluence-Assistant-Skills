@@ -67,7 +67,7 @@ def get_labels(
         if not labels:
             click.echo("No labels found.")
         else:
-            label_names = [l.get("name", "") for l in labels]
+            label_names = [lbl.get("name", "") for lbl in labels]
             click.echo(f"Labels: {', '.join(label_names)}")
 
     print_success(f"Found {len(labels)} label(s)")
@@ -121,7 +121,7 @@ def add_label(
     if output == "json":
         click.echo(format_json(result))
     else:
-        click.echo(f"\nLabels added successfully")
+        click.echo("\nLabels added successfully")
         click.echo(f"  Page: {page_id}")
         click.echo(f"  Added: {', '.join(labels)}")
 
@@ -165,7 +165,7 @@ def remove_label(
     if output == "json":
         click.echo(format_json({"success": True, "label": label_name, "pageId": page_id}))
     else:
-        click.echo(f"\nLabel removed successfully")
+        click.echo("\nLabel removed successfully")
         click.echo(f"  Page: {page_id}")
         click.echo(f"  Removed: {label_name}")
 
@@ -289,8 +289,6 @@ def list_popular_labels(
     client = get_confluence_client()
 
     # Use v1 API for label statistics
-    endpoint = "/rest/api/label"
-    params: dict[str, Any] = {"limit": limit}
 
     if space:
         # Get space info first

@@ -187,7 +187,7 @@ def upload_attachment(
         if isinstance(result, list):
             result = result[0] if result else {}
 
-        click.echo(f"\nAttachment uploaded successfully")
+        click.echo("\nAttachment uploaded successfully")
         click.echo(f"  ID: {result.get('id', 'N/A')}")
         click.echo(f"  Name: {file_name}")
         click.echo(f"  Page: {page_id}")
@@ -324,7 +324,7 @@ def update_attachment(
         if isinstance(result, list):
             result = result[0] if result else {}
 
-        click.echo(f"\nAttachment updated successfully")
+        click.echo("\nAttachment updated successfully")
         click.echo(f"  ID: {result.get('id', attachment_id)}")
         click.echo(f"  Name: {file_path.name}")
 

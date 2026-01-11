@@ -6,6 +6,7 @@ from typing import Any
 
 import click
 
+from confluence_assistant_skills.cli.helpers import get_space_by_key
 from confluence_assistant_skills_lib import (
     format_json,
     format_table,
@@ -15,8 +16,6 @@ from confluence_assistant_skills_lib import (
     validate_page_id,
     validate_space_key,
 )
-
-from confluence_assistant_skills.cli.helpers import get_space_by_key
 
 
 def _get_current_user(client: Any) -> dict[str, Any]:
@@ -58,7 +57,7 @@ def watch_page(
 
     # Get current user
     user = _get_current_user(client)
-    user_key = user.get("accountId", user.get("userKey", ""))
+    user.get("accountId", user.get("userKey", ""))
 
     # Add watch using v1 API
     client.post(

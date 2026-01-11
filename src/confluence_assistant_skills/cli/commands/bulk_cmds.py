@@ -7,21 +7,18 @@ from typing import Any
 
 import click
 
+from confluence_assistant_skills.cli.helpers import get_space_by_key
 from confluence_assistant_skills_lib import (
+    ValidationError,
     format_json,
-    format_table,
     get_confluence_client,
     handle_errors,
-    print_error,
-    print_info,
     print_success,
     print_warning,
     validate_limit,
     validate_page_id,
     validate_space_key,
 )
-
-from confluence_assistant_skills.cli.helpers import get_space_by_key
 
 
 def _search_pages_by_cql(
@@ -85,7 +82,7 @@ def bulk_label_add(
 ) -> None:
     """Add labels to multiple pages."""
     max_pages = validate_limit(max_pages, max_value=1000)
-    label_list = [l.strip() for l in labels.split(",") if l.strip()]
+    label_list = [lbl.strip() for lbl in labels.split(",") if lbl.strip()]
 
     if not label_list:
         raise ValidationError("At least one label is required")
@@ -159,7 +156,7 @@ def bulk_label_add(
             "failures": failures,
         }))
     else:
-        click.echo(f"\nBulk Label Add Complete")
+        click.echo("\nBulk Label Add Complete")
         click.echo(f"  Labels: {', '.join(label_list)}")
         click.echo(f"  Success: {success_count}")
         click.echo(f"  Failed: {fail_count}")
@@ -198,7 +195,7 @@ def bulk_label_remove(
 ) -> None:
     """Remove labels from multiple pages."""
     max_pages = validate_limit(max_pages, max_value=1000)
-    label_list = [l.strip() for l in labels.split(",") if l.strip()]
+    label_list = [lbl.strip() for lbl in labels.split(",") if lbl.strip()]
 
     if not label_list:
         raise ValidationError("At least one label is required")
@@ -275,7 +272,7 @@ def bulk_label_remove(
             "failures": failures,
         }))
     else:
-        click.echo(f"\nBulk Label Remove Complete")
+        click.echo("\nBulk Label Remove Complete")
         click.echo(f"  Labels: {', '.join(label_list)}")
         click.echo(f"  Success: {success_count}")
         click.echo(f"  Failed: {fail_count}")
@@ -419,7 +416,7 @@ def bulk_move(
             "failures": failures,
         }))
     else:
-        click.echo(f"\nBulk Move Complete")
+        click.echo("\nBulk Move Complete")
         click.echo(f"  Success: {success_count}")
         click.echo(f"  Failed: {fail_count}")
 
@@ -545,7 +542,7 @@ def bulk_delete(
             "failures": failures,
         }))
     else:
-        click.echo(f"\nBulk Delete Complete")
+        click.echo("\nBulk Delete Complete")
         click.echo(f"  Deleted: {success_count}")
         click.echo(f"  Failed: {fail_count}")
 
@@ -661,7 +658,7 @@ def bulk_permission(
         page_id = page.get("id", "")
         try:
             # Get current restrictions
-            restrictions = client.get(
+            client.get(
                 f"/rest/api/content/{page_id}/restriction",
                 operation="get restrictions",
             )
@@ -723,7 +720,7 @@ def bulk_permission(
             "failures": failures,
         }))
     else:
-        click.echo(f"\nBulk Permission Change Complete")
+        click.echo("\nBulk Permission Change Complete")
         click.echo(f"  Operations: {op_desc}")
         click.echo(f"  Success: {success_count}")
         click.echo(f"  Failed: {fail_count}")
@@ -887,7 +884,7 @@ def bulk_update(
             "failures": failures,
         }))
     else:
-        click.echo(f"\nBulk Update Complete")
+        click.echo("\nBulk Update Complete")
         click.echo(f"  Operation: {op_desc}")
         click.echo(f"  Success: {success_count}")
         click.echo(f"  Failed: {fail_count}")

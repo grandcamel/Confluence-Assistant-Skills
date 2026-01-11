@@ -7,7 +7,13 @@ from typing import Any
 
 import click
 
+from confluence_assistant_skills.cli.helpers import (
+    get_space_by_key,
+    is_markdown_file,
+    read_file_content,
+)
 from confluence_assistant_skills_lib import (
+    ValidationError,
     format_json,
     format_table,
     get_confluence_client,
@@ -17,12 +23,6 @@ from confluence_assistant_skills_lib import (
     validate_limit,
     validate_space_key,
     xhtml_to_markdown,
-)
-
-from confluence_assistant_skills.cli.helpers import (
-    get_space_by_key,
-    is_markdown_file,
-    read_file_content,
 )
 
 
@@ -290,7 +290,7 @@ def create_template(
     client = get_confluence_client()
 
     # Get space info
-    space_info = get_space_by_key(client, space)
+    get_space_by_key(client, space)
 
     # Read content
     body_content = content
@@ -318,8 +318,8 @@ def create_template(
         template_data["description"] = description
 
     if labels:
-        label_list = [l.strip() for l in labels.split(",") if l.strip()]
-        template_data["labels"] = [{"name": l} for l in label_list]
+        label_list = [lbl.strip() for lbl in labels.split(",") if lbl.strip()]
+        template_data["labels"] = [{"name": lbl} for lbl in label_list]
 
     if blueprint_id:
         template_data["referencedBlueprint"] = {"moduleKey": blueprint_id}
@@ -334,7 +334,7 @@ def create_template(
     if output == "json":
         click.echo(format_json(result))
     else:
-        click.echo(f"\nTemplate created successfully")
+        click.echo("\nTemplate created successfully")
         click.echo(f"  ID: {result.get('templateId', 'N/A')}")
         click.echo(f"  Name: {name}")
         click.echo(f"  Space: {space}")
@@ -420,22 +420,22 @@ def update_template(
         }
 
     # Handle labels
-    current_labels = [l.get("name") for l in current.get("labels", {}).get("results", [])]
+    current_labels = [lbl.get("name") for lbl in current.get("labels", {}).get("results", [])]
 
     if add_labels:
-        for label in add_labels.split(","):
-            label = label.strip()
-            if label and label not in current_labels:
-                current_labels.append(label)
+        for lbl_name in add_labels.split(","):
+            lbl_name = lbl_name.strip()
+            if lbl_name and lbl_name not in current_labels:
+                current_labels.append(lbl_name)
 
     if remove_labels:
-        for label in remove_labels.split(","):
-            label = label.strip()
-            if label in current_labels:
-                current_labels.remove(label)
+        for lbl_name in remove_labels.split(","):
+            lbl_name = lbl_name.strip()
+            if lbl_name in current_labels:
+                current_labels.remove(lbl_name)
 
     if add_labels or remove_labels:
-        update_data["labels"] = [{"name": l} for l in current_labels]
+        update_data["labels"] = [{"name": lbl} for lbl in current_labels]
 
     # Update template
     result = client.put(
@@ -447,7 +447,7 @@ def update_template(
     if output == "json":
         click.echo(format_json(result))
     else:
-        click.echo(f"\nTemplate updated successfully")
+        click.echo("\nTemplate updated successfully")
         click.echo(f"  ID: {template_id}")
         click.echo(f"  Name: {result.get('name', name or current.get('name'))}")
 
@@ -551,7 +551,7 @@ def create_from_template(
 
     # Add labels if specified
     if labels and new_page_id:
-        label_list = [{"name": l.strip()} for l in labels.split(",") if l.strip()]
+        label_list = [{"name": lbl.strip()} for lbl in labels.split(",") if lbl.strip()]
         if label_list:
             client.post(
                 f"/api/v2/pages/{new_page_id}/labels",
@@ -566,7 +566,7 @@ def create_from_template(
             "blueprintId": blueprint_id,
         }))
     else:
-        click.echo(f"\nPage created from template")
+        click.echo("\nPage created from template")
         click.echo(f"  ID: {new_page_id}")
         click.echo(f"  Title: {title}")
         click.echo(f"  Space: {space}")

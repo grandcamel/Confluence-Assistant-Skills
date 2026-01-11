@@ -129,7 +129,7 @@ def link_to_jira(
     # Get page info
     page = client.get(f"/api/v2/pages/{page_id}", operation="get page")
     page_title = page.get("title", "Unknown")
-    space_key = page.get("spaceId", "")
+    page.get("spaceId", "")
 
     # Check for existing link if skip_if_exists
     if skip_if_exists:
@@ -142,7 +142,7 @@ def link_to_jira(
             )
             # Check if JIRA link exists
             properties = links.get("metadata", {}).get("properties", {})
-            for key, value in properties.items():
+            for _key, value in properties.items():
                 if issue_key in str(value):
                     if output == "json":
                         click.echo(format_json({
@@ -212,7 +212,7 @@ def link_to_jira(
             "linked": True,
         }))
     else:
-        click.echo(f"\nPage linked to JIRA issue")
+        click.echo("\nPage linked to JIRA issue")
         click.echo(f"  Page: {page_title} ({page_id})")
         click.echo(f"  Issue: {issue_key}")
         click.echo(f"  URL: {issue_url}")
@@ -435,7 +435,7 @@ def embed_jira_issues(
         },
     }
 
-    result = client.put(
+    client.put(
         f"/api/v2/pages/{page_id}",
         json_data=update_data,
         operation="embed jira issues",
@@ -564,7 +564,7 @@ def create_jira_from_page(
 
     # Link the page to the new issue
     if issue_key:
-        jira_url_base = jira_config["url"].rstrip("/")
+        jira_config["url"].rstrip("/")
         link_marker = f'<!-- JIRA-LINK: {issue_key} -->'
 
         # Add link marker to page
@@ -608,7 +608,7 @@ def create_jira_from_page(
             },
         }))
     else:
-        click.echo(f"\nJIRA Issue Created from Confluence Page")
+        click.echo("\nJIRA Issue Created from Confluence Page")
         click.echo(f"  Page: {page_title} ({page_id})")
         click.echo(f"  Issue: {issue_key}")
         click.echo(f"  URL: {jira_config['url']}/browse/{issue_key}")

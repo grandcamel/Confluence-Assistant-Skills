@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 import click
 
@@ -126,7 +126,7 @@ def cache_status(
             result["entries"] = entries
         click.echo(format_json(result))
     else:
-        click.echo(f"\nCache Status")
+        click.echo("\nCache Status")
         click.echo(f"{'=' * 60}\n")
 
         click.echo(f"Status:         {'Enabled' if cache_enabled else 'Disabled'}")
@@ -136,7 +136,7 @@ def cache_status(
         click.echo(f"Total Size:     {_format_bytes(stats['totalSize'])}")
 
         if stats["categories"]:
-            click.echo(f"\nBy Category:")
+            click.echo("\nBy Category:")
             for cat_name, cat_stats in sorted(stats["categories"].items()):
                 click.echo(
                     f"  {cat_name:15} {cat_stats['entries']:5} entries "
@@ -305,7 +305,7 @@ def cache_clear(
             "errors": errors if errors else None,
         }))
     else:
-        click.echo(f"\nCache cleared")
+        click.echo("\nCache cleared")
         click.echo(f"  Entries removed: {cleared}")
         click.echo(f"  Space freed: {_format_bytes(total_size)}")
 
@@ -387,13 +387,11 @@ def cache_warm(
                 space_id = space_info[0].get("id")
 
                 # Get space homepage
-                try:
+                with contextlib.suppress(Exception):
                     client.get(
                         f"/api/v2/spaces/{space_id}/homepage",
                         operation=f"warm space {space} homepage",
                     )
-                except Exception:
-                    pass
 
                 # Get recent pages
                 try:
@@ -442,7 +440,7 @@ def cache_warm(
             "errors": errors if errors else None,
         }))
     else:
-        click.echo(f"\nCache Warm Complete")
+        click.echo("\nCache Warm Complete")
         click.echo(f"{'=' * 60}\n")
 
         click.echo("Warmed:")
@@ -451,7 +449,7 @@ def cache_warm(
             click.echo(f"  + {w['type']}" + (f" ({details})" if details else ""))
 
         if errors:
-            click.echo(f"\nErrors:")
+            click.echo("\nErrors:")
             for err in errors:
                 click.echo(f"  - {err['type']}: {err['error']}")
 
@@ -550,21 +548,21 @@ def health_check(
     if output == "json":
         click.echo(format_json(results))
     else:
-        click.echo(f"\nConfluence Health Check")
+        click.echo("\nConfluence Health Check")
         click.echo(f"{'=' * 60}\n")
 
         click.echo(f"Site URL:       {results['siteUrl']}")
 
         if results["connected"]:
-            click.echo(f"Status:         + Connected")
+            click.echo("Status:         + Connected")
             click.echo(f"API Version:    {results.get('apiVersion', 'Unknown')}")
             click.echo(f"Response Time:  {results.get('authTime', 'N/A')}ms")
         else:
-            click.echo(f"Status:         - Disconnected")
+            click.echo("Status:         - Disconnected")
             if results.get("authError"):
                 click.echo(f"Error:          {results['authError']}")
 
-        click.echo(f"\nEndpoint Tests:")
+        click.echo("\nEndpoint Tests:")
         for ep in results["endpoints"]:
             if ep["status"] == "ok":
                 icon = "+"
@@ -576,10 +574,10 @@ def health_check(
             click.echo(f"  [{icon}] {ep['path']:25} {detail}")
 
         if results["connected"]:
-            click.echo(f"\nAuthentication: + Valid")
+            click.echo("\nAuthentication: + Valid")
             click.echo(f"User:           {results.get('user', 'Unknown')}")
         else:
-            click.echo(f"\nAuthentication: - Failed")
+            click.echo("\nAuthentication: - Failed")
 
     print_success("Health check complete")
 
@@ -607,7 +605,7 @@ def rate_limit_status(
     # Atlassian APIs include rate limit headers in responses
     try:
         # Use a lightweight endpoint
-        response = client.get("/rest/api/user/current", operation="rate limit check")
+        client.get("/rest/api/user/current", operation="rate limit check")
 
         # Note: Rate limit headers vary by Atlassian product/tier
         # Common headers: X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
@@ -640,7 +638,7 @@ def rate_limit_status(
     if output == "json":
         click.echo(format_json(results))
     else:
-        click.echo(f"\nRate Limit Status")
+        click.echo("\nRate Limit Status")
         click.echo(f"{'=' * 60}\n")
 
         if results["status"] == "ok":
@@ -654,7 +652,7 @@ def rate_limit_status(
             click.echo(f"Error:          {results.get('error', 'Unknown')}")
             click.echo(f"\nRecommendation: {results.get('recommendation', 'Wait and retry')}")
         else:
-            click.echo(f"Status:         - Error")
+            click.echo("Status:         - Error")
             click.echo(f"Error:          {results.get('error', 'Unknown')}")
 
     print_success("Rate limit status retrieved")
@@ -767,7 +765,7 @@ def api_diagnostics(
     if output == "json":
         click.echo(format_json(diagnostics))
     else:
-        click.echo(f"\nAPI Diagnostics")
+        click.echo("\nAPI Diagnostics")
         click.echo(f"{'=' * 60}\n")
 
         click.echo("Environment:")
@@ -777,19 +775,19 @@ def api_diagnostics(
         click.echo(f"  Token:          {'Configured' if env['tokenConfigured'] else 'Not set'}")
         click.echo(f"  Cache:          {env['cacheEnabled']}")
 
-        click.echo(f"\nConnectivity:")
+        click.echo("\nConnectivity:")
         for name, result in diagnostics["connectivity"].items():
             if result["status"] == "ok":
                 click.echo(f"  [+] {name:15} OK ({result.get('time', 'N/A')}ms)")
             else:
                 click.echo(f"  [-] {name:15} FAILED: {result.get('error', 'Unknown')[:40]}")
 
-        click.echo(f"\nPermissions:")
+        click.echo("\nPermissions:")
         perms = diagnostics["permissions"]
         if perms.get("canListSpaces"):
             click.echo(f"  [+] Can list spaces ({perms.get('spacesAccessible', 0)} accessible)")
         else:
-            click.echo(f"  [-] Cannot list spaces")
+            click.echo("  [-] Cannot list spaces")
 
         if verbose:
             click.echo(f"\nDiagnostic Timestamp: {diagnostics['timestamp']}")

@@ -6,9 +6,10 @@ from typing import Any
 
 import click
 
+from confluence_assistant_skills.cli.helpers import get_space_by_key
 from confluence_assistant_skills_lib import (
+    ValidationError,
     format_json,
-    format_page,
     format_space,
     format_table,
     get_confluence_client,
@@ -19,8 +20,6 @@ from confluence_assistant_skills_lib import (
     validate_limit,
     validate_space_key,
 )
-
-from confluence_assistant_skills.cli.helpers import get_space_by_key
 
 
 @click.group()
@@ -270,7 +269,7 @@ def delete_space(
     space_name = current_space.get("name", space_key)
 
     if not force:
-        click.echo(f"\n⚠️⚠️⚠️  WARNING: IRREVERSIBLE ACTION ⚠️⚠️⚠️")
+        click.echo("\n⚠️⚠️⚠️  WARNING: IRREVERSIBLE ACTION ⚠️⚠️⚠️")
         click.echo(f"\nYou are about to DELETE the space: {space_name} ({space_key})")
         click.echo("\nThis will PERMANENTLY delete:")
         click.echo("  - ALL pages in the space")

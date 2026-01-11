@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import csv
 import json
 from datetime import datetime
@@ -22,7 +23,6 @@ from confluence_assistant_skills_lib import (
     validate_limit,
     validate_space_key,
 )
-
 
 # CQL field and operator reference data
 CQL_FIELDS = [
@@ -240,7 +240,7 @@ def cql_search(
                 if show_labels:
                     content = r.get("content", r)
                     labels = content.get("metadata", {}).get("labels", {}).get("results", [])
-                    row["labels"] = ", ".join(l.get("name", "") for l in labels[:3])
+                    row["labels"] = ", ".join(lbl.get("name", "") for lbl in labels[:3])
 
                 data.append(row)
 
@@ -640,10 +640,8 @@ def streaming_export(
         # For JSON, we need to merge with existing
         existing = []
         if resume and output_path.exists():
-            try:
+            with contextlib.suppress(json.JSONDecodeError, OSError):
                 existing = json.loads(output_path.read_text())
-            except (json.JSONDecodeError, OSError):
-                pass
 
         existing.extend(results)
         with open(output_path, "w", encoding="utf-8") as f:
@@ -693,7 +691,7 @@ def history_list(limit: int | None, output: str) -> None:
                 click.echo(f"  [{i:2}] {timestamp}  ({count} results)")
                 click.echo(f"       {query}")
                 if len(entry.get("query", "")) > 60:
-                    click.echo(f"       ...")
+                    click.echo("       ...")
                 click.echo()
 
     print_success(f"Showing {len(history)} query(ies)")
@@ -759,7 +757,7 @@ def history_show(index: int, output: str) -> None:
         click.echo(f"\n--- Query #{index} ---\n")
         click.echo(f"Timestamp: {entry.get('timestamp', 'N/A')}")
         click.echo(f"Results: {entry.get('result_count', 'N/A')}")
-        click.echo(f"\nQuery:")
+        click.echo("\nQuery:")
         click.echo(f"  {entry.get('query', '')}")
 
     print_success(f"Query #{index} retrieved")
@@ -892,7 +890,7 @@ def cql_interactive(
         return
 
     cql = " AND ".join(parts)
-    click.echo(f"\n--- Final Query ---")
+    click.echo("\n--- Final Query ---")
     click.echo(f"\n  {cql}\n")
 
     if execute or click.confirm("Execute this query?", default=True):

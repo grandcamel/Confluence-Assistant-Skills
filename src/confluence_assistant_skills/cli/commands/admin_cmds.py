@@ -6,7 +6,9 @@ from typing import Any
 
 import click
 
+from confluence_assistant_skills.cli.helpers import get_space_by_key
 from confluence_assistant_skills_lib import (
+    ValidationError,
     format_json,
     format_table,
     get_confluence_client,
@@ -17,8 +19,6 @@ from confluence_assistant_skills_lib import (
     validate_limit,
     validate_space_key,
 )
-
-from confluence_assistant_skills.cli.helpers import get_space_by_key
 
 
 @click.group()
@@ -83,7 +83,7 @@ def search_users(
             if account_id:
                 try:
                     groups_resp = client.get(
-                        f"/rest/api/user/memberof",
+                        "/rest/api/user/memberof",
                         params={"accountId": account_id},
                         operation="get user groups",
                     )
@@ -156,7 +156,7 @@ def get_user(
     if output == "json":
         click.echo(format_json(user_data))
     else:
-        click.echo(f"\nUser Details")
+        click.echo("\nUser Details")
         click.echo(f"{'=' * 60}\n")
 
         click.echo(f"Display Name: {user_data.get('displayName', 'Unknown')}")
@@ -271,7 +271,7 @@ def list_groups(
             "count": len(groups),
         }))
     else:
-        click.echo(f"\nGroups")
+        click.echo("\nGroups")
         click.echo(f"{'=' * 60}\n")
 
         if not groups:
@@ -417,7 +417,7 @@ def create_group(
     if output == "json":
         click.echo(format_json(result))
     else:
-        click.echo(f"\nGroup Created")
+        click.echo("\nGroup Created")
         click.echo(f"  Name: {result.get('name', group_name)}")
         click.echo(f"  Type: {result.get('type', 'group')}")
 
@@ -491,7 +491,7 @@ def add_user_to_group(
     client = get_confluence_client()
 
     # Add user to group
-    result = client.post(
+    client.post(
         f"/rest/api/group/{group_name}/member",
         json_data={"accountId": user},
         operation="add user to group",
@@ -504,7 +504,7 @@ def add_user_to_group(
             "added": True,
         }))
     else:
-        click.echo(f"\nUser added to group")
+        click.echo("\nUser added to group")
         click.echo(f"  Group: {group_name}")
         click.echo(f"  User: {user}")
 
@@ -553,7 +553,7 @@ def remove_user_from_group(
             "removed": True,
         }))
     else:
-        click.echo(f"\nUser removed from group")
+        click.echo("\nUser removed from group")
         click.echo(f"  Group: {group_name}")
         click.echo(f"  User: {user}")
 
@@ -811,7 +811,7 @@ def list_templates(
             "count": len(templates),
         }))
     else:
-        title = f"Templates" + (f" in {space}" if space else " (Global)")
+        title = "Templates" + (f" in {space}" if space else " (Global)")
         click.echo(f"\n{title}")
         click.echo(f"{'=' * 60}\n")
 
@@ -860,7 +860,7 @@ def get_template(
     if output == "json":
         click.echo(format_json(template))
     else:
-        click.echo(f"\nTemplate Details")
+        click.echo("\nTemplate Details")
         click.echo(f"{'=' * 60}\n")
 
         click.echo(f"ID: {template.get('templateId', 'N/A')}")
@@ -875,7 +875,7 @@ def get_template(
             body = template["body"]
             if isinstance(body, dict) and body.get("storage"):
                 content = body["storage"].get("value", "")
-                click.echo(f"\nBody Preview (first 200 chars):")
+                click.echo("\nBody Preview (first 200 chars):")
                 click.echo(f"  {content[:200]}...")
 
     print_success("Retrieved template details")
@@ -918,7 +918,7 @@ def check_permissions(
 
     # Get space
     space_info = get_space_by_key(client, space)
-    space_id = space_info.get("id")
+    space_info.get("id")
     space_name = space_info.get("name", space)
 
     # Define permission operations to check

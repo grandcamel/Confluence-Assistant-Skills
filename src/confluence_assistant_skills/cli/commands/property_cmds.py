@@ -218,7 +218,7 @@ def get_properties(
 
                 value = prop.get("value", {})
                 if isinstance(value, dict):
-                    click.echo(f"  Value (JSON):")
+                    click.echo("  Value (JSON):")
                     click.echo(f"    {json.dumps(value, indent=4)}")
                 else:
                     click.echo(f"  Value: {value}")
@@ -325,7 +325,7 @@ def set_property(
             "property": result,
         }))
     else:
-        click.echo(f"\nProperty set successfully")
+        click.echo("\nProperty set successfully")
         click.echo(f"  Page: {page_title} ({page_id})")
         click.echo(f"  Key: {key}")
         click.echo(f"  Version: {result.get('version', {}).get('number', 'N/A')}")
@@ -371,14 +371,13 @@ def delete_property(
 
     # Get property info before deletion
     try:
-        prop = client.get(
+        client.get(
             f"/rest/api/content/{page_id}/property/{key}",
             operation="get property",
         )
         prop_exists = True
     except Exception:
         prop_exists = False
-        prop = None
 
     if not prop_exists:
         if output == "json":
@@ -414,7 +413,7 @@ def delete_property(
             "deleted": True,
         }))
     else:
-        click.echo(f"\nProperty deleted successfully")
+        click.echo("\nProperty deleted successfully")
         click.echo(f"  Page: {page_title} ({page_id})")
         click.echo(f"  Key: {key}")
 
