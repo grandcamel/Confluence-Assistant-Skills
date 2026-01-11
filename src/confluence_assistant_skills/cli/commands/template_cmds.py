@@ -247,7 +247,7 @@ def get_template(
 @click.option(
     "--file",
     "content_file",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True, path_type=Path),  # type: ignore[type-var]
     help="File with template content",
 )
 @click.option("--labels", help="Comma-separated labels")
@@ -349,7 +349,7 @@ def create_template(
 @click.option("--description", help="New template description")
 @click.option("--content", help="New template body content (HTML/XHTML)")
 @click.option(
-    "--file", "content_file", type=click.Path(exists=True, path_type=Path), help="File with new content"
+    "--file", "content_file", type=click.Path(exists=True, path_type=Path), help="File with new content"  # type: ignore[type-var]
 )
 @click.option("--add-labels", help="Comma-separated labels to add")
 @click.option("--remove-labels", help="Comma-separated labels to remove")
@@ -469,7 +469,7 @@ def update_template(
 @click.option(
     "--file",
     "content_file",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True, path_type=Path),  # type: ignore[type-var]
     help="File with custom content",
 )
 @click.option(

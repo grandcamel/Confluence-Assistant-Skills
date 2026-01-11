@@ -231,7 +231,7 @@ def get_properties(
 @click.argument("page_id")
 @click.argument("key")
 @click.option("--value", "-v", help="Property value (string or JSON)")
-@click.option("--file", "-f", "file_path", type=click.Path(exists=True, path_type=Path), help="Read value from JSON file")
+@click.option("--file", "-f", "file_path", type=click.Path(exists=True, path_type=Path), help="Read value from JSON file")  # type: ignore[type-var]
 @click.option(
     "--update", is_flag=True, help="Update existing property (fetches current version)"
 )

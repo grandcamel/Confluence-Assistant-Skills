@@ -142,7 +142,7 @@ def get_page(
     "--file",
     "-f",
     "body_file",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True, path_type=Path),  # type: ignore[type-var]
     help="Read body from file",
 )
 @click.option("--parent", "-p", "parent_id", help="Parent page ID")
@@ -222,7 +222,7 @@ def create_page(
     "--file",
     "-f",
     "body_file",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True, path_type=Path),  # type: ignore[type-var]
     help="Read body from file",
 )
 @click.option("--message", "-m", "version_message", help="Version change message")
@@ -738,7 +738,7 @@ def get_blogpost(
     "--file",
     "-f",
     "body_file",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True, path_type=Path),  # type: ignore[type-var]
     help="Read body from file",
 )
 @click.option(

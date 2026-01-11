@@ -135,7 +135,7 @@ def list_attachments(
 
 @attachment.command(name="upload")
 @click.argument("page_id")
-@click.argument("file_path", type=click.Path(exists=True, path_type=Path))
+@click.argument("file_path", type=click.Path(exists=True, path_type=Path))  # type: ignore[type-var]
 @click.option("--comment", help="Attachment comment")
 @click.option(
     "--output",
@@ -274,7 +274,7 @@ def download_attachment(
 
 @attachment.command(name="update")
 @click.argument("attachment_id")
-@click.argument("file_path", type=click.Path(exists=True, path_type=Path))
+@click.argument("file_path", type=click.Path(exists=True, path_type=Path))  # type: ignore[type-var]
 @click.option("--comment", help="Update comment")
 @click.option(
     "--output",

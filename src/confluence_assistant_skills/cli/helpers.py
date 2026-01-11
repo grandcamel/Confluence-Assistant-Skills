@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from confluence_assistant_skills_lib import ValidationError
 
@@ -30,7 +30,7 @@ def get_space_by_key(client: Any, space_key: str) -> dict[str, Any]:
     )
     if not spaces:
         raise ValidationError(f"Space not found: {space_key}")
-    return spaces[0]
+    return cast(dict[str, Any], spaces[0])
 
 
 def get_space_id(client: Any, space_key: str) -> str:
@@ -46,7 +46,7 @@ def get_space_id(client: Any, space_key: str) -> str:
     Raises:
         ValidationError: If space not found
     """
-    return get_space_by_key(client, space_key)["id"]
+    return cast(str, get_space_by_key(client, space_key)["id"])
 
 
 def read_file_content(file_path: Path) -> str:

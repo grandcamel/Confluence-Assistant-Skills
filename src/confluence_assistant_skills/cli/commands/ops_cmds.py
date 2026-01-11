@@ -7,6 +7,7 @@ import os
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -71,7 +72,7 @@ def cache_status(
     cache_enabled = os.environ.get("CONFLUENCE_CACHE_ENABLED", "true").lower() == "true"
 
     # Gather cache statistics
-    stats = {
+    stats: dict[str, Any] = {
         "enabled": cache_enabled,
         "cacheDir": str(cache_dir),
         "exists": cache_dir.exists(),
@@ -82,7 +83,7 @@ def cache_status(
         "newestEntry": None,
     }
 
-    entries = []
+    entries: list[dict[str, Any]] = []
 
     if cache_dir.exists():
         for category_dir in cache_dir.iterdir():
@@ -206,7 +207,7 @@ def cache_clear(
         return
 
     # Collect files to clear
-    files_to_clear = []
+    files_to_clear: list[dict[str, Any]] = []
     cutoff_time = None
     if older_than:
         cutoff_time = time.time() - (older_than * 24 * 60 * 60)
@@ -479,7 +480,7 @@ def health_check(
     """Test API connectivity and health."""
     client = get_confluence_client()
 
-    results = {
+    results: dict[str, Any] = {
         "siteUrl": os.environ.get("CONFLUENCE_SITE_URL", "Not configured"),
         "connected": False,
         "apiVersion": None,
@@ -679,7 +680,7 @@ def api_diagnostics(
     """Run API diagnostics."""
     client = get_confluence_client()
 
-    diagnostics = {
+    diagnostics: dict[str, Any] = {
         "timestamp": datetime.now().isoformat(),
         "environment": {
             "siteUrl": os.environ.get("CONFLUENCE_SITE_URL", "Not set"),

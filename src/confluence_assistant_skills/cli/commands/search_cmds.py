@@ -7,7 +7,7 @@ import csv
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import click
 
@@ -116,7 +116,7 @@ def _load_history() -> list[dict[str, Any]]:
     history_file = _get_history_file()
     if history_file.exists():
         try:
-            return json.loads(history_file.read_text())
+            return cast(list[dict[str, Any]], json.loads(history_file.read_text()))
         except (json.JSONDecodeError, OSError):
             return []
     return []

@@ -149,7 +149,7 @@ def get_comments(
     "--file",
     "-f",
     "body_file",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True, path_type=Path),  # type: ignore[type-var]
     help="Read comment body from file",
 )
 @click.option(
@@ -292,7 +292,7 @@ def add_inline_comment(
     "--file",
     "-f",
     "body_file",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True, path_type=Path),  # type: ignore[type-var]
     help="Read updated body from file",
 )
 @click.option(

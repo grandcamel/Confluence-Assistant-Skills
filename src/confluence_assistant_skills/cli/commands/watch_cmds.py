@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import click
 
@@ -20,7 +20,7 @@ from confluence_assistant_skills_lib import (
 
 def _get_current_user(client: Any) -> dict[str, Any]:
     """Get current user info."""
-    return client.get("/rest/api/user/current", operation="get current user")
+    return cast(dict[str, Any], client.get("/rest/api/user/current", operation="get current user"))
 
 
 @click.group()

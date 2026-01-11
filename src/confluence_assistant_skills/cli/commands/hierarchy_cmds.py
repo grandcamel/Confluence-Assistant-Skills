@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import click
 
@@ -20,7 +20,7 @@ from confluence_assistant_skills_lib import (
 
 def _get_page_info(client: Any, page_id: str) -> dict[str, Any]:
     """Get basic page info."""
-    return client.get(f"/api/v2/pages/{page_id}", operation="get page")
+    return cast(dict[str, Any], client.get(f"/api/v2/pages/{page_id}", operation="get page"))
 
 
 @click.group()
@@ -211,7 +211,7 @@ def get_descendants(
     # Recursively collect descendants
     descendants: list[dict[str, Any]] = []
 
-    def collect_descendants(parent_id: str, current_depth: int = 0):
+    def collect_descendants(parent_id: str, current_depth: int = 0) -> None:
         if max_depth is not None and current_depth >= max_depth:
             return
         if len(descendants) >= limit:
@@ -346,7 +346,7 @@ def get_page_tree(
         click.echo(f"\nPage Tree: {page_title} ({page_id})")
         click.echo(f"{'=' * 60}\n")
 
-        def print_tree(nodes: list[dict[str, Any]], prefix: str = ""):
+        def print_tree(nodes: list[dict[str, Any]], prefix: str = "") -> None:
             for i, node in enumerate(nodes):
                 is_last = i == len(nodes) - 1
                 connector = "└── " if is_last else "├── "

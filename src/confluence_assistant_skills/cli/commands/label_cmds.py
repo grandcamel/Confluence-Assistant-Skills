@@ -330,7 +330,7 @@ def list_popular_labels(
             operation="get recent content",
         ))
 
-        label_counts: dict[str, int] = {}
+        label_counts = {}
         for r in results:
             content = r.get("content", {})
             labels_data = content.get("metadata", {}).get("labels", {}).get("results", [])
