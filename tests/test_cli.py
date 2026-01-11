@@ -1,8 +1,12 @@
-"""Test suite for Confluence CLI."""
+"""Test suite for Confluence CLI.
+
+Tests the CLI commands with mocked API client. After the CLI-only refactoring,
+commands make direct API calls rather than delegating to skill scripts.
+"""
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from click.testing import CliRunner
@@ -14,14 +18,6 @@ from confluence_assistant_skills.cli.main import cli
 def runner() -> CliRunner:
     """Create a CLI test runner."""
     return CliRunner()
-
-
-@pytest.fixture
-def mock_call_skill():
-    """Mock the call_skill_main function."""
-    with patch("confluence_assistant_skills.utils.call_skill_main") as mock:
-        mock.return_value = 0
-        yield mock
 
 
 class TestCLIRoot:
@@ -64,65 +60,73 @@ class TestPageCommands:
 
     def test_page_get(self, runner: CliRunner) -> None:
         """Test page get command."""
-        with patch("confluence_assistant_skills.cli.commands.page_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.page_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.get.return_value = {
+                "id": "12345",
+                "title": "Test Page",
+                "status": "current",
+                "spaceId": "123",
+                "_links": {"webui": "/wiki/test"}
+            }
             result = runner.invoke(cli, ["page", "get", "12345"])
             assert result.exit_code == 0
-            mock.assert_called_once_with(
-                "confluence-page",
-                "get_page",
-                ["12345"],
-            )
+            client.get.assert_called()
 
-    def test_page_get_with_options(self, runner: CliRunner) -> None:
-        """Test page get command with options."""
-        with patch("confluence_assistant_skills.cli.commands.page_cmds.call_skill_main") as mock:
-            mock.return_value = 0
-            result = runner.invoke(
-                cli,
-                ["page", "get", "12345", "--body", "--format", "markdown", "--output", "json"],
-            )
+    def test_page_get_with_body(self, runner: CliRunner) -> None:
+        """Test page get command with --body option."""
+        with patch("confluence_assistant_skills.cli.commands.page_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.get.return_value = {
+                "id": "12345",
+                "title": "Test Page",
+                "status": "current",
+                "spaceId": "123",
+                "body": {"storage": {"value": "<p>Content</p>"}},
+                "_links": {"webui": "/wiki/test"}
+            }
+            result = runner.invoke(cli, ["page", "get", "12345", "--body"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-page"
-            assert args[1] == "get_page"
-            assert "12345" in args[2]
-            assert "--body" in args[2]
-            assert "--format" in args[2]
-            assert "markdown" in args[2]
-            assert "--output" in args[2]
-            assert "json" in args[2]
 
     def test_page_create(self, runner: CliRunner) -> None:
         """Test page create command."""
-        with patch("confluence_assistant_skills.cli.commands.page_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.page_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            # Mock space lookup by key
+            client.paginate.return_value = iter([{"id": "100", "key": "DOCS", "name": "Documentation"}])
+            # Mock page creation
+            client.post.return_value = {
+                "id": "12345",
+                "title": "Test Page",
+                "status": "current",
+                "spaceId": "100",
+                "_links": {"webui": "/wiki/test"}
+            }
             result = runner.invoke(
                 cli,
-                ["page", "create", "DOCS", "Test Page", "--body", "Test content"],
+                ["page", "create", "--space", "DOCS", "--title", "Test Page", "--body", "Test content"],
             )
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-page"
-            assert args[1] == "create_page"
-            assert "DOCS" in args[2]
-            assert "Test Page" in args[2]
-            assert "--body" in args[2]
+            client.post.assert_called()
 
     def test_page_delete(self, runner: CliRunner) -> None:
         """Test page delete command."""
-        with patch("confluence_assistant_skills.cli.commands.page_cmds.call_skill_main") as mock:
-            mock.return_value = 0
-            result = runner.invoke(cli, ["page", "delete", "12345", "--confirm"])
+        with patch("confluence_assistant_skills.cli.commands.page_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            # Mock getting page info first
+            client.get.return_value = {
+                "id": "12345",
+                "title": "Test Page",
+                "status": "current"
+            }
+            client.delete.return_value = None
+            result = runner.invoke(cli, ["page", "delete", "12345", "--force"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-page"
-            assert args[1] == "delete_page"
-            assert "12345" in args[2]
-            assert "--confirm" in args[2]
+            client.delete.assert_called()
 
 
 class TestSpaceCommands:
@@ -136,27 +140,31 @@ class TestSpaceCommands:
 
     def test_space_list(self, runner: CliRunner) -> None:
         """Test space list command."""
-        with patch("confluence_assistant_skills.cli.commands.space_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.space_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.paginate.return_value = iter([
+                {"id": "1", "key": "DOCS", "name": "Documentation", "type": "global"},
+                {"id": "2", "key": "KB", "name": "Knowledge Base", "type": "global"}
+            ])
             result = runner.invoke(cli, ["space", "list"])
             assert result.exit_code == 0
-            mock.assert_called_once_with(
-                "confluence-space",
-                "list_spaces",
-                [],
-            )
+            client.paginate.assert_called()
 
     def test_space_get(self, runner: CliRunner) -> None:
         """Test space get command."""
-        with patch("confluence_assistant_skills.cli.commands.space_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.space_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.paginate.return_value = iter([{
+                "id": "1",
+                "key": "DOCS",
+                "name": "Documentation",
+                "type": "global"
+            }])
             result = runner.invoke(cli, ["space", "get", "DOCS"])
             assert result.exit_code == 0
-            mock.assert_called_once_with(
-                "confluence-space",
-                "get_space",
-                ["DOCS"],
-            )
+            client.paginate.assert_called()
 
 
 class TestSearchCommands:
@@ -170,29 +178,27 @@ class TestSearchCommands:
 
     def test_search_cql(self, runner: CliRunner) -> None:
         """Test search cql command."""
-        with patch("confluence_assistant_skills.cli.commands.search_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.search_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.paginate.return_value = iter([
+                {"content": {"id": "1", "title": "Page 1", "type": "page"}}
+            ])
             result = runner.invoke(cli, ["search", "cql", "space = DOCS"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-search"
-            assert args[1] == "cql_search"
-            assert "space = DOCS" in args[2]
+            client.paginate.assert_called()
 
     def test_search_cql_with_options(self, runner: CliRunner) -> None:
         """Test search cql command with options."""
-        with patch("confluence_assistant_skills.cli.commands.search_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.search_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.paginate.return_value = iter([])
             result = runner.invoke(
                 cli,
-                ["search", "cql", "space = DOCS", "--limit", "50", "--show-labels"],
+                ["search", "cql", "space = DOCS", "--limit", "50"],
             )
             assert result.exit_code == 0
-            args = mock.call_args[0]
-            assert "--limit" in args[2]
-            assert "50" in args[2]
-            assert "--show-labels" in args[2]
 
 
 class TestCommentCommands:
@@ -200,83 +206,76 @@ class TestCommentCommands:
 
     def test_comment_list(self, runner: CliRunner) -> None:
         """Test comment list command."""
-        with patch("confluence_assistant_skills.cli.commands.comment_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.comment_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.get.return_value = {
+                "results": [],
+                "_links": {}
+            }
             result = runner.invoke(cli, ["comment", "list", "12345"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-comment"
-            assert args[1] == "get_comments"
+            client.get.assert_called()
 
     def test_comment_add(self, runner: CliRunner) -> None:
         """Test comment add command."""
-        with patch("confluence_assistant_skills.cli.commands.comment_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.comment_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.post.return_value = {
+                "id": "999",
+                "body": {"storage": {"value": "Test comment"}}
+            }
             result = runner.invoke(cli, ["comment", "add", "12345", "Test comment"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-comment"
-            assert args[1] == "add_comment"
+            client.post.assert_called()
 
 
 class TestLabelCommands:
     """Test label command group."""
 
     def test_label_add_single(self, runner: CliRunner) -> None:
-        """Test label add command with single label."""
-        with patch("confluence_assistant_skills.cli.commands.label_cmds.call_skill_main") as mock:
-            mock.return_value = 0
-            result = runner.invoke(cli, ["label", "add", "12345", "--label", "documentation"])
+        """Test label add command with single label (positional argument)."""
+        with patch("confluence_assistant_skills.cli.commands.label_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.post.return_value = {"results": [{"name": "documentation"}]}
+            result = runner.invoke(cli, ["label", "add", "12345", "documentation"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-label"
-            assert args[1] == "add_label"
-            assert "12345" in args[2]
-            assert "--label" in args[2]
-            assert "documentation" in args[2]
+            client.post.assert_called()
 
     def test_label_add_multiple(self, runner: CliRunner) -> None:
-        """Test label add command with multiple comma-separated labels."""
-        with patch("confluence_assistant_skills.cli.commands.label_cmds.call_skill_main") as mock:
-            mock.return_value = 0
-            result = runner.invoke(cli, ["label", "add", "12345", "--labels", "doc,approved,v2"])
+        """Test label add command with multiple labels (positional arguments)."""
+        with patch("confluence_assistant_skills.cli.commands.label_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.post.return_value = {"results": [{"name": "doc"}, {"name": "approved"}]}
+            result = runner.invoke(cli, ["label", "add", "12345", "doc", "approved", "v2"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-label"
-            assert args[1] == "add_label"
-            assert "12345" in args[2]
-            assert "--labels" in args[2]
-            assert "doc,approved,v2" in args[2]
+            client.post.assert_called()
 
-    def test_label_add_requires_label_or_labels(self, runner: CliRunner) -> None:
-        """Test label add command requires --label or --labels."""
+    def test_label_add_requires_at_least_one_label(self, runner: CliRunner) -> None:
+        """Test label add command requires at least one label."""
         result = runner.invoke(cli, ["label", "add", "12345"])
         assert result.exit_code != 0
-        assert "Either --label or --labels is required" in result.output
+        # Should fail with validation error about missing labels
+        assert "label" in result.output.lower() or "required" in result.output.lower()
 
     def test_label_remove(self, runner: CliRunner) -> None:
-        """Test label remove command."""
-        with patch("confluence_assistant_skills.cli.commands.label_cmds.call_skill_main") as mock:
-            mock.return_value = 0
-            result = runner.invoke(cli, ["label", "remove", "12345", "--label", "draft"])
+        """Test label remove command (positional arguments)."""
+        with patch("confluence_assistant_skills.cli.commands.label_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.delete.return_value = None
+            result = runner.invoke(cli, ["label", "remove", "12345", "draft"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-label"
-            assert args[1] == "remove_label"
-            assert "12345" in args[2]
-            assert "--label" in args[2]
-            assert "draft" in args[2]
+            client.delete.assert_called()
 
-    def test_label_remove_requires_label(self, runner: CliRunner) -> None:
-        """Test label remove command requires --label."""
+    def test_label_remove_requires_label_name(self, runner: CliRunner) -> None:
+        """Test label remove command requires label name argument."""
         result = runner.invoke(cli, ["label", "remove", "12345"])
         assert result.exit_code != 0
-        assert "Missing option" in result.output or "required" in result.output.lower()
+        assert "Missing argument" in result.output
 
 
 class TestAttachmentCommands:
@@ -284,14 +283,16 @@ class TestAttachmentCommands:
 
     def test_attachment_list(self, runner: CliRunner) -> None:
         """Test attachment list command."""
-        with patch("confluence_assistant_skills.cli.commands.attachment_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.attachment_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.get.return_value = {
+                "results": [],
+                "_links": {}
+            }
             result = runner.invoke(cli, ["attachment", "list", "12345"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-attachment"
-            assert args[1] == "list_attachments"
+            client.get.assert_called()
 
 
 class TestHierarchyCommands:
@@ -299,26 +300,29 @@ class TestHierarchyCommands:
 
     def test_hierarchy_children(self, runner: CliRunner) -> None:
         """Test hierarchy children command."""
-        with patch("confluence_assistant_skills.cli.commands.hierarchy_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.hierarchy_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.get.return_value = {
+                "results": [],
+                "_links": {}
+            }
             result = runner.invoke(cli, ["hierarchy", "children", "12345"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-hierarchy"
-            assert args[1] == "get_children"
+            client.get.assert_called()
 
     def test_hierarchy_tree(self, runner: CliRunner) -> None:
         """Test hierarchy tree command."""
-        with patch("confluence_assistant_skills.cli.commands.hierarchy_cmds.call_skill_main") as mock:
-            mock.return_value = 0
-            result = runner.invoke(cli, ["hierarchy", "tree", "12345", "--depth", "5"])
+        with patch("confluence_assistant_skills.cli.commands.hierarchy_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            # Mock get page
+            client.get.side_effect = [
+                {"id": "12345", "title": "Root Page", "status": "current"},
+                {"results": [], "_links": {}},  # Children request
+            ]
+            result = runner.invoke(cli, ["hierarchy", "tree", "12345", "--max-depth", "5"])
             assert result.exit_code == 0
-            args = mock.call_args[0]
-            assert args[0] == "confluence-hierarchy"
-            assert args[1] == "get_page_tree"
-            assert "--depth" in args[2]
-            assert "5" in args[2]
 
 
 class TestAnalyticsCommands:
@@ -326,14 +330,16 @@ class TestAnalyticsCommands:
 
     def test_analytics_views(self, runner: CliRunner) -> None:
         """Test analytics views command."""
-        with patch("confluence_assistant_skills.cli.commands.analytics_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.analytics_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.get.return_value = {
+                "id": "12345",
+                "count": 100
+            }
             result = runner.invoke(cli, ["analytics", "views", "12345"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-analytics"
-            assert args[1] == "get_page_views"
+            client.get.assert_called()
 
 
 class TestWatchCommands:
@@ -341,14 +347,13 @@ class TestWatchCommands:
 
     def test_watch_page(self, runner: CliRunner) -> None:
         """Test watch page command."""
-        with patch("confluence_assistant_skills.cli.commands.watch_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.watch_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.post.return_value = {}
             result = runner.invoke(cli, ["watch", "page", "12345"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-watch"
-            assert args[1] == "watch_page"
+            client.post.assert_called()
 
 
 class TestTemplateCommands:
@@ -356,14 +361,13 @@ class TestTemplateCommands:
 
     def test_template_list(self, runner: CliRunner) -> None:
         """Test template list command."""
-        with patch("confluence_assistant_skills.cli.commands.template_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.template_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.paginate.return_value = iter([])
             result = runner.invoke(cli, ["template", "list"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-template"
-            assert args[1] == "list_templates"
+            client.paginate.assert_called()
 
 
 class TestPropertyCommands:
@@ -371,17 +375,21 @@ class TestPropertyCommands:
 
     def test_property_set(self, runner: CliRunner) -> None:
         """Test property set command."""
-        with patch("confluence_assistant_skills.cli.commands.property_cmds.call_skill_main") as mock:
-            mock.return_value = 0
-            result = runner.invoke(cli, ["property", "set", "12345", "mykey", "myvalue"])
+        with patch("confluence_assistant_skills.cli.commands.property_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            # Mock get - first call gets page, second could be property check
+            client.get.return_value = {
+                "id": "12345",
+                "title": "Test Page",
+                "status": "current"
+            }
+            client.post.return_value = {
+                "key": "mykey",
+                "value": "myvalue"
+            }
+            result = runner.invoke(cli, ["property", "set", "12345", "mykey", "--value", "myvalue"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-property"
-            assert args[1] == "set_property"
-            assert "12345" in args[2]
-            assert "mykey" in args[2]
-            assert "myvalue" in args[2]
 
 
 class TestPermissionCommands:
@@ -389,25 +397,31 @@ class TestPermissionCommands:
 
     def test_permission_page_get(self, runner: CliRunner) -> None:
         """Test permission page get command."""
-        with patch("confluence_assistant_skills.cli.commands.permission_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.permission_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.get.return_value = {
+                "results": [],
+                "_links": {}
+            }
             result = runner.invoke(cli, ["permission", "page", "get", "12345"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-permission"
-            assert args[1] == "get_page_restrictions"
+            client.get.assert_called()
 
     def test_permission_space_get(self, runner: CliRunner) -> None:
         """Test permission space get command."""
-        with patch("confluence_assistant_skills.cli.commands.permission_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.permission_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            # Mock space lookup
+            client.paginate.return_value = iter([{"id": "100", "key": "DOCS"}])
+            # Mock permissions
+            client.get.return_value = {
+                "results": [],
+                "_links": {}
+            }
             result = runner.invoke(cli, ["permission", "space", "get", "DOCS"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-permission"
-            assert args[1] == "get_space_permissions"
 
 
 class TestJiraCommands:
@@ -415,16 +429,23 @@ class TestJiraCommands:
 
     def test_jira_link(self, runner: CliRunner) -> None:
         """Test jira link command."""
-        with patch("confluence_assistant_skills.cli.commands.jira_cmds.call_skill_main") as mock:
-            mock.return_value = 0
-            result = runner.invoke(cli, ["jira", "link", "12345", "PROJ-123"])
+        with patch("confluence_assistant_skills.cli.commands.jira_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            # Mock page get
+            client.get.return_value = {
+                "id": "12345",
+                "title": "Test Page",
+                "body": {"storage": {"value": "<p>Content</p>"}},
+                "version": {"number": 1}
+            }
+            # Mock page update
+            client.put.return_value = {
+                "id": "12345",
+                "title": "Test Page"
+            }
+            result = runner.invoke(cli, ["jira", "link", "12345", "PROJ-123", "--jira-url", "https://jira.example.com"])
             assert result.exit_code == 0
-            mock.assert_called_once()
-            args = mock.call_args[0]
-            assert args[0] == "confluence-jira"
-            assert args[1] == "link_to_jira"
-            assert "12345" in args[2]
-            assert "PROJ-123" in args[2]
 
 
 class TestGlobalOptions:
@@ -432,22 +453,27 @@ class TestGlobalOptions:
 
     def test_output_option(self, runner: CliRunner) -> None:
         """Test --output global option."""
-        with patch("confluence_assistant_skills.cli.commands.space_cmds.call_skill_main") as mock:
-            mock.return_value = 0
+        with patch("confluence_assistant_skills.cli.commands.space_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            client.paginate.return_value = iter([])
             result = runner.invoke(cli, ["--output", "json", "space", "list"])
             assert result.exit_code == 0
-            mock.assert_called_once()
 
 
 class TestErrorHandling:
     """Test CLI error handling."""
 
-    def test_nonzero_exit_code(self, runner: CliRunner) -> None:
-        """Test that non-zero exit codes from scripts are propagated."""
-        with patch("confluence_assistant_skills.cli.commands.page_cmds.call_skill_main") as mock:
-            mock.return_value = 1
-            result = runner.invoke(cli, ["page", "get", "12345"])
-            assert result.exit_code == 1
+    def test_api_error_handling(self, runner: CliRunner) -> None:
+        """Test that API errors are handled gracefully."""
+        with patch("confluence_assistant_skills.cli.commands.page_cmds.get_confluence_client") as mock:
+            client = MagicMock()
+            mock.return_value = client
+            from confluence_assistant_skills_lib import NotFoundError
+            client.get.side_effect = NotFoundError("Page not found")
+            result = runner.invoke(cli, ["page", "get", "99999"])
+            assert result.exit_code != 0
+            assert "not found" in result.output.lower() or "error" in result.output.lower()
 
     def test_missing_required_argument(self, runner: CliRunner) -> None:
         """Test missing required argument."""

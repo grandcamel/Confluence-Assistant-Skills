@@ -60,9 +60,9 @@ This skill provides analytics and statistics for Confluence content, including p
 
 **Note:** Confluence Cloud has limited analytics APIs compared to Server/Data Center. This skill uses the v1 REST API's history endpoints and CQL queries to provide analytics insights.
 
-## Available Scripts
+## CLI Commands
 
-### get_page_views.py
+### confluence analytics views
 
 Get analytics and view information for a specific page.
 
@@ -116,7 +116,7 @@ Web UI: https://your-site.atlassian.net/wiki/spaces/DOCS/pages/12345
 
 ---
 
-### get_space_analytics.py
+### confluence analytics space
 
 Get aggregate analytics for an entire space.
 
@@ -174,7 +174,7 @@ Recent Updates:
 
 ---
 
-### get_popular_content.py
+### confluence analytics popular
 
 Find the most popular or most recently updated content.
 
@@ -236,7 +236,7 @@ Found 10 items:
 
 ---
 
-### get_content_watchers.py
+### confluence analytics watchers
 
 Get the list of users watching a page (who will be notified of changes).
 
@@ -273,7 +273,7 @@ Watcher List:
   - Alice Johnson (alice.johnson@example.com)
 ```
 
-**Note:** Some Confluence Cloud instances may have restricted watcher API access. If the watchers endpoint is not available, the script will report this.
+**Note:** Some Confluence Cloud instances may have restricted watcher API access. If the watchers endpoint is not available, the command will report this.
 
 ---
 
@@ -314,19 +314,6 @@ This skill uses the following Confluence REST API endpoints:
 2. **Watchers API:** May be restricted on some Confluence Cloud instances
 3. **Analytics Proxy:** Uses modification dates, contributor lists, and labels as proxies for popularity
 4. **Rate Limits:** Large spaces may hit API rate limits during analytics gathering
-
-## Testing
-
-Run unit tests:
-```bash
-pytest .claude/skills/confluence-analytics/tests/ -v
-```
-
-The tests verify:
-- Input validation (page IDs, space keys)
-- API response handling
-- Output formatting (text and JSON)
-- Error handling (not found, invalid input)
 
 ## Related Skills
 

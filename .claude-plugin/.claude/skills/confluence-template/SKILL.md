@@ -54,9 +54,9 @@ Work with Confluence page templates and blueprints.
 
 Templates in Confluence allow you to standardize page creation. Blueprints are pre-built templates provided by Confluence or apps. This skill uses the Confluence v1 REST API (`/rest/api/template/*`) to manage templates.
 
-## Available Scripts
+## CLI Commands
 
-### list_templates.py
+### confluence template list
 List available page templates and blueprints in your Confluence instance.
 
 **Usage:**
@@ -87,7 +87,7 @@ confluence template list --limit 50
 - `--output`, `-o`: Output format (text or json)
 - `--limit`: Maximum number of results (default: 100)
 
-### get_template.py
+### confluence template get
 Retrieve detailed information about a specific template or blueprint.
 
 **Usage:**
@@ -115,7 +115,7 @@ confluence template get tmpl-123 --output json
 - `--blueprint`: Get blueprint instead of template
 - `--output`, `-o`: Output format (text or json)
 
-### create_from_template.py
+### confluence template create-from
 Create a new Confluence page based on an existing template or blueprint.
 
 **Usage:**
@@ -150,7 +150,7 @@ confluence template create-from --template tmpl-123 --space DOCS --title "Page" 
 - `--file`: File with content (Markdown or HTML)
 - `--output`, `-o`: Output format (text or json)
 
-### create_template.py
+### confluence template create
 Create a new page template in Confluence.
 
 **Usage:**
@@ -188,7 +188,7 @@ confluence template create --name "Custom" --space DOCS --blueprint-id com.atlas
 - `--blueprint-id`: Base on existing blueprint
 - `--output`, `-o`: Output format (text or json)
 
-### update_template.py
+### confluence template update
 Update an existing page template.
 
 **Usage:**
@@ -284,7 +284,7 @@ confluence template update tmpl-123 --name "New Template Name" --description "Up
 
 ## Tips
 
-1. **Template IDs**: Template IDs are typically in the format `tmpl-123` or similar. Use `list_templates.py` to find IDs.
+1. **Template IDs**: Template IDs are typically in the format `tmpl-123` or similar. Use `confluence template list` to find IDs.
 
 2. **Markdown Support**: All scripts support Markdown input files, which are automatically converted to Confluence's storage format (XHTML).
 
@@ -298,7 +298,7 @@ confluence template update tmpl-123 --name "New Template Name" --description "Up
 
 ## Troubleshooting
 
-**Template not found**: Verify the template ID with `list_templates.py`. Template IDs are space-specific in some cases.
+**Template not found**: Verify the template ID with `confluence template list`. Template IDs are space-specific in some cases.
 
 **Permission denied**: Ensure you have permission to create/modify templates in the specified space. Template management typically requires space admin permissions.
 

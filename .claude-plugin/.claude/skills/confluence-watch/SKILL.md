@@ -58,9 +58,9 @@ This skill provides comprehensive watching and notification management:
 - Check who is watching content
 - Verify your own watch status
 
-## Available Scripts
+## CLI Commands
 
-### watch_page.py
+### confluence watch page
 Start watching a Confluence page to receive notifications for updates.
 
 **Usage:**
@@ -81,7 +81,7 @@ confluence watch page 123456
 confluence watch page 123456 --output json
 ```
 
-### unwatch_page.py
+### confluence watch unwatch-page
 Stop watching a Confluence page.
 
 **Usage:**
@@ -102,7 +102,7 @@ confluence watch unwatch-page 123456
 confluence watch unwatch-page 123456 --output json
 ```
 
-### watch_space.py
+### confluence watch space
 Start watching an entire Confluence space to receive notifications for new content.
 
 **Usage:**
@@ -126,7 +126,7 @@ confluence watch space kb
 confluence watch space TEST --output json
 ```
 
-### get_watchers.py
+### confluence watch list
 Get the list of users who are watching a page.
 
 **Usage:**
@@ -178,7 +178,7 @@ Success: Retrieved 2 watcher(s)
 }
 ```
 
-### am_i_watching.py
+### confluence watch status
 Check if the current authenticated user is watching a specific page.
 
 **Usage:**
@@ -210,7 +210,7 @@ Success: Watching confirmed
 **Output (text format - not watching):**
 ```
 No - John Doe is not watching page 123456
-Use watch_page.py to start watching this page.
+Use `confluence watch page` to start watching this page.
 
 Success: Not watching
 ```
@@ -271,7 +271,7 @@ done
 
 ## Error Handling
 
-All scripts include comprehensive error handling:
+All commands include comprehensive error handling:
 
 - **ValidationError** - Invalid page ID or space key
 - **NotFoundError (404)** - Page or space doesn't exist

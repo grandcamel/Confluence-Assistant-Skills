@@ -91,15 +91,6 @@ def mock_client(mock_response):
 def mock_config():
     """Create a mock configuration."""
     return {
-        "default_profile": "test",
-        "profiles": {
-            "test": {
-                "url": "https://test.atlassian.net",
-                "email": "test@example.com",
-                "api_token": "test-token",
-                "default_space": "TEST",
-            }
-        },
         "api": {
             "timeout": 30,
             "max_retries": 3,

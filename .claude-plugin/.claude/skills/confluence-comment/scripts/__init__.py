@@ -1,1 +1,0 @@
-"""Confluence Comment Skill Scripts"""

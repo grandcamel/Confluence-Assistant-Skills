@@ -41,11 +41,6 @@
         "name": "CONFLUENCE_API_TOKEN",
         "description": "API token from Atlassian Account Settings",
         "required": true
-      },
-      {
-        "name": "CONFLUENCE_PROFILE",
-        "description": "Configuration profile name (default: 'default')",
-        "required": false
       }
     ]
   }

@@ -78,9 +78,9 @@ This skill handles all space management operations, including:
 - Deleting spaces
 - Viewing space content and settings
 
-## Available Scripts
+## CLI Commands
 
-### create_space.py
+### confluence space create
 
 Create a new Confluence space.
 
@@ -103,7 +103,7 @@ confluence space create --key ~username --name "Personal Space" --type personal
 - `--type` - Space type: global (default) or personal
 - `--output, -o` - Output format: text or json
 
-### get_space.py
+### confluence space get
 
 Retrieve space details.
 
@@ -117,7 +117,7 @@ confluence space get DOCS --output json
 - `space_key` - Space key (required)
 - `--output, -o` - Output format
 
-### list_spaces.py
+### confluence space list
 
 List all accessible spaces.
 
@@ -143,7 +143,7 @@ confluence space list --limit 10
 - `--limit, -l` - Maximum results
 - `--output, -o` - Output format
 
-### update_space.py
+### confluence space update
 
 Update space properties.
 
@@ -161,7 +161,7 @@ confluence space update DOCS --homepage 12345
 - `--homepage` - Homepage page ID
 - `--output, -o` - Output format
 
-### delete_space.py
+### confluence space delete
 
 Delete a space.
 
@@ -175,7 +175,7 @@ confluence space delete DOCS --force
 - `space_key` - Space key (required)
 - `--force, -f` - Skip confirmation
 
-### get_space_content.py
+### confluence space content
 
 List pages in a space.
 
@@ -199,7 +199,7 @@ confluence space content DOCS --include-archived
 - `--limit, -l` - Maximum results
 - `--output, -o` - Output format
 
-### get_space_settings.py
+### confluence space settings
 
 Get space settings and theme.
 

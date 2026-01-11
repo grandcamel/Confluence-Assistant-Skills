@@ -1,3 +1,0 @@
-"""
-Confluence Template Skill Scripts
-"""

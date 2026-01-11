@@ -55,9 +55,9 @@ triggers:
 
 This skill provides operations for navigating and managing page hierarchies in Confluence, including getting ancestors, children, descendants, and full page trees.
 
-## Available Scripts
+## CLI Commands
 
-### get_ancestors.py
+### confluence hierarchy ancestors
 
 Get all ancestor pages for a given page (parent, grandparent, etc.).
 
@@ -76,7 +76,7 @@ confluence hierarchy ancestors <page_id> --output json
 - Get ancestors: `confluence hierarchy ancestors 12345`
 - Show breadcrumb: `confluence hierarchy ancestors 12345 --breadcrumb`
 
-### get_children.py
+### confluence hierarchy children
 
 Get direct child pages of a parent page (one level down only).
 
@@ -96,7 +96,7 @@ confluence hierarchy children <page_id> --sort title
 - Get children: `confluence hierarchy children 12345`
 - Sort by title: `confluence hierarchy children 12345 --sort title`
 
-### get_descendants.py
+### confluence hierarchy descendants
 
 Get all descendant pages recursively (children, grandchildren, etc.).
 
@@ -115,7 +115,7 @@ confluence hierarchy descendants <page_id> --output json
 - Get all descendants: `confluence hierarchy descendants 12345`
 - Limit depth: `confluence hierarchy descendants 12345 --max-depth 2`
 
-### get_page_tree.py
+### confluence hierarchy tree
 
 Get full hierarchical tree structure with nested children.
 
@@ -135,7 +135,7 @@ confluence hierarchy tree <page_id> --stats
 - Get page tree: `confluence hierarchy tree 12345`
 - With statistics: `confluence hierarchy tree 12345 --stats`
 
-### reorder_children.py
+### confluence hierarchy reorder
 
 Reorder child pages of a parent page.
 
@@ -155,7 +155,7 @@ confluence hierarchy reorder <parent_id> --reverse
 - Reorder: `confluence hierarchy reorder 12345 200,201,202`
 - Reverse order: `confluence hierarchy reorder 12345 --reverse`
 
-**Note:** The Confluence v2 API may have limited support for page reordering. This script provides validation and structure for when the API fully supports it.
+**Note:** The Confluence v2 API may have limited support for page reordering. This command provides validation and structure for when the API fully supports it.
 
 ## Natural Language Examples
 
@@ -208,7 +208,7 @@ confluence hierarchy descendants 12345 --max-depth 2
 
 ## Notes
 
-- All scripts prevent infinite loops by tracking visited pages
+- All commands prevent infinite loops by tracking visited pages
 - Depth is tracked starting from 1 for direct children
 - Tree operations can be resource-intensive for large hierarchies
 - Use `--max-depth` to limit traversal when needed

@@ -1,3 +1,0 @@
-"""
-Confluence JIRA Skill Scripts
-"""

@@ -14,7 +14,7 @@ from .runner import E2ETestStatus
 pytestmark = [pytest.mark.e2e, pytest.mark.slow]
 
 
-# All 14 Confluence skills
+# All 17 Confluence skills
 EXPECTED_SKILLS = [
     "confluence-assistant",
     "confluence-page",
@@ -30,6 +30,9 @@ EXPECTED_SKILLS = [
     "confluence-watch",
     "confluence-hierarchy",
     "confluence-jira",
+    "confluence-admin",
+    "confluence-bulk",
+    "confluence-ops",
 ]
 
 

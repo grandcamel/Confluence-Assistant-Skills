@@ -220,18 +220,6 @@ prompt_confluence_token() {
     done
 }
 
-prompt_confluence_profile() {
-    print_section "Confluence Profile (Optional)"
-    print_tip "Use profiles to switch between multiple Confluence instances"
-    print_info "Press Enter to use 'default'"
-
-    local value
-    value=$(prompt_value "CONFLUENCE_PROFILE" "Profile name for this configuration" "default" "no" "no")
-
-    CONFIG[CONFLUENCE_PROFILE]="${value:-default}"
-    print_success "Profile set to: ${CONFIG[CONFLUENCE_PROFILE]}"
-}
-
 # ==============================================================================
 # Connection Test
 # ==============================================================================
@@ -366,7 +354,6 @@ save_configuration() {
         echo "CONFLUENCE_SITE_URL=\"${CONFIG[CONFLUENCE_SITE_URL]}\""
         echo "CONFLUENCE_EMAIL=\"${CONFIG[CONFLUENCE_EMAIL]}\""
         echo "CONFLUENCE_API_TOKEN=\"${CONFIG[CONFLUENCE_API_TOKEN]}\""
-        echo "CONFLUENCE_PROFILE=\"${CONFIG[CONFLUENCE_PROFILE]}\""
     } > "$ENV_FILE"
 
     # Secure the file
@@ -387,7 +374,6 @@ print_summary() {
     echo -e "  ${BOLD}CONFLUENCE_SITE_URL${NC}:  ${CONFIG[CONFLUENCE_SITE_URL]}"
     echo -e "  ${BOLD}CONFLUENCE_EMAIL${NC}:     ${CONFIG[CONFLUENCE_EMAIL]}"
     echo -e "  ${BOLD}CONFLUENCE_API_TOKEN${NC}: $(mask_secret "${CONFIG[CONFLUENCE_API_TOKEN]}")"
-    echo -e "  ${BOLD}CONFLUENCE_PROFILE${NC}:   ${CONFIG[CONFLUENCE_PROFILE]}"
     echo ""
 }
 
@@ -420,7 +406,6 @@ main() {
     prompt_confluence_url
     prompt_confluence_email
     prompt_confluence_token
-    prompt_confluence_profile
 
     # Test connection
     if ! test_connection; then

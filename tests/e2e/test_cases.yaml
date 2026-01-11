@@ -335,6 +335,127 @@ suites:
             - embed
           no_errors: true
 
+  confluence_admin:
+    description: Administration and system management tests
+    tests:
+      - id: discover_admin_skill
+        name: Verify confluence-admin skill is discoverable
+        prompt: How do I manage Confluence users and groups?
+        expect:
+          output_contains_any:
+            - user
+            - group
+            - admin
+            - manage
+          no_errors: true
+
+      - id: space_settings
+        name: Test space settings operations
+        prompt: How do I configure Confluence space settings?
+        expect:
+          output_contains_any:
+            - space
+            - settings
+            - configure
+          no_errors: true
+
+      - id: template_management
+        name: Test template management
+        prompt: How do I manage global Confluence templates?
+        expect:
+          output_contains_any:
+            - template
+            - manage
+            - global
+          no_errors: true
+
+  confluence_bulk:
+    description: Bulk operations tests
+    tests:
+      - id: discover_bulk_skill
+        name: Verify confluence-bulk skill is discoverable
+        prompt: How do I perform bulk operations in Confluence?
+        expect:
+          output_contains_any:
+            - bulk
+            - multiple
+            - batch
+          no_errors: true
+
+      - id: bulk_label
+        name: Test bulk label operations
+        prompt: How do I add labels to multiple Confluence pages at once?
+        expect:
+          output_contains_any:
+            - bulk
+            - label
+            - multiple
+            - pages
+          no_errors: true
+
+      - id: bulk_move
+        name: Test bulk move operations
+        prompt: How do I move multiple pages to another space?
+        expect:
+          output_contains_any:
+            - move
+            - bulk
+            - space
+          no_errors: true
+
+      - id: dry_run
+        name: Test dry-run capability
+        prompt: How do I preview bulk operations before executing them?
+        expect:
+          output_contains_any:
+            - dry-run
+            - preview
+            - simulate
+          no_errors: true
+
+  confluence_ops:
+    description: Operations and cache management tests
+    tests:
+      - id: discover_ops_skill
+        name: Verify confluence-ops skill is discoverable
+        prompt: How do I manage Confluence API cache?
+        expect:
+          output_contains_any:
+            - cache
+            - ops
+            - operations
+          no_errors: true
+
+      - id: cache_status
+        name: Test cache status operations
+        prompt: How do I check the Confluence API cache status?
+        expect:
+          output_contains_any:
+            - cache
+            - status
+          no_errors: true
+
+      - id: health_check
+        name: Test health check operations
+        prompt: How do I check the Confluence API health?
+        expect:
+          output_contains_any:
+            - health
+            - check
+            - api
+            - status
+          no_errors: true
+
+      - id: rate_limit
+        name: Test rate limit monitoring
+        prompt: How do I check Confluence API rate limits?
+        expect:
+          output_contains_any:
+            - rate
+            - limit
+            - api
+          no_errors: true
+
   error_handling:
     description: Error handling and edge cases
     tests:

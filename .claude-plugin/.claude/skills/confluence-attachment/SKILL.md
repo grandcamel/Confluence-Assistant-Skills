@@ -51,9 +51,9 @@ Manage file attachments on Confluence pages.
 
 ---
 
-## Available Scripts
+## CLI Commands
 
-### upload_attachment.py
+### confluence attachment upload
 Upload a file to a page.
 
 **Usage:**
@@ -63,7 +63,7 @@ confluence attachment upload 12345 report.pdf
 confluence attachment upload 12345 image.png --comment "Screenshot"
 ```
 
-### download_attachment.py
+### confluence attachment download
 Download an attachment.
 
 **Usage:**
@@ -73,7 +73,7 @@ confluence attachment download att123456 --output myfile.pdf
 confluence attachment download 12345 --all --output ./downloads/  # Download all from page
 ```
 
-### list_attachments.py
+### confluence attachment list
 List attachments on a page.
 
 **Usage:**
@@ -84,7 +84,7 @@ confluence attachment list 12345 --output table
 confluence attachment list 12345 --media-type application/pdf
 ```
 
-### delete_attachment.py
+### confluence attachment delete
 Remove an attachment.
 
 **Usage:**
@@ -93,7 +93,7 @@ confluence attachment delete ATTACHMENT_ID
 confluence attachment delete ATTACHMENT_ID --force
 ```
 
-### update_attachment.py
+### confluence attachment update
 Replace an attachment file.
 
 **Usage:**

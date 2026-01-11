@@ -22,6 +22,9 @@ This project provides Claude Code skills for automating Confluence Cloud operati
 | `confluence-watch` | Notifications | Watch/unwatch content |
 | `confluence-hierarchy` | Content tree | Ancestors, descendants, navigation |
 | `confluence-jira` | JIRA integration | Embed issues, cross-product links |
+| `confluence-bulk` | Bulk operations | Bulk label, move, delete with dry-run |
+| `confluence-ops` | Operations/cache | Cache management, API diagnostics |
+| `confluence-admin` | Administration | Users, groups, templates, space settings |
 
 ### Shared Documentation
 

@@ -43,6 +43,9 @@ Use this skill when you need to work with Confluence and are unsure which specif
 | Set permission | confluence-permission | :warning::warning: |
 | Remove permission | confluence-permission | :warning::warning: |
 | View analytics | confluence-analytics | - |
+| Bulk label/move/delete | confluence-bulk | :warning::warning: |
+| Cache management | confluence-ops | - |
+| Admin operations | confluence-admin | :warning::warning: |
 
 **Risk Levels**: - (safe) | :warning: (reversible) | :warning::warning: (destructive) | :warning::warning::warning: (irreversible)
 
@@ -68,10 +71,12 @@ Match verbs to skill domains:
 - Comment/reply/resolve → `confluence-comment`
 - Upload/download/attach → `confluence-attachment`
 
-### Rule 4: Quantity Signals (Future)
-Large-scale operations may require bulk handling:
-- Operations on 10+ items → consider batching
-- Bulk label operations → `confluence-label`
+### Rule 4: Quantity Signals
+Large-scale operations require bulk handling:
+- Operations on 10+ items → `confluence-bulk`
+- Bulk label operations → `confluence-bulk`
+- Bulk delete/move → `confluence-bulk`
+- "all pages in space" → `confluence-bulk`
 
 ### Rule 5: Ambiguous Requests
 When intent is unclear, ask for clarification rather than guessing.
@@ -95,6 +100,9 @@ When intent is unclear, ask for clarification rather than guessing.
 | `confluence-watch` | Content modification, permissions |
 | `confluence-hierarchy` | Page content, permissions, search |
 | `confluence-jira` | Pure Confluence operations (cross-product only) |
+| `confluence-bulk` | Single-item operations, read-only queries |
+| `confluence-ops` | Content operations, permissions, search |
+| `confluence-admin` | Page content CRUD, search queries |
 
 ---
 
@@ -195,6 +203,9 @@ This skill acts as the main entry point for Confluence operations, intelligently
 | `confluence-watch` | Notifications | watch, unwatch, notify, follow |
 | `confluence-hierarchy` | Content tree | parent, children, tree, ancestors, hierarchy, breadcrumb, reorder |
 | `confluence-jira` | JIRA integration | jira, jira macro, jira issues, embed issue, link jira |
+| `confluence-bulk` | Bulk operations | bulk, batch, multiple pages, mass update, bulk delete, bulk label |
+| `confluence-ops` | Operations/cache | cache, cache status, cache clear, performance, rate limit, health check |
+| `confluence-admin` | Administration | admin, user management, group management, template management, space settings |
 
 ## Routing Logic
 
@@ -251,6 +262,18 @@ The assistant uses keyword matching to route requests:
 ### JIRA Operations
 - Keywords: `jira`, `issue`, `embed jira`, `jira macro`, `jira issues`, `link jira`
 - Routes to: `confluence-jira`
+
+### Bulk Operations
+- Keywords: `bulk`, `batch`, `multiple pages`, `mass`, `all pages`, `many pages`, `bulk delete`, `bulk label`, `bulk move`, `bulk update`
+- Routes to: `confluence-bulk`
+
+### Operations/Cache
+- Keywords: `cache`, `cache status`, `cache clear`, `cache warm`, `performance`, `rate limit`, `health check`, `diagnostics`, `troubleshoot`
+- Routes to: `confluence-ops`
+
+### Administration
+- Keywords: `admin`, `administration`, `user management`, `group management`, `groups`, `users`, `site settings`, `space settings`, `configure`, `setup`
+- Routes to: `confluence-admin`
 
 ## Configuration
 
@@ -343,6 +366,26 @@ export CONFLUENCE_API_TOKEN="your-api-token"
 - "Show JIRA issues linked to page 12345"
 - "Add a JIRA macro for project PROJ to the page"
 - "Link page 12345 to JIRA issue DEV-456"
+
+### Bulk Operations
+- "Bulk delete all pages in ARCHIVE space with dry-run"
+- "Add label 'approved' to all pages in DOCS space"
+- "Move all pages with label 'old' to ARCHIVE space"
+- "Bulk update permissions on pages in INTERNAL"
+
+### Operations/Cache
+- "Check cache status"
+- "Clear the cache"
+- "Warm the cache for DOCS space"
+- "Run a health check on Confluence connectivity"
+- "Check rate limit status"
+
+### Administration Operations
+- "List all groups"
+- "Search for user john@example.com"
+- "Add user to engineering group"
+- "View space settings for DOCS"
+- "Create a new template"
 
 ## API Reference
 

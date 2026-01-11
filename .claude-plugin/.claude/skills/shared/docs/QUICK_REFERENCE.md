@@ -150,9 +150,6 @@ text ~ "API documentation" AND lastModified > "2025-01-01"
 export CONFLUENCE_SITE_URL="https://your-site.atlassian.net"
 export CONFLUENCE_EMAIL="your-email@company.com"
 export CONFLUENCE_API_TOKEN="your-api-token"
-
-# Optional
-export CONFLUENCE_PROFILE="default"  # For multi-instance
 ```
 
 ---

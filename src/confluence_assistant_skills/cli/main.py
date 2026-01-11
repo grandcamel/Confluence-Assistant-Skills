@@ -5,12 +5,15 @@ from __future__ import annotations
 import click
 
 from confluence_assistant_skills import __version__
+from confluence_assistant_skills.cli.commands.admin_cmds import admin
 from confluence_assistant_skills.cli.commands.analytics_cmds import analytics
 from confluence_assistant_skills.cli.commands.attachment_cmds import attachment
+from confluence_assistant_skills.cli.commands.bulk_cmds import bulk
 from confluence_assistant_skills.cli.commands.comment_cmds import comment
 from confluence_assistant_skills.cli.commands.hierarchy_cmds import hierarchy
 from confluence_assistant_skills.cli.commands.jira_cmds import jira
 from confluence_assistant_skills.cli.commands.label_cmds import label
+from confluence_assistant_skills.cli.commands.ops_cmds import ops
 
 # Import command groups
 from confluence_assistant_skills.cli.commands.page_cmds import page
@@ -103,6 +106,9 @@ cli.add_command(watch)
 cli.add_command(template)
 cli.add_command(property_cmd, name="property")
 cli.add_command(jira)
+cli.add_command(admin)
+cli.add_command(bulk)
+cli.add_command(ops)
 
 
 if __name__ == "__main__":

@@ -55,9 +55,9 @@ triggers:
 
 This skill provides comprehensive comment management for Confluence pages, supporting both footer comments and inline comments. Use it to add feedback, manage discussions, and track comment resolution.
 
-## Available Scripts
+## CLI Commands
 
-### add_comment.py
+### confluence comment add
 
 Add a footer comment to a Confluence page.
 
@@ -75,7 +75,7 @@ confluence comment add PAGE_ID --file comment.txt
 - `--file`, `-f` - Read comment body from file
 - `--output`, `-o` - Output format (text or json)
 
-### get_comments.py
+### confluence comment list
 
 Retrieve all footer comments on a Confluence page.
 
@@ -95,7 +95,7 @@ confluence comment list PAGE_ID --output json
 - `--sort`, `-s` - Sort order (created or -created for newest first)
 - `--output`, `-o` - Output format (text or json)
 
-### update_comment.py
+### confluence comment update
 
 Update an existing comment's body.
 
@@ -113,7 +113,7 @@ confluence comment update COMMENT_ID --file updated.txt
 - `--file`, `-f` - Read updated body from file
 - `--output`, `-o` - Output format (text or json)
 
-### delete_comment.py
+### confluence comment delete
 
 Delete a comment from a Confluence page.
 
@@ -129,7 +129,7 @@ confluence comment delete COMMENT_ID --force
 **Options:**
 - `--force`, `-f` - Skip confirmation prompt
 
-### add_inline_comment.py
+### confluence comment add-inline
 
 Add an inline comment to specific text in a Confluence page.
 
@@ -148,7 +148,7 @@ confluence comment add-inline PAGE_ID "selected text" "Comment about this text"
 
 **Note:** The text selection must match existing text in the page content.
 
-### resolve_comment.py
+### confluence comment resolve
 
 Mark a comment as resolved or reopen it.
 
@@ -218,30 +218,11 @@ This skill uses the Confluence v2 REST API:
 
 ## Error Handling
 
-All scripts include proper error handling for:
+All commands include proper error handling for:
 - **404 Not Found** - Page or comment doesn't exist
 - **403 Forbidden** - No permission to add/edit/delete comments
 - **409 Conflict** - Version mismatch on updates
 - **400 Bad Request** - Invalid input (empty body, invalid selection)
-
-## Testing
-
-Run the test suite:
-```bash
-# All tests
-pytest .claude/skills/confluence-comment/tests/ -v
-
-# Specific test file
-pytest .claude/skills/confluence-comment/tests/test_add_comment.py -v
-```
-
-## Dependencies
-
-This skill uses the shared library:
-- `config_manager` - Confluence client and configuration
-- `error_handler` - Exception handling with @handle_errors
-- `validators` - Input validation (page IDs, comment bodies)
-- `formatters` - Output formatting (format_comment, format_comments)
 
 ## Notes
 

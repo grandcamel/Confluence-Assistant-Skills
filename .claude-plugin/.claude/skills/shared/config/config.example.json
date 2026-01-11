@@ -1,18 +1,5 @@
 {
   "confluence": {
-    "default_profile": "production",
-    "profiles": {
-      "production": {
-        "url": "https://your-company.atlassian.net",
-        "default_space": "DOCS",
-        "space_keys": ["DOCS", "KB", "DEV"]
-      },
-      "development": {
-        "url": "https://your-company-sandbox.atlassian.net",
-        "default_space": "TEST",
-        "space_keys": ["TEST", "SANDBOX"]
-      }
-    },
     "api": {
       "version": "2",
       "timeout": 30,

@@ -60,9 +60,9 @@ Manages content properties on Confluence pages and blog posts. Content propertie
 - Store configuration data for external integrations
 - Tag content with structured data for automated processing
 
-## Available Scripts
+## CLI Commands
 
-### get_properties.py
+### confluence property get
 Retrieve content properties from a page or blog post.
 
 **Usage:**
@@ -86,7 +86,7 @@ confluence property get 12345 --output json
 - `--expand` - Comma-separated fields to expand (e.g., version)
 - `--output, -o` - Output format: text or json
 
-### set_property.py
+### confluence property set
 Create or update a content property.
 
 **Usage:**
@@ -120,7 +120,7 @@ Properties can store:
 - Booleans: `true`/`false`
 - Complex JSON objects: `{"key": "value", "array": [1, 2, 3]}`
 
-### delete_property.py
+### confluence property delete
 Delete a content property.
 
 **Usage:**
@@ -137,7 +137,7 @@ confluence property delete 12345 my-property --force
 - `key` - Property key to delete (required)
 - `--force` - Delete without confirmation
 
-### list_properties.py
+### confluence property list
 List and filter content properties.
 
 **Usage:**
@@ -302,7 +302,7 @@ Use prefixes to organize properties:
 
 ## Error Handling
 
-All scripts handle common errors:
+All commands handle common errors:
 
 - **404 Not Found**: Content or property doesn't exist
 - **403 Permission Denied**: Insufficient permissions
@@ -340,7 +340,7 @@ Properties are indexed and searchable via CQL:
 
 ```bash
 # Find pages with specific property
-python ../confluence-search/scripts/cql_search.py "content.property[my-property].value = 'test'"
+confluence search cql "content.property[my-property].value = 'test'"
 ```
 
 ## Notes

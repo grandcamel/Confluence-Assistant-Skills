@@ -52,9 +52,9 @@ Cross-product JIRA integration for Confluence.
 
 Cross-product JIRA integration for embedding JIRA issues in Confluence pages, creating bidirectional links, and managing JIRA macros.
 
-## Available Scripts
+## CLI Commands
 
-### embed_jira_issues.py
+### confluence jira embed
 Embed JIRA issues in a page using JQL query or specific issue keys.
 
 **Usage:**
@@ -87,7 +87,7 @@ confluence jira embed 12345 --issues PROJ-123 --output json
 - `--max-results`: Maximum number of issues (default: 20)
 - `--output`: Output format (`text` or `json`)
 
-### get_linked_issues.py
+### confluence jira linked
 List JIRA issues linked to a page.
 
 **Usage:**
@@ -99,7 +99,7 @@ confluence jira linked 12345 --output json
 **Options:**
 - `--output`: Output format (`text` or `json`)
 
-### create_jira_from_page.py
+### confluence jira create-from-page
 Create a JIRA issue from Confluence page content. Uses page title as summary and extracted text as description.
 
 **Usage:**
@@ -130,7 +130,7 @@ confluence jira create-from-page 12345 --project PROJ --type Task --output json
 - `--jira-token`: JIRA API token (or set JIRA_API_TOKEN env var)
 - `--output`: Output format (`text` or `json`)
 
-### link_to_jira.py
+### confluence jira link
 Create a remote link between a Confluence page and a JIRA issue. The link appears in both systems.
 
 **Usage:**
@@ -154,7 +154,7 @@ confluence jira link 12345 PROJ-123 --jira-url https://jira.example.com --output
 - `--skip-if-exists`: Skip if link already exists
 - `--output`: Output format (`text` or `json`)
 
-### sync_jira_macro.py
+### confluence jira sync-macro
 Refresh or update JIRA macros on a page. Can force a page update to trigger macro refresh or update JQL queries in existing macros.
 
 **Usage:**
