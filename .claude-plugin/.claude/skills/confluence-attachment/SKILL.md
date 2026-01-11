@@ -1,6 +1,6 @@
 ---
 name: confluence-attachment
-description: Manage file attachments - upload, download, list, and delete attachments
+description: Manage file attachments - upload, download, list, and delete attachments. ALWAYS use when user wants to work with files on pages.
 triggers:
   - attach
   - attachment
@@ -8,11 +8,48 @@ triggers:
   - download file
   - upload attachment
   - download attachment
+  - file
+  - files
 ---
 
 # Confluence Attachment Skill
 
 Manage file attachments on Confluence pages.
+
+---
+
+## ⚠️ PRIMARY USE CASE
+
+**This skill manages files attached to Confluence pages.** Use for:
+- Uploading files to pages
+- Downloading attachments
+- Listing files on a page
+- Deleting attachments
+
+---
+
+## When to Use / When NOT to Use
+
+| Use This Skill | Use Instead |
+|----------------|-------------|
+| Upload/download files | - |
+| List page attachments | - |
+| Delete attachments | - |
+| Create/edit pages | `confluence-page` |
+| Search for content | `confluence-search` |
+
+---
+
+## Risk Levels
+
+| Operation | Risk | Notes |
+|-----------|------|-------|
+| List/download | - | Read-only |
+| Upload | - | Can be deleted |
+| Update | ⚠️ | Replaces existing file |
+| Delete | ⚠️⚠️ | **No recovery** |
+
+---
 
 ## Available Scripts
 

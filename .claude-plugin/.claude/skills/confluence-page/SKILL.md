@@ -1,6 +1,6 @@
 ---
 name: confluence-page
-description: Manage Confluence pages and blog posts - create, read, update, delete, copy, move, and version control
+description: Manage Confluence pages and blog posts - create, read, update, delete, copy, move, and version control. ALWAYS use when user wants to work with page content, create pages, update pages, or manage page versions.
 triggers:
   - create page
   - get page
@@ -25,6 +25,59 @@ triggers:
 # Confluence Page Skill
 
 Manage Confluence pages and blog posts through natural language commands.
+
+---
+
+## ⚠️ PRIMARY USE CASE
+
+**This is the core skill for all page and blog post operations.** Use this skill whenever you need to:
+- Create, read, update, or delete pages
+- Create or manage blog posts
+- Copy or move pages between spaces
+- Access or restore version history
+
+---
+
+## When to Use This Skill
+
+| Trigger | Example |
+|---------|---------|
+| Page CRUD | "Create a page", "Get page 12345", "Update the page", "Delete this page" |
+| Blog posts | "Create a blog post", "Get blog 67890" |
+| Copy/Move | "Copy page to ARCHIVE", "Move page under parent 12345" |
+| Versions | "Show version history", "Restore to version 5" |
+| Content from files | "Create page from markdown file", "Update page from content.md" |
+
+---
+
+## When NOT to Use This Skill
+
+| Operation | Use Instead |
+|-----------|-------------|
+| Search for pages | `confluence-search` |
+| Add comments to pages | `confluence-comment` |
+| Upload attachments | `confluence-attachment` |
+| Add/remove labels | `confluence-label` |
+| Set page restrictions | `confluence-permission` |
+| View page analytics | `confluence-analytics` |
+| Watch/unwatch pages | `confluence-watch` |
+| Navigate page hierarchy | `confluence-hierarchy` |
+
+---
+
+## Risk Levels
+
+| Operation | Risk | Notes |
+|-----------|------|-------|
+| Get page | - | Read-only |
+| Create page | - | Easily deletable |
+| Update page | ⚠️ | Creates version history, reversible |
+| Copy page | - | Creates new page |
+| Move page | ⚠️ | Can be moved back |
+| Delete page | ⚠️⚠️ | Goes to trash, recoverable for 30 days |
+| Permanent delete | ⚠️⚠️⚠️ | **IRREVERSIBLE** |
+
+---
 
 ## Overview
 
@@ -282,3 +335,70 @@ confluence page restore 12345 --version 5 --message "Restoring to known good sta
 **Create a page from natural language:**
 ```
 User: Create a page called "API Documentation" in DOCS space with content explaining our REST API
+```
+
+---
+
+## Common Pitfalls
+
+### 1. Page ID vs Page Title
+- **Problem**: Trying to use page title when page ID is required
+- **Solution**: Use `confluence search cql "title = 'Page Name'"` to find the page ID first
+
+### 2. Version Conflicts
+- **Problem**: Update fails due to concurrent edits (409 Conflict)
+- **Solution**: Get the latest version, merge changes, retry update
+
+### 3. Missing Parent Page
+- **Problem**: Creating a child page with invalid parent ID
+- **Solution**: Verify parent exists with `confluence page get PARENT_ID`
+
+### 4. Content Format Mismatch
+- **Problem**: Body content not rendering correctly
+- **Solution**: Use `--file` with Markdown, or ensure proper ADF/storage format
+
+### 5. Space Key Case Sensitivity
+- **Problem**: Space key not found
+- **Solution**: Space keys are case-sensitive (use uppercase: `DOCS` not `docs`)
+
+### 6. Permanent Delete Recovery
+- **Problem**: Accidentally used `--permanent` flag
+- **Solution**: **No recovery possible** - always use trash (default) first
+
+---
+
+## Error Handling
+
+| Error | Cause | Resolution |
+|-------|-------|------------|
+| **404 Not Found** | Page ID doesn't exist or was deleted | Verify page ID, check trash |
+| **403 Forbidden** | No permission to access/modify page | Request space access, check restrictions |
+| **409 Conflict** | Concurrent edit detected | Refresh page, merge changes, retry |
+| **400 Bad Request** | Invalid content format or parameters | Check body format, verify arguments |
+| **413 Content Too Large** | Page body exceeds size limit | Split content across multiple pages |
+
+### Recovery from Errors
+
+**Deleted page recovery:**
+```bash
+# Pages go to trash by default (recoverable for 30 days)
+# Use Confluence UI: Space Settings > Content Tools > Trash > Restore
+```
+
+**Version recovery:**
+```bash
+# Check version history
+confluence page versions 12345
+
+# Restore previous version
+confluence page restore 12345 --version 5
+```
+
+**Permission issues:**
+```bash
+# Check page restrictions
+confluence permission page get 12345
+
+# Check space permissions
+confluence permission space get SPACE_KEY
+```

@@ -1,6 +1,6 @@
 ---
 name: confluence-watch
-description: Content watching and notifications
+description: Content watching and notifications. ALWAYS use when user wants to follow content or manage notifications.
 triggers:
   - watch
   - unwatch
@@ -9,11 +9,46 @@ triggers:
   - watching
   - watchers
   - notifications
+  - subscribe
 ---
 
 # Confluence Watch Skill
 
-Manage content watching and notifications in Confluence. Watch pages and spaces to receive notifications about updates, new content, and changes.
+Manage content watching and notifications in Confluence.
+
+---
+
+## ⚠️ PRIMARY USE CASE
+
+**This skill manages watch/follow subscriptions.** Use for:
+- Watching pages for updates
+- Watching spaces for new content
+- Unwatching content
+- Checking who is watching
+
+---
+
+## When to Use / When NOT to Use
+
+| Use This Skill | Use Instead |
+|----------------|-------------|
+| Watch/unwatch pages | - |
+| Watch/unwatch spaces | - |
+| List watchers | - |
+| View analytics | `confluence-analytics` |
+| Set permissions | `confluence-permission` |
+
+---
+
+## Risk Levels
+
+| Operation | Risk | Notes |
+|-----------|------|-------|
+| List watchers | - | Read-only |
+| Watch content | - | Can be unwatched |
+| Unwatch content | - | Can re-watch |
+
+---
 
 ## Overview
 

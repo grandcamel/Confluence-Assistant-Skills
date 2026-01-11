@@ -1,6 +1,6 @@
 ---
 name: confluence-comment
-description: Manage comments on Confluence pages - add, get, update, delete, and resolve comments
+description: Manage comments on Confluence pages - add, get, update, delete, and resolve comments. ALWAYS use for feedback, discussions, and inline annotations.
 triggers:
   - comment
   - comments
@@ -11,9 +11,45 @@ triggers:
   - inline comment
   - resolve comment
   - footer comment
+  - reply
 ---
 
 # Confluence Comment Skill
+
+---
+
+## ⚠️ PRIMARY USE CASE
+
+**This skill manages comments on Confluence pages.** Use for:
+- Adding footer comments (end of page)
+- Adding inline comments (within content)
+- Replying to existing comments
+- Resolving/unresolving inline comments
+
+---
+
+## When to Use / When NOT to Use
+
+| Use This Skill | Use Instead |
+|----------------|-------------|
+| Add/edit comments | - |
+| Reply to comments | - |
+| Resolve inline comments | - |
+| Edit page content | `confluence-page` |
+| Search comments | `confluence-search` |
+
+---
+
+## Risk Levels
+
+| Operation | Risk | Notes |
+|-----------|------|-------|
+| List comments | - | Read-only |
+| Add comment | - | Can be deleted |
+| Update comment | ⚠️ | Overwrites original |
+| Delete comment | ⚠️ | **No recovery** |
+
+---
 
 ## Overview
 
