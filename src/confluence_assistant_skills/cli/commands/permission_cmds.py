@@ -1,10 +1,34 @@
-"""Permission management commands."""
+"""Permission management commands - CLI-only implementation."""
 
 from __future__ import annotations
 
+from typing import Any
+
 import click
 
-from confluence_assistant_skills.utils import call_skill_main
+from confluence_assistant_skills_lib import (
+    ValidationError,
+    format_json,
+    format_table,
+    get_confluence_client,
+    handle_errors,
+    print_success,
+    print_warning,
+    validate_page_id,
+    validate_space_key,
+)
+
+
+def _get_space_by_key(client: Any, space_key: str) -> dict[str, Any]:
+    """Get space by key."""
+    spaces = list(client.paginate(
+        "/api/v2/spaces",
+        params={"keys": space_key},
+        operation="get space",
+    ))
+    if not spaces:
+        raise ValidationError(f"Space not found: {space_key}")
+    return spaces[0]
 
 
 @click.group()
@@ -29,23 +53,77 @@ def page_permission() -> None:
     default="text",
     help="Output format",
 )
-@click.pass_context
+@handle_errors
 def get_page_restrictions(
-    ctx: click.Context,
     page_id: str,
     output: str,
 ) -> None:
     """Get restrictions on a page."""
-    argv = [page_id]
-    if output != "text":
-        argv.extend(["--output", output])
+    page_id = validate_page_id(page_id)
 
-    ctx.exit(call_skill_main("confluence-permission", "get_page_restrictions", argv))
+    client = get_confluence_client()
+
+    # Get page info
+    page = client.get(f"/api/v2/pages/{page_id}", operation="get page")
+    page_title = page.get("title", "Unknown")
+
+    # Get restrictions using v1 API (v2 doesn't have full restriction support)
+    restrictions = client.get(
+        f"/rest/api/content/{page_id}/restriction",
+        operation="get restrictions",
+    )
+
+    if output == "json":
+        click.echo(format_json({
+            "page": {"id": page_id, "title": page_title},
+            "restrictions": restrictions,
+        }))
+    else:
+        click.echo(f"\nRestrictions on: {page_title} ({page_id})")
+        click.echo(f"{'=' * 60}\n")
+
+        results = restrictions.get("results", restrictions)
+        if isinstance(results, dict):
+            # v1 API returns nested structure
+            read_restrictions = results.get("read", {}).get("restrictions", {})
+            update_restrictions = results.get("update", {}).get("restrictions", {})
+
+            # Read restrictions
+            read_users = read_restrictions.get("user", {}).get("results", [])
+            read_groups = read_restrictions.get("group", {}).get("results", [])
+
+            # Update restrictions
+            update_users = update_restrictions.get("user", {}).get("results", [])
+            update_groups = update_restrictions.get("group", {}).get("results", [])
+
+            has_restrictions = read_users or read_groups or update_users or update_groups
+
+            if not has_restrictions:
+                click.echo("No restrictions set on this page.")
+            else:
+                if read_users or read_groups:
+                    click.echo("READ restrictions:")
+                    for user in read_users:
+                        click.echo(f"  - User: {user.get('displayName', user.get('username', 'Unknown'))}")
+                    for group in read_groups:
+                        click.echo(f"  - Group: {group.get('name', 'Unknown')}")
+                    click.echo()
+
+                if update_users or update_groups:
+                    click.echo("UPDATE restrictions:")
+                    for user in update_users:
+                        click.echo(f"  - User: {user.get('displayName', user.get('username', 'Unknown'))}")
+                    for group in update_groups:
+                        click.echo(f"  - Group: {group.get('name', 'Unknown')}")
+        else:
+            click.echo("No restrictions found.")
+
+    print_success("Retrieved page restrictions")
 
 
 @page_permission.command(name="add")
 @click.argument("page_id")
-@click.option("--user", help="User to restrict")
+@click.option("--user", help="User to restrict (account ID or username)")
 @click.option("--group", "group_name", help="Group to restrict")
 @click.option(
     "--operation",
@@ -60,25 +138,68 @@ def get_page_restrictions(
     default="text",
     help="Output format",
 )
-@click.pass_context
+@handle_errors
 def add_page_restriction(
-    ctx: click.Context,
     page_id: str,
     user: str | None,
     group_name: str | None,
     operation: str,
     output: str,
 ) -> None:
-    """Add a restriction to a page."""
-    argv = [page_id, "--operation", operation]
-    if user:
-        argv.extend(["--user", user])
-    if group_name:
-        argv.extend(["--group", group_name])
-    if output != "text":
-        argv.extend(["--output", output])
+    """Add a restriction to a page.
 
-    ctx.exit(call_skill_main("confluence-permission", "add_page_restriction", argv))
+    When adding restrictions, only specified users/groups will be able
+    to perform the restricted operation.
+    """
+    page_id = validate_page_id(page_id)
+
+    if not user and not group_name:
+        raise ValidationError("Either --user or --group must be specified")
+
+    client = get_confluence_client()
+
+    # Get page info
+    page = client.get(f"/api/v2/pages/{page_id}", operation="get page")
+    page_title = page.get("title", "Unknown")
+
+    # Build restriction data
+    restriction_data: dict[str, Any] = {
+        "operation": operation,
+    }
+
+    if user:
+        restriction_data["restrictions"] = {
+            "user": [{"type": "known", "accountId": user}]
+        }
+    elif group_name:
+        restriction_data["restrictions"] = {
+            "group": [{"type": "group", "name": group_name}]
+        }
+
+    # Add restriction using v1 API
+    result = client.post(
+        f"/rest/api/content/{page_id}/restriction",
+        json_data=[restriction_data],
+        operation="add restriction",
+    )
+
+    if output == "json":
+        click.echo(format_json({
+            "page": {"id": page_id, "title": page_title},
+            "operation": operation,
+            "user": user,
+            "group": group_name,
+            "result": result,
+        }))
+    else:
+        click.echo(f"\nRestriction added to: {page_title}")
+        click.echo(f"  Operation: {operation}")
+        if user:
+            click.echo(f"  User: {user}")
+        if group_name:
+            click.echo(f"  Group: {group_name}")
+
+    print_success(f"Added {operation} restriction to page {page_id}")
 
 
 @page_permission.command(name="remove")
@@ -94,25 +215,79 @@ def add_page_restriction(
 @click.option(
     "--all", "remove_all", is_flag=True, help="Remove all restrictions of this type"
 )
-@click.pass_context
+@click.option(
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
+)
+@handle_errors
 def remove_page_restriction(
-    ctx: click.Context,
     page_id: str,
     user: str | None,
     group_name: str | None,
     operation: str,
     remove_all: bool,
+    output: str,
 ) -> None:
     """Remove a restriction from a page."""
-    argv = [page_id, "--operation", operation]
-    if user:
-        argv.extend(["--user", user])
-    if group_name:
-        argv.extend(["--group", group_name])
-    if remove_all:
-        argv.append("--all")
+    page_id = validate_page_id(page_id)
 
-    ctx.exit(call_skill_main("confluence-permission", "remove_page_restriction", argv))
+    if not user and not group_name and not remove_all:
+        raise ValidationError("Either --user, --group, or --all must be specified")
+
+    client = get_confluence_client()
+
+    # Get page info
+    page = client.get(f"/api/v2/pages/{page_id}", operation="get page")
+    page_title = page.get("title", "Unknown")
+
+    removed_count = 0
+
+    if remove_all:
+        # Remove all restrictions for operation
+        client.delete(
+            f"/rest/api/content/{page_id}/restriction/byOperation/{operation}",
+            operation="remove all restrictions",
+        )
+        removed_count = 1  # At least the operation restriction set
+    else:
+        # Remove specific user or group
+        if user:
+            client.delete(
+                f"/rest/api/content/{page_id}/restriction/byOperation/{operation}/user",
+                params={"accountId": user},
+                operation="remove user restriction",
+            )
+            removed_count += 1
+        if group_name:
+            client.delete(
+                f"/rest/api/content/{page_id}/restriction/byOperation/{operation}/group/{group_name}",
+                operation="remove group restriction",
+            )
+            removed_count += 1
+
+    if output == "json":
+        click.echo(format_json({
+            "page": {"id": page_id, "title": page_title},
+            "operation": operation,
+            "removedUser": user,
+            "removedGroup": group_name,
+            "removedAll": remove_all,
+        }))
+    else:
+        click.echo(f"\nRestriction removed from: {page_title}")
+        click.echo(f"  Operation: {operation}")
+        if remove_all:
+            click.echo("  Removed: All restrictions for this operation")
+        else:
+            if user:
+                click.echo(f"  User: {user}")
+            if group_name:
+                click.echo(f"  Group: {group_name}")
+
+    print_success(f"Removed {operation} restriction(s) from page {page_id}")
 
 
 # Space permissions
@@ -131,28 +306,96 @@ def space_permission() -> None:
     default="text",
     help="Output format",
 )
-@click.pass_context
+@handle_errors
 def get_space_permissions(
-    ctx: click.Context,
     space_key: str,
     output: str,
 ) -> None:
     """Get permissions for a space."""
-    argv = [space_key]
-    if output != "text":
-        argv.extend(["--output", output])
+    space_key = validate_space_key(space_key)
 
-    ctx.exit(call_skill_main("confluence-permission", "get_space_permissions", argv))
+    client = get_confluence_client()
+
+    # Get space info
+    space = _get_space_by_key(client, space_key)
+    space_name = space.get("name", space_key)
+    space_id = space.get("id")
+
+    # Get permissions using v2 API
+    permissions = list(client.paginate(
+        f"/api/v2/spaces/{space_id}/permissions",
+        operation="get space permissions",
+    ))
+
+    if output == "json":
+        click.echo(format_json({
+            "space": {"key": space_key, "name": space_name, "id": space_id},
+            "permissions": permissions,
+            "count": len(permissions),
+        }))
+    else:
+        click.echo(f"\nPermissions for: {space_name} ({space_key})")
+        click.echo(f"{'=' * 60}\n")
+
+        if not permissions:
+            click.echo("No explicit permissions set.")
+        else:
+            # Group by principal type
+            user_perms: list[dict[str, Any]] = []
+            group_perms: list[dict[str, Any]] = []
+
+            for perm in permissions:
+                principal = perm.get("principal", {})
+                principal_type = principal.get("type", "unknown")
+                operation = perm.get("operation", {})
+                op_key = operation.get("key", "unknown")
+                op_target = operation.get("targetType", "")
+
+                entry = {
+                    "id": perm.get("id", ""),
+                    "operation": f"{op_key} ({op_target})" if op_target else op_key,
+                    "name": principal.get("id", "Unknown"),
+                }
+
+                if principal_type == "user":
+                    user_perms.append(entry)
+                elif principal_type == "group":
+                    entry["name"] = principal.get("id", "Unknown")
+                    group_perms.append(entry)
+
+            if user_perms:
+                click.echo("User Permissions:")
+                click.echo(format_table(
+                    user_perms,
+                    columns=["name", "operation"],
+                    headers=["User", "Operation"],
+                ))
+                click.echo()
+
+            if group_perms:
+                click.echo("Group Permissions:")
+                click.echo(format_table(
+                    group_perms,
+                    columns=["name", "operation"],
+                    headers=["Group", "Operation"],
+                ))
+
+    print_success(f"Found {len(permissions)} permission(s)")
 
 
 @space_permission.command(name="add")
 @click.argument("space_key")
-@click.option("--user", help="User to grant permission")
+@click.option("--user", help="User to grant permission (account ID)")
 @click.option("--group", "group_name", help="Group to grant permission")
 @click.option(
     "--operation",
     required=True,
-    help="Permission operation (read, write, administer, etc.)",
+    help="Permission operation (read, create, delete, administer, etc.)",
+)
+@click.option(
+    "--target",
+    default="space",
+    help="Target type (space, page, blogpost, comment, attachment)",
 )
 @click.option(
     "--output",
@@ -161,49 +404,174 @@ def get_space_permissions(
     default="text",
     help="Output format",
 )
-@click.pass_context
+@handle_errors
 def add_space_permission(
-    ctx: click.Context,
     space_key: str,
     user: str | None,
     group_name: str | None,
     operation: str,
+    target: str,
     output: str,
 ) -> None:
-    """Add a permission to a space."""
-    argv = [space_key, "--operation", operation]
-    if user:
-        argv.extend(["--user", user])
-    if group_name:
-        argv.extend(["--group", group_name])
-    if output != "text":
-        argv.extend(["--output", output])
+    """Add a permission to a space.
 
-    ctx.exit(call_skill_main("confluence-permission", "add_space_permission", argv))
+    Operations: read, create, delete, administer, archive, restrict_content, export
+    Targets: space, page, blogpost, comment, attachment
+    """
+    space_key = validate_space_key(space_key)
+
+    if not user and not group_name:
+        raise ValidationError("Either --user or --group must be specified")
+
+    client = get_confluence_client()
+
+    # Get space info
+    space = _get_space_by_key(client, space_key)
+    space_name = space.get("name", space_key)
+    space_id = space.get("id")
+
+    # Build permission data
+    permission_data: dict[str, Any] = {
+        "operation": {
+            "key": operation,
+            "targetType": target,
+        },
+    }
+
+    if user:
+        permission_data["principal"] = {
+            "type": "user",
+            "id": user,
+        }
+    elif group_name:
+        permission_data["principal"] = {
+            "type": "group",
+            "id": group_name,
+        }
+
+    # Add permission using v2 API
+    result = client.post(
+        f"/api/v2/spaces/{space_id}/permissions",
+        json_data=permission_data,
+        operation="add space permission",
+    )
+
+    if output == "json":
+        click.echo(format_json({
+            "space": {"key": space_key, "name": space_name, "id": space_id},
+            "permission": result,
+        }))
+    else:
+        click.echo(f"\nPermission added to: {space_name}")
+        click.echo(f"  Operation: {operation} ({target})")
+        if user:
+            click.echo(f"  User: {user}")
+        if group_name:
+            click.echo(f"  Group: {group_name}")
+        click.echo(f"  Permission ID: {result.get('id', 'N/A')}")
+
+    print_success(f"Added {operation} permission to space {space_key}")
 
 
 @space_permission.command(name="remove")
 @click.argument("space_key")
-@click.option("--user", help="User permission to remove")
-@click.option("--group", "group_name", help="Group permission to remove")
+@click.option("--permission-id", "-p", help="Permission ID to remove")
+@click.option("--user", help="User permission to remove (with --operation)")
+@click.option("--group", "group_name", help="Group permission to remove (with --operation)")
+@click.option("--operation", help="Operation to match (required with --user or --group)")
 @click.option(
-    "--operation",
-    required=True,
-    help="Permission operation to remove",
+    "--output",
+    "-o",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
 )
-@click.pass_context
+@handle_errors
 def remove_space_permission(
-    ctx: click.Context,
     space_key: str,
+    permission_id: str | None,
     user: str | None,
     group_name: str | None,
-    operation: str,
+    operation: str | None,
+    output: str,
 ) -> None:
-    """Remove a permission from a space."""
-    argv = [space_key, "--operation", operation]
-    if user:
-        argv.extend(["--user", user])
-    if group_name:
-        argv.extend(["--group", group_name])
+    """Remove a permission from a space.
 
-    ctx.exit(call_skill_main("confluence-permission", "remove_space_permission", argv))
+    Either specify --permission-id directly, or use --user/--group with --operation
+    to find and remove matching permissions.
+    """
+    space_key = validate_space_key(space_key)
+
+    if not permission_id and not user and not group_name:
+        raise ValidationError("Either --permission-id, --user, or --group must be specified")
+
+    if (user or group_name) and not operation:
+        raise ValidationError("--operation is required when using --user or --group")
+
+    client = get_confluence_client()
+
+    # Get space info
+    space = _get_space_by_key(client, space_key)
+    space_name = space.get("name", space_key)
+    space_id = space.get("id")
+
+    removed_ids: list[str] = []
+
+    if permission_id:
+        # Direct removal by ID
+        client.delete(
+            f"/api/v2/spaces/{space_id}/permissions/{permission_id}",
+            operation="remove permission",
+        )
+        removed_ids.append(permission_id)
+    else:
+        # Find and remove matching permissions
+        permissions = list(client.paginate(
+            f"/api/v2/spaces/{space_id}/permissions",
+            operation="get permissions",
+        ))
+
+        for perm in permissions:
+            principal = perm.get("principal", {})
+            perm_op = perm.get("operation", {}).get("key", "")
+
+            if perm_op != operation:
+                continue
+
+            if user and principal.get("type") == "user" and principal.get("id") == user:
+                client.delete(
+                    f"/api/v2/spaces/{space_id}/permissions/{perm['id']}",
+                    operation="remove user permission",
+                )
+                removed_ids.append(perm["id"])
+            elif group_name and principal.get("type") == "group" and principal.get("id") == group_name:
+                client.delete(
+                    f"/api/v2/spaces/{space_id}/permissions/{perm['id']}",
+                    operation="remove group permission",
+                )
+                removed_ids.append(perm["id"])
+
+    if output == "json":
+        click.echo(format_json({
+            "space": {"key": space_key, "name": space_name, "id": space_id},
+            "removedPermissions": removed_ids,
+            "count": len(removed_ids),
+        }))
+    else:
+        click.echo(f"\nPermission(s) removed from: {space_name}")
+        if permission_id:
+            click.echo(f"  Permission ID: {permission_id}")
+        else:
+            if user:
+                click.echo(f"  User: {user}")
+            if group_name:
+                click.echo(f"  Group: {group_name}")
+            click.echo(f"  Operation: {operation}")
+
+        if not removed_ids:
+            print_warning("No matching permissions found to remove")
+        else:
+            click.echo(f"  Removed: {len(removed_ids)} permission(s)")
+
+    if removed_ids:
+        print_success(f"Removed {len(removed_ids)} permission(s) from space {space_key}")

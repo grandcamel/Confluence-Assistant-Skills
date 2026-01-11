@@ -94,16 +94,16 @@ confluence ops health-check
 
 ---
 
-## Available Scripts
+## CLI Commands
 
-| Script | Purpose | Risk |
-|--------|---------|------|
-| `cache_status.py` | Display cache statistics | - |
-| `cache_clear.py` | Clear cache entries | ⚠️ |
-| `cache_warm.py` | Pre-warm cache | - |
-| `health_check.py` | Test API connectivity | - |
-| `rate_limit_status.py` | Check rate limit usage | - |
-| `api_diagnostics.py` | Diagnose API issues | - |
+| Command | Purpose | Risk |
+|---------|---------|------|
+| `confluence ops cache-status` | Display cache statistics | - |
+| `confluence ops cache-clear` | Clear cache entries | ⚠️ |
+| `confluence ops cache-warm` | Pre-warm cache | - |
+| `confluence ops health-check` | Test API connectivity | - |
+| `confluence ops rate-limit-status` | Check rate limit usage | - |
+| `confluence ops api-diagnostics` | Diagnose API issues | - |
 
 ---
 

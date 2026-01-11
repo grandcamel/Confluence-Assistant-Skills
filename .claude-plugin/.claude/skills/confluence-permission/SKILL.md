@@ -75,9 +75,9 @@ Note: Due to API limitations, this skill uses a hybrid approach:
 - v2 API for reading space permissions
 - v1 API for modifying space permissions and managing page restrictions
 
-## Available Scripts
+## CLI Commands
 
-### get_space_permissions.py
+### confluence permission space get
 Retrieve the list of permissions assigned to a space.
 
 **Usage:**
@@ -88,7 +88,7 @@ confluence permission space get DOCS --output json
 
 **Output:** Lists all users and groups with their assigned operations (read, write, administer, etc.)
 
-### add_space_permission.py
+### confluence permission space add
 Grant a permission to a user or group for a space.
 
 **Usage:**
@@ -108,7 +108,7 @@ confluence permission space add TEST --user account-id:123456 --operation admini
 - `setpermissions` - Modify permissions
 - `createattachment` - Add attachments
 
-### remove_space_permission.py
+### confluence permission space remove
 Revoke a permission from a user or group for a space.
 
 **Usage:**
@@ -117,7 +117,7 @@ confluence permission space remove SPACE_KEY --user email@example.com --operatio
 confluence permission space remove DOCS --group confluence-users --operation write
 ```
 
-### get_page_restrictions.py
+### confluence permission page get
 List restrictions on a page (who can read/edit).
 
 **Usage:**
@@ -128,7 +128,7 @@ confluence permission page get 123456 --output json
 
 **Output:** Shows read and update restrictions with users and groups
 
-### add_page_restriction.py
+### confluence permission page add
 Add a restriction to limit page access.
 
 **Usage:**
@@ -142,7 +142,7 @@ confluence permission page add 123456 --operation read --user account-id:123456
 - `read` - Who can view the page
 - `update` - Who can edit the page
 
-### remove_page_restriction.py
+### confluence permission page remove
 Remove a restriction from a page.
 
 **Usage:**
@@ -203,7 +203,7 @@ confluence permission page remove 123456 --operation update --all
 - Removing all page restrictions makes it follow space permissions
 
 ### Best Practices
-- Always verify changes with `get_*` commands
+- Always verify changes with `get` commands
 - Use groups instead of individual users when possible
 - Document permission changes in page history or space description
 - Test with a non-admin account to verify restrictions work

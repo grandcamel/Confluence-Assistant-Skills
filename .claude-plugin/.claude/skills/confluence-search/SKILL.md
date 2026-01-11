@@ -145,9 +145,9 @@ type = blogpost AND created >= startOfYear()
 | ancestor | Ancestor page ID | `ancestor = 12345` |
 | id | Content ID | `id = 12345` |
 
-## Available Scripts
+## CLI Commands
 
-### cql_search.py
+### confluence search cql
 
 Execute CQL queries against Confluence.
 
@@ -174,7 +174,7 @@ confluence search cql "text ~ 'config'" --show-excerpts
 - `--show-ancestors` - Show ancestor pages
 - `--output, -o` - Output format: text or json
 
-### cql_validate.py
+### confluence search validate
 
 Validate CQL query syntax.
 
@@ -187,7 +187,7 @@ confluence search validate "invalid query (("
 **Arguments:**
 - `cql` - CQL query to validate (required)
 
-### cql_suggest.py
+### confluence search suggest
 
 Get CQL field and value suggestions.
 
@@ -212,7 +212,7 @@ confluence search suggest --functions
 - `--functions` - List all CQL functions
 - `--output, -o` - Output format: text or json
 
-### cql_interactive.py
+### confluence search interactive
 
 Interactive CQL query builder.
 
@@ -229,7 +229,7 @@ confluence search interactive --type page --execute
 - `--limit, -l` - Maximum results (default: 25)
 - `--execute` - Execute query after building
 
-### export_results.py
+### confluence search export
 
 Export search results to file.
 
@@ -252,7 +252,7 @@ confluence search export "type = page" --columns id,title,space,created
 - `--columns` - Columns to include (comma-separated)
 - `--limit, -l` - Maximum results
 
-### streaming_export.py
+### confluence search stream-export
 
 Export large result sets with checkpoints.
 
@@ -276,7 +276,7 @@ confluence search stream-export "type = page" --output pages.csv --batch-size 50
 - `--batch-size` - Records per batch (default: 100)
 - `--resume` - Resume from last checkpoint
 
-### cql_history.py
+### confluence search history
 
 Manage local query history.
 
@@ -311,7 +311,7 @@ confluence search history cleanup --days 30
 - `export FILE` - Export history to file (--format: csv or json)
 - `cleanup` - Remove old entries (--days: default 90)
 
-### search_content.py
+### confluence search content
 
 Simple text search (no CQL knowledge required).
 

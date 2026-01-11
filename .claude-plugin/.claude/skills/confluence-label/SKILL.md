@@ -52,9 +52,9 @@ All operations are **low risk** and easily reversible:
 
 ---
 
-## Available Scripts
+## CLI Commands
 
-### add_label.py
+### confluence label add
 Add a label to content.
 
 **Usage:**
@@ -63,7 +63,7 @@ confluence label add 12345 --label documentation
 confluence label add 12345 --labels doc,approved,v2
 ```
 
-### remove_label.py
+### confluence label remove
 Remove a label from content.
 
 **Usage:**
@@ -71,7 +71,7 @@ Remove a label from content.
 confluence label remove 12345 --label draft
 ```
 
-### get_labels.py
+### confluence label list
 List labels on content.
 
 **Usage:**
@@ -79,7 +79,7 @@ List labels on content.
 confluence label list 12345
 ```
 
-### search_by_label.py
+### confluence label search
 Find content by label.
 
 **Usage:**
@@ -88,7 +88,7 @@ confluence label search documentation
 confluence label search approved --space DOCS
 ```
 
-### list_popular_labels.py
+### confluence label popular
 List most used labels.
 
 **Usage:**

@@ -1,1 +1,0 @@
-"""Confluence Search Skill Scripts."""

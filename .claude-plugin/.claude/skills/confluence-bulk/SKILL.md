@@ -92,16 +92,16 @@ confluence bulk delete --cql "space = ARCHIVE AND created < '2023-01-01'" --dry-
 
 ---
 
-## Available Scripts
+## CLI Commands
 
-| Script | Purpose | Risk | Example |
-|--------|---------|------|---------|
-| `bulk_label_add.py` | Add labels to pages | ⚠️ | `--cql "..." --labels "tag1,tag2"` |
-| `bulk_label_remove.py` | Remove labels from pages | ⚠️ | `--cql "..." --labels "old-tag"` |
-| `bulk_update.py` | Update page properties | ⚠️⚠️ | `--cql "..." --title-prefix "[Archive]"` |
-| `bulk_move.py` | Move pages to new location | ⚠️⚠️ | `--cql "..." --target-space NEWSPACE` |
-| `bulk_delete.py` | **Delete pages permanently** | ⚠️⚠️⚠️ | `--cql "..." --dry-run` |
-| `bulk_permission.py` | Change page permissions | ⚠️⚠️ | `--cql "..." --add-group viewers` |
+| Command | Purpose | Risk | Example |
+|---------|---------|------|---------|
+| `confluence bulk label add` | Add labels to pages | ⚠️ | `--cql "..." --labels "tag1,tag2"` |
+| `confluence bulk label remove` | Remove labels from pages | ⚠️ | `--cql "..." --labels "old-tag"` |
+| `confluence bulk update` | Update page properties | ⚠️⚠️ | `--cql "..." --title-prefix "[Archive]"` |
+| `confluence bulk move` | Move pages to new location | ⚠️⚠️ | `--cql "..." --target-space NEWSPACE` |
+| `confluence bulk delete` | **Delete pages permanently** | ⚠️⚠️⚠️ | `--cql "..." --dry-run` |
+| `confluence bulk permission` | Change page permissions | ⚠️⚠️ | `--cql "..." --add-group viewers` |
 
 ---
 
