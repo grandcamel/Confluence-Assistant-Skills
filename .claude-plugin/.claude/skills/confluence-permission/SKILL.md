@@ -1,17 +1,69 @@
 ---
 name: confluence-permission
-description: Manage space and page permissions
+description: Manage space and page permissions and restrictions. ALWAYS use when user wants to control access, set restrictions, or manage who can view/edit content.
 triggers:
   - permission
   - permissions
   - restrict
   - access
   - security
+  - who can view
+  - who can edit
+  - lock page
+  - restrict access
 ---
 
 # Confluence Permission Skill
 
 Manage space and page permissions and restrictions.
+
+---
+
+## ⚠️ PRIMARY USE CASE
+
+**This skill controls who can access Confluence content.** Use this skill for:
+- Setting space-level permissions (who can view/edit a space)
+- Adding page restrictions (limit access to specific users/groups)
+- Auditing current permissions and restrictions
+
+**⚠️⚠️ WARNING**: Permission changes can lock users out of content. Always document current permissions before making changes.
+
+---
+
+## When to Use This Skill
+
+| Trigger | Example |
+|---------|---------|
+| View permissions | "Who can access DOCS space?", "Show page restrictions" |
+| Add permissions | "Give engineering-team read access to DOCS" |
+| Remove permissions | "Remove John's access to page 12345" |
+| Restrict pages | "Lock this page to admins only" |
+| Audit access | "List all permissions for TEAMSPACE" |
+
+---
+
+## When NOT to Use This Skill
+
+| Operation | Use Instead |
+|-----------|-------------|
+| Create/edit pages | `confluence-page` |
+| Search for content | `confluence-search` |
+| Manage space settings | `confluence-space` |
+| View who's watching | `confluence-watch` |
+
+---
+
+## Risk Levels
+
+| Operation | Risk | Notes |
+|-----------|------|-------|
+| Get permissions | - | Read-only |
+| Add permission | ⚠️ | Grants access, can be removed |
+| Remove permission | ⚠️⚠️ | **Can lock users out** |
+| Add page restriction | ⚠️⚠️ | **Can hide content from users** |
+| Remove all restrictions | ⚠️ | Opens page to all space members |
+
+---
 
 ## Overview
 
@@ -155,3 +207,62 @@ confluence permission page remove 123456 --operation update --all
 - Use groups instead of individual users when possible
 - Document permission changes in page history or space description
 - Test with a non-admin account to verify restrictions work
+
+---
+
+## Common Pitfalls
+
+### 1. Locking Yourself Out
+- **Problem**: Removing your own access to a page/space
+- **Solution**: Always ensure at least one admin retains access before changes
+
+### 2. Inherited Restrictions Not Visible
+- **Problem**: Page appears accessible but users can't view it
+- **Solution**: Check parent page restrictions (API doesn't show inherited)
+
+### 3. User vs Account ID
+- **Problem**: `--user` not finding the person
+- **Solution**: Use email address or account ID (`account-id:123456`)
+
+### 4. Group Name Mismatch
+- **Problem**: Group not found when adding permissions
+- **Solution**: Group names are case-sensitive, verify exact name in Confluence admin
+
+### 5. Space Admin Override
+- **Problem**: Page restrictions being bypassed
+- **Solution**: Space admins can always access content - this is by design
+
+### 6. API Restrictions
+- **Problem**: Permission changes fail silently
+- **Solution**: Some permission operations require Confluence admin privileges
+
+---
+
+## Error Handling
+
+| Error | Cause | Resolution |
+|-------|-------|------------|
+| **403 Forbidden** | Insufficient privileges to modify permissions | Request space admin access |
+| **404 Not Found** | User, group, or resource doesn't exist | Verify user email, group name, page ID |
+| **400 Bad Request** | Invalid operation or subject type | Check operation name, use correct subject type |
+| **409 Conflict** | Permission already exists or conflicts | Check current permissions first |
+
+### Recovery from Permission Errors
+
+**Locked out of page:**
+```bash
+# Space admin can remove restrictions via UI or API
+confluence permission page remove PAGE_ID --operation read --all
+confluence permission page remove PAGE_ID --operation update --all
+```
+
+**Accidentally removed space access:**
+```bash
+# Confluence admin can restore via Confluence Admin > Space Permissions
+# Or re-add the permission:
+confluence permission space add SPACE_KEY --group GROUP_NAME --operation read
+```
+
+**Audit trail:**
+- Space permission changes are logged in Confluence audit log
+- Page restriction changes appear in page history

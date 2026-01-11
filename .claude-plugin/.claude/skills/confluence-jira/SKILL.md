@@ -1,15 +1,54 @@
 ---
 name: confluence-jira
-description: JIRA integration - embed issues, create links between products
+description: JIRA integration - embed issues, create links between products. ALWAYS use when user wants to connect Confluence and JIRA.
 triggers:
   - jira
   - embed issue
   - link jira
   - jira macro
   - jira issues
+  - jira link
 ---
 
 # Confluence JIRA Skill
+
+Cross-product JIRA integration for Confluence.
+
+---
+
+## ⚠️ PRIMARY USE CASE
+
+**This skill connects Confluence and JIRA.** Use for:
+- Embedding JIRA issues in pages
+- Creating JIRA macros
+- Linking pages to issues
+- Displaying issue lists via JQL
+
+---
+
+## When to Use / When NOT to Use
+
+| Use This Skill | Use Instead |
+|----------------|-------------|
+| Embed JIRA issues | - |
+| Add JIRA macro | - |
+| Link to JIRA | - |
+| Create JIRA issues | Use JIRA directly |
+| Edit page content | `confluence-page` |
+
+---
+
+## Risk Levels
+
+| Operation | Risk | Notes |
+|-----------|------|-------|
+| Embed issues | ⚠️ | Modifies page content |
+| Add JIRA macro | ⚠️ | Modifies page content |
+| Link to JIRA | - | Creates link only |
+
+---
+
+## Overview
 
 Cross-product JIRA integration for embedding JIRA issues in Confluence pages, creating bidirectional links, and managing JIRA macros.
 

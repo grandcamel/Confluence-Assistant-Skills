@@ -23,6 +23,30 @@ This project provides Claude Code skills for automating Confluence Cloud operati
 | `confluence-hierarchy` | Content tree | Ancestors, descendants, navigation |
 | `confluence-jira` | JIRA integration | Embed issues, cross-product links |
 
+### Shared Documentation
+
+Reference documentation in `.claude-plugin/.claude/skills/shared/docs/`:
+
+| Document | Purpose |
+|----------|---------|
+| `SAFEGUARDS.md` | Risk levels, recovery procedures, pre-operation checklists |
+| `ERROR_HANDLING.md` | Retry logic, error classification, named patterns |
+| `DECISION_TREE.md` | Skill routing flowchart, disambiguation rules |
+| `QUICK_REFERENCE.md` | One-page skill reference, CQL examples |
+
+### Risk Levels
+
+Operations are marked with risk indicators throughout skill documentation:
+
+| Risk | Meaning | Examples |
+|------|---------|----------|
+| - | Safe, read-only or easily reversible | Get page, list spaces, search |
+| ⚠️ | Modifies content, can be undone | Update page, add label, create comment |
+| ⚠️⚠️ | Destructive, difficult to recover | Delete page, remove permissions |
+| ⚠️⚠️⚠️ | **IRREVERSIBLE**, permanent deletion | Delete space, purge content |
+
+**Always use dry-run or preview when available for ⚠️⚠️+ operations.**
+
 ## Architecture
 
 ### Shared Library (PyPI Package)
@@ -240,10 +264,10 @@ The `--live` option is defined in the root `conftest.py` and available to all te
 pytest -v
 
 # Run only skill tests
-pytest .claude/skills/ -v
+pytest .claude-plugin/.claude/skills/ -v
 
 # Run tests for a specific skill
-pytest .claude/skills/confluence-page/tests/ -v
+pytest .claude-plugin/.claude/skills/confluence-page/tests/ -v
 
 # Run with coverage
 pytest --cov=confluence_assistant_skills_lib --cov-report=html
@@ -253,10 +277,10 @@ pytest --cov=confluence_assistant_skills_lib --cov-report=html
 
 ```bash
 # Run all live integration tests
-pytest .claude/skills/*/tests/live_integration/ --live -v
+pytest .claude-plugin/.claude/skills/*/tests/live_integration/ --live -v
 
 # Run live tests for a specific skill
-pytest .claude/skills/confluence-page/tests/live_integration/ --live -v
+pytest .claude-plugin/.claude/skills/confluence-page/tests/live_integration/ --live -v
 
 # Use existing space instead of creating temporary one
 pytest --live --space-key=EXISTING -v
@@ -339,7 +363,7 @@ if __name__ == '__main__':
 ### Required Structure
 
 ```
-.claude/skills/confluence-{name}/
+.claude-plugin/.claude/skills/confluence-{name}/
 ├── SKILL.md           # Skill definition and triggers
 ├── scripts/           # Python scripts
 │   ├── __init__.py
@@ -359,7 +383,7 @@ if __name__ == '__main__':
 ```markdown
 ---
 name: confluence-{name}
-description: Brief description
+description: Brief description. ALWAYS use when user wants to [primary use case].
 triggers:
   - keyword1
   - keyword2
@@ -368,8 +392,41 @@ triggers:
 
 # Confluence {Name} Skill
 
+Brief description of skill purpose.
+
+---
+
+## ⚠️ PRIMARY USE CASE
+
+**This skill [does what].** Use for:
+- Primary operation 1
+- Primary operation 2
+- Primary operation 3
+
+---
+
+## When to Use / When NOT to Use
+
+| Use This Skill | Use Instead |
+|----------------|-------------|
+| Operation A | - |
+| Operation B | - |
+| Operation C | `other-skill` |
+
+---
+
+## Risk Levels
+
+| Operation | Risk | Notes |
+|-----------|------|-------|
+| Get/list operations | - | Read-only |
+| Create/update | ⚠️ | Can be undone |
+| Delete operations | ⚠️⚠️ | Destructive |
+
+---
+
 ## Overview
-What this skill does.
+Detailed description of what this skill does.
 
 ## Available Scripts
 
@@ -381,6 +438,9 @@ Description of operation.
 confluence {group} {command} ARG --option VALUE
 \`\`\`
 
+**Options:**
+- `--option` - Description
+
 ## Examples
 Natural language examples that trigger this skill.
 ```
@@ -389,7 +449,7 @@ Natural language examples that trigger this skill.
 
 ### Modifying the Schema
 
-1. Edit `.claude/skills/shared/config/config.schema.json`
+1. Edit `.claude-plugin/.claude/skills/shared/config/config.schema.json`
 2. Update `config.example.json` with examples
 3. Document in this file
 
@@ -399,7 +459,7 @@ Note: Configuration handling is provided by the `confluence-assistant-skills-lib
 
 The schema is JSON Schema draft-07. Validate with:
 ```bash
-python -c "import json; print(json.load(open('.claude/skills/shared/config/config.schema.json')))"
+python -c "import json; print(json.load(open('.claude-plugin/.claude/skills/shared/config/config.schema.json')))"
 ```
 
 ## Credentials Security
@@ -524,10 +584,10 @@ export CONFLUENCE_API_TOKEN="your-token"
 
 ```bash
 # All live tests
-pytest .claude/skills/*/tests/live_integration/ --live -v
+pytest .claude-plugin/.claude/skills/*/tests/live_integration/ --live -v
 
 # Specific skill
-pytest .claude/skills/confluence-page/tests/live_integration/ --live -v
+pytest .claude-plugin/.claude/skills/confluence-page/tests/live_integration/ --live -v
 
 # With verbose output
 pytest -v -s --live
@@ -543,8 +603,8 @@ pytest --live --keep-space -v
 
 Shared fixtures are defined in:
 - **Root `conftest.py`** - `temp_path`, `temp_dir`, pytest hooks, `--live` option
-- **`.claude/skills/shared/tests/conftest.py`** - `mock_client`, `sample_page`, etc.
-- **`.claude/skills/shared/tests/live_integration/conftest.py`** - `confluence_client`, `test_space`, `test_page`
+- **`.claude-plugin/.claude/skills/shared/tests/conftest.py`** - `mock_client`, `sample_page`, etc.
+- **`.claude-plugin/.claude/skills/shared/tests/live_integration/conftest.py`** - `confluence_client`, `test_space`, `test_page`
 
 Example session-scoped fixture for setup/teardown:
 

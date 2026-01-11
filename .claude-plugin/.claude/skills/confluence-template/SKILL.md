@@ -1,6 +1,6 @@
 ---
 name: confluence-template
-description: Work with page templates and blueprints
+description: Work with page templates and blueprints. ALWAYS use when user wants to create standardized pages or manage templates.
 triggers:
   - template
   - blueprint
@@ -12,7 +12,43 @@ triggers:
 
 # Confluence Template Skill
 
-Work with Confluence page templates and blueprints. This skill provides comprehensive template management including listing, creating, retrieving, and updating templates and blueprints.
+Work with Confluence page templates and blueprints.
+
+---
+
+## ⚠️ PRIMARY USE CASE
+
+**This skill manages page templates.** Use for:
+- Listing available templates
+- Creating pages from templates
+- Managing template content
+- Working with blueprints
+
+---
+
+## When to Use / When NOT to Use
+
+| Use This Skill | Use Instead |
+|----------------|-------------|
+| List templates | - |
+| Create from template | - |
+| Update template | - |
+| Create page directly | `confluence-page` |
+| Search templates | `confluence-search` |
+
+---
+
+## Risk Levels
+
+| Operation | Risk | Notes |
+|-----------|------|-------|
+| List templates | - | Read-only |
+| Get template | - | Read-only |
+| Create from template | - | Creates new page |
+| Update template | ⚠️ | Affects future pages |
+| Delete template | ⚠️⚠️ | Cannot be recovered |
+
+---
 
 ## Overview
 

@@ -1,6 +1,6 @@
 ---
 name: confluence-search
-description: Search Confluence using CQL queries, validate syntax, export results, and manage search history
+description: Search Confluence using CQL queries, validate syntax, export results, and manage search history. ALWAYS use when user wants to find, search, or query for content.
 triggers:
   - search confluence
   - find pages
@@ -17,6 +17,57 @@ triggers:
 # Confluence Search Skill
 
 Search Confluence content using CQL (Confluence Query Language).
+
+---
+
+## ⚠️ PRIMARY USE CASE
+
+**This skill finds content across Confluence.** Use this skill for:
+- Searching pages by text, title, or labels
+- Building CQL queries for complex searches
+- Exporting search results to CSV/JSON
+- Finding content by date, creator, or space
+
+**This is a read-only skill** - it cannot create, modify, or delete content.
+
+---
+
+## When to Use This Skill
+
+| Trigger | Example |
+|---------|---------|
+| Text search | "Find pages about API documentation" |
+| Label search | "Find all pages with label 'approved'" |
+| Space search | "Search for content in DOCS space" |
+| Date-based | "Find pages modified this week" |
+| Export | "Export all pages in KB space to CSV" |
+| CQL query | "Run CQL: space = DOCS AND type = page" |
+
+---
+
+## When NOT to Use This Skill
+
+| Operation | Use Instead |
+|-----------|-------------|
+| Create/edit pages | `confluence-page` |
+| Add/remove labels | `confluence-label` |
+| Manage permissions | `confluence-permission` |
+| View page hierarchy | `confluence-hierarchy` |
+
+---
+
+## Risk Levels
+
+All operations are **read-only** with no risk:
+
+| Operation | Risk | Notes |
+|-----------|------|-------|
+| Search content | - | Read-only |
+| Validate CQL | - | Read-only |
+| Export results | - | Creates local file only |
+| View history | - | Local history only |
+
+---
 
 ## Overview
 
@@ -287,3 +338,80 @@ confluence search content "API documentation" --type page
 - "Search for content created this month"
 - "Export all pages in KB space to CSV"
 - "Find pages modified by me today"
+
+---
+
+## Common Pitfalls
+
+### 1. CQL Syntax Errors
+- **Problem**: Query fails with syntax error
+- **Solution**: Use `confluence search validate "query"` to check syntax first
+
+### 2. Quoting Issues
+- **Problem**: Values with spaces not matching
+- **Solution**: Use double quotes: `space = "My Space"` or single quotes: `label = 'my-label'`
+
+### 3. Case Sensitivity
+- **Problem**: Search not finding expected results
+- **Solution**: Text search (`~`) is case-insensitive, but `=` is exact match
+
+### 4. Date Format
+- **Problem**: Date queries failing
+- **Solution**: Use `YYYY-MM-DD` format or functions like `startOfWeek()`, `now("-7d")`
+
+### 5. Large Result Sets
+- **Problem**: Export timing out or running slow
+- **Solution**: Use `stream-export` for large datasets, add `--batch-size` option
+
+### 6. Empty Results
+- **Problem**: Search returns nothing when content exists
+- **Solution**: Check space permissions, verify space key is correct, try broader query
+
+---
+
+## Error Handling
+
+| Error | Cause | Resolution |
+|-------|-------|------------|
+| **400 Bad Request** | Invalid CQL syntax | Use `confluence search validate` to check query |
+| **403 Forbidden** | No permission to search space | Request space access |
+| **408 Timeout** | Query too complex or large result set | Simplify query, use pagination |
+
+### CQL Troubleshooting
+
+**Validate query before running:**
+```bash
+confluence search validate "space = 'DOCS' AND type = page"
+```
+
+**Build query interactively:**
+```bash
+confluence search interactive --space DOCS
+```
+
+**Check available fields:**
+```bash
+confluence search suggest --fields
+confluence search suggest --field space
+```
+
+**Common CQL fixes:**
+```cql
+# Wrong: unquoted space with spaces
+space = My Space
+
+# Right: quoted space name
+space = "My Space"
+
+# Wrong: wrong date format
+created > 01-15-2025
+
+# Right: correct date format
+created > "2025-01-15"
+
+# Wrong: invalid operator for text
+text = "exact match"
+
+# Right: use contains operator
+text ~ "search text"
+```

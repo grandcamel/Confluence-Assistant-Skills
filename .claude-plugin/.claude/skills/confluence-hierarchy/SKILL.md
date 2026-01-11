@@ -1,6 +1,6 @@
 ---
 name: confluence-hierarchy
-description: Navigate and manage Confluence page hierarchies, ancestors, descendants, and trees
+description: Navigate and manage Confluence page hierarchies, ancestors, descendants, and trees. ALWAYS use for parent/child relationships and page tree navigation.
 triggers:
   - hierarchy
   - ancestor
@@ -15,6 +15,41 @@ triggers:
 ---
 
 # Confluence Hierarchy Skill
+
+---
+
+## ⚠️ PRIMARY USE CASE
+
+**This skill navigates page relationships.** Use for:
+- Finding parent/ancestor pages
+- Listing child/descendant pages
+- Viewing page tree structure
+- Reordering child pages
+
+---
+
+## When to Use / When NOT to Use
+
+| Use This Skill | Use Instead |
+|----------------|-------------|
+| Get parent/ancestors | - |
+| List children | - |
+| View page tree | - |
+| Move pages | `confluence-page` |
+| Create pages | `confluence-page` |
+| Search pages | `confluence-search` |
+
+---
+
+## Risk Levels
+
+| Operation | Risk | Notes |
+|-----------|------|-------|
+| Get ancestors/children | - | Read-only |
+| View tree | - | Read-only |
+| Reorder pages | ⚠️ | Changes sort order |
+
+---
 
 ## Overview
 

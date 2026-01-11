@@ -1,6 +1,6 @@
 ---
 name: confluence-property
-description: Manage content properties (custom metadata) on Confluence pages and blog posts
+description: Manage content properties (custom metadata) on Confluence pages and blog posts. ALWAYS use for custom metadata, key-value data, or application-specific fields.
 triggers:
   - property
   - properties
@@ -15,6 +15,40 @@ triggers:
 ---
 
 # Confluence Property Skill
+
+---
+
+## ⚠️ PRIMARY USE CASE
+
+**This skill manages custom metadata on pages.** Use for:
+- Storing custom key-value data on pages
+- Tracking workflow state (review status, approval)
+- Integration metadata for external systems
+- Structured data for automation
+
+---
+
+## When to Use / When NOT to Use
+
+| Use This Skill | Use Instead |
+|----------------|-------------|
+| Get/set custom metadata | - |
+| Store structured data | - |
+| Edit page content | `confluence-page` |
+| Add labels/tags | `confluence-label` |
+| Set permissions | `confluence-permission` |
+
+---
+
+## Risk Levels
+
+| Operation | Risk | Notes |
+|-----------|------|-------|
+| Get properties | - | Read-only |
+| Set property | - | Can be overwritten |
+| Delete property | ⚠️ | Data loss |
+
+---
 
 ## Overview
 

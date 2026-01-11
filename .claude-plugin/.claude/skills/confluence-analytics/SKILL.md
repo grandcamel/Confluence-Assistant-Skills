@@ -1,6 +1,6 @@
 ---
 name: confluence-analytics
-description: View analytics, statistics, and popularity metrics for Confluence content
+description: View analytics, statistics, and popularity metrics for Confluence content. ALWAYS use when user wants to see views, popularity, or contributor stats.
 triggers:
   - analytics
   - statistics
@@ -17,6 +17,42 @@ triggers:
 ---
 
 # Confluence Analytics Skill
+
+---
+
+## ⚠️ PRIMARY USE CASE
+
+**This skill views content analytics (READ-ONLY).** Use for:
+- Checking page view counts
+- Finding popular/most viewed content
+- Seeing who contributed to pages
+- Space-level analytics
+
+**This is a read-only skill** - it cannot modify content.
+
+---
+
+## When to Use / When NOT to Use
+
+| Use This Skill | Use Instead |
+|----------------|-------------|
+| View page statistics | - |
+| Find popular pages | - |
+| See contributors | - |
+| View watcher list | `confluence-watch` (to modify) |
+| Edit content | `confluence-page` |
+
+---
+
+## Risk Levels
+
+All operations are **read-only** with no risk:
+
+| Operation | Risk | Notes |
+|-----------|------|-------|
+| All analytics operations | - | Read-only |
+
+---
 
 ## Overview
 
