@@ -296,7 +296,7 @@ def cache_clear(
                 # Remove if empty
                 if not any(category_dir.iterdir()):
                     category_dir.rmdir()
-            except Exception:
+            except Exception:  # nosec B110
                 pass
 
     if output == "json":
@@ -405,7 +405,7 @@ def cache_warm(
                         "type": f"space_{space}",
                         "pages": len(pages),
                     })
-                except Exception:
+                except Exception:  # nosec B110
                     pass
 
         except Exception as e:

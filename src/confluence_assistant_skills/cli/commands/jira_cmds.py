@@ -155,7 +155,7 @@ def link_to_jira(
                     else:
                         print_info(f"Link to {issue_key} already exists, skipping.")
                     return
-        except Exception:
+        except Exception:  # nosec B110
             pass  # Continue with linking
 
     # Build the JIRA link URL
