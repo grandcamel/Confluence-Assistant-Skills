@@ -1,6 +1,6 @@
 ---
 name: confluence-assistant
-description: Central hub for Confluence operations - routes requests to specialized skills
+description: Central hub for Confluence operations - routes requests to specialized skills. ALWAYS use when user mentions confluence, wiki, or Atlassian wiki operations.
 triggers:
   - confluence
   - wiki
@@ -17,6 +17,162 @@ The central hub skill that routes Confluence requests to specialized skills.
 Use this skill when you need to work with Confluence and are unsure which specific skill to use. This hub will intelligently route your request to the appropriate specialized skill based on keywords in your request.
 
 **Note**: Trigger keywords are case-insensitive.
+
+---
+
+## Quick Reference
+
+| Operation | Primary Skill | Risk Level |
+|-----------|---------------|------------|
+| Get/list pages | confluence-page | - |
+| Create page | confluence-page | - |
+| Update page | confluence-page | :warning: |
+| Delete page | confluence-page | :warning::warning: |
+| Copy/move page | confluence-page | :warning: |
+| List spaces | confluence-space | - |
+| Create space | confluence-space | - |
+| Delete space | confluence-space | :warning::warning::warning: |
+| Search content | confluence-search | - |
+| Export search results | confluence-search | - |
+| Add comment | confluence-comment | - |
+| Delete comment | confluence-comment | :warning: |
+| Upload attachment | confluence-attachment | - |
+| Delete attachment | confluence-attachment | :warning::warning: |
+| Add label | confluence-label | - |
+| Remove label | confluence-label | - |
+| Set permission | confluence-permission | :warning::warning: |
+| Remove permission | confluence-permission | :warning::warning: |
+| View analytics | confluence-analytics | - |
+
+**Risk Levels**: - (safe) | :warning: (reversible) | :warning::warning: (destructive) | :warning::warning::warning: (irreversible)
+
+---
+
+## Explicit Routing Rules
+
+### Rule 1: Explicit Skill Mention Wins
+If the user explicitly names a skill, route directly to it.
+- "Use confluence-search to find pages" → `confluence-search`
+- "I need confluence-page skill" → `confluence-page`
+
+### Rule 2: Entity Signals
+Presence of identifiers suggests specific skills:
+- **Page ID** (numeric) → likely `confluence-page`, `confluence-comment`, `confluence-attachment`
+- **Space key** (uppercase) → likely `confluence-space`, `confluence-search`
+- **CQL query** → `confluence-search`
+
+### Rule 3: Operation Keywords
+Match verbs to skill domains:
+- Create/update/delete/copy/move page → `confluence-page`
+- Search/find/query/export → `confluence-search`
+- Comment/reply/resolve → `confluence-comment`
+- Upload/download/attach → `confluence-attachment`
+
+### Rule 4: Quantity Signals (Future)
+Large-scale operations may require bulk handling:
+- Operations on 10+ items → consider batching
+- Bulk label operations → `confluence-label`
+
+### Rule 5: Ambiguous Requests
+When intent is unclear, ask for clarification rather than guessing.
+
+---
+
+## Negative Triggers (What Each Skill Does NOT Handle)
+
+| Skill | Does NOT Handle |
+|-------|-----------------|
+| `confluence-page` | Space-level operations, search queries, permissions, comments |
+| `confluence-space` | Individual page content, page CRUD, comments, attachments |
+| `confluence-search` | Content creation, content modification, permission changes |
+| `confluence-comment` | Page content updates, attachments, labels |
+| `confluence-attachment` | Page content, comments, permissions |
+| `confluence-label` | Page content, search queries, permissions |
+| `confluence-template` | Direct page CRUD, search, permissions |
+| `confluence-property` | Page content (body), comments, permissions |
+| `confluence-permission` | Page content, search, comments |
+| `confluence-analytics` | Content modification (read-only skill) |
+| `confluence-watch` | Content modification, permissions |
+| `confluence-hierarchy` | Page content, permissions, search |
+| `confluence-jira` | Pure Confluence operations (cross-product only) |
+
+---
+
+## Context Awareness
+
+### Pronoun Resolution
+When users say "it", "this", "that", refer to the most recently mentioned resource:
+- "Get page 12345" → "Update it" = Update page 12345
+- "Search in DOCS space" → "Export those results" = Export DOCS search
+
+### Space Scope
+Operations default to the current space context when established:
+- "List pages in DOCS" → subsequent "create a page" assumes DOCS space
+
+### Context Expiration
+Context clears when:
+- User explicitly changes topic
+- New space or page is explicitly mentioned
+- Session restarts
+
+---
+
+## Disambiguation Examples
+
+### Example 1: Ambiguous Target
+```
+User: "Show me the page"
+→ Ambiguous: Which page?
+→ Ask: "Which page would you like to see? Please provide the page ID or title."
+```
+
+### Example 2: Missing Operation
+```
+User: "Page 12345"
+→ Ambiguous: What operation?
+→ Ask: "What would you like to do with page 12345? (get, update, delete, etc.)"
+```
+
+### Example 3: Skill Overlap
+```
+User: "Find the comments"
+→ Ambiguous: Search for pages with comments, or list comments on a page?
+→ Ask: "Would you like to search for pages containing comments, or list comments on a specific page?"
+```
+
+### Example 4: Destructive Operation Confirmation
+```
+User: "Delete all pages in ARCHIVE"
+→ Destructive operation detected
+→ Ask: "This will delete all pages in ARCHIVE space. Are you sure? Please confirm with 'yes' to proceed."
+```
+
+---
+
+## Common Workflows
+
+### Workflow 1: Create and Configure a New Page
+1. `confluence-page` - Create the page with content
+2. `confluence-label` - Add relevant labels
+3. `confluence-permission` - Set page restrictions if needed
+
+### Workflow 2: Content Audit
+1. `confluence-search` - Find pages matching criteria
+2. `confluence-analytics` - Check view counts and activity
+3. `confluence-label` - Tag pages based on audit findings
+
+### Workflow 3: Space Migration
+1. `confluence-search` - Find all pages in source space
+2. `confluence-page` - Copy pages to destination space
+3. `confluence-attachment` - Verify attachments transferred
+4. `confluence-hierarchy` - Confirm parent-child relationships
+
+### Workflow 4: Documentation Review
+1. `confluence-search` - Find pages by label (e.g., "needs-review")
+2. `confluence-comment` - Add review comments
+3. `confluence-label` - Update labels (remove "needs-review", add "reviewed")
+
+---
 
 ## Overview
 
