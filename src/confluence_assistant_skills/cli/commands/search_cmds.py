@@ -532,12 +532,12 @@ def export_results(
 
     # Write to file
     if export_format == "csv":
-        with open(output_path, "w", newline="", encoding="utf-8") as f:
+        with output_path.open("w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=selected_columns, extrasaction="ignore")
             writer.writeheader()
             writer.writerows(results)
     else:
-        with open(output_path, "w", encoding="utf-8") as f:
+        with output_path.open("w", encoding="utf-8") as f:
             json.dump(results, f, indent=2)
 
     print_success(f"Exported {len(results)} results to {output_path}")
@@ -631,7 +631,7 @@ def streaming_export(
     # Write final results
     if export_format == "csv":
         mode = "a" if resume and output_path.exists() else "w"
-        with open(output_path, mode, newline="", encoding="utf-8") as f:
+        with output_path.open(mode, newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=selected_columns, extrasaction="ignore")
             if mode == "w":
                 writer.writeheader()
@@ -644,7 +644,7 @@ def streaming_export(
                 existing = json.loads(output_path.read_text())
 
         existing.extend(results)
-        with open(output_path, "w", encoding="utf-8") as f:
+        with output_path.open("w", encoding="utf-8") as f:
             json.dump(existing, f, indent=2)
 
     # Clean up checkpoint
@@ -794,13 +794,13 @@ def history_export(output_file: str, export_format: str) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     if export_format == "csv":
-        with open(output_path, "w", newline="", encoding="utf-8") as f:
+        with output_path.open("w", newline="", encoding="utf-8") as f:
             if history:
                 writer = csv.DictWriter(f, fieldnames=["timestamp", "query", "result_count"])
                 writer.writeheader()
                 writer.writerows(history)
     else:
-        with open(output_path, "w", encoding="utf-8") as f:
+        with output_path.open("w", encoding="utf-8") as f:
             json.dump(history, f, indent=2)
 
     print_success(f"Exported {len(history)} queries to {output_path}")

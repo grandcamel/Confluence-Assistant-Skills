@@ -67,10 +67,9 @@ def list_spaces(
 
     spaces = []
     for space_item in client.paginate("/api/v2/spaces", params=params, operation="list spaces"):
-        if query:
-            # Filter by name locally since API doesn't support name search well
-            if query.lower() not in space_item.get("name", "").lower():
-                continue
+        # Filter by name locally since API doesn't support name search well
+        if query and query.lower() not in space_item.get("name", "").lower():
+            continue
         spaces.append(space_item)
         if len(spaces) >= limit:
             break

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import time
 from typing import Any
 
@@ -245,14 +246,11 @@ def bulk_label_remove(
         try:
             # Remove labels using v2 API
             for lbl in label_list:
-                try:
+                with contextlib.suppress(Exception):
                     client.delete(
                         f"/api/v2/pages/{page_id}/labels/{lbl}",
                         operation="remove label",
                     )
-                except Exception:
-                    # Label might not exist on page, continue
-                    pass
             success_count += 1
 
             if output == "text" and (i + 1) % 10 == 0:
@@ -502,10 +500,9 @@ def bulk_delete(
             return
 
         # Double confirmation for safety
-        if len(pages) > 10:
-            if not click.confirm(f"Confirm deletion of {len(pages)} pages?", default=False):
-                click.echo("Cancelled.")
-                return
+        if len(pages) > 10 and not click.confirm(f"Confirm deletion of {len(pages)} pages?", default=False):
+            click.echo("Cancelled.")
+            return
 
     # Process pages
     success_count = 0
@@ -671,13 +668,11 @@ def bulk_permission(
                 )
 
             if remove_group:
-                try:
+                with contextlib.suppress(Exception):
                     client.delete(
                         f"/rest/api/content/{page_id}/restriction/byOperation/read/group/{remove_group}",
                         operation="remove group restriction",
                     )
-                except Exception:
-                    pass  # Group might not have restriction
 
             if add_user:
                 client.put(
@@ -687,14 +682,12 @@ def bulk_permission(
                 )
 
             if remove_user:
-                try:
+                with contextlib.suppress(Exception):
                     client.delete(
                         f"/rest/api/content/{page_id}/restriction/byOperation/read/user",
                         params={"accountId": remove_user},
                         operation="remove user restriction",
                     )
-                except Exception:
-                    pass  # User might not have restriction
 
             success_count += 1
 
