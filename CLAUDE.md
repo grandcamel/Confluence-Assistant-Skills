@@ -555,6 +555,44 @@ ancestor = 12345
 space = "DOCS" AND label = "api" ORDER BY lastModified DESC
 ```
 
+## Available Scripts
+
+Scripts in `scripts/` for development and testing:
+
+| Script | Purpose |
+|--------|---------|
+| `run_tests.sh` | Main unit test runner (runs each skill separately) |
+| `run_single_test.sh` | Run individual test file, class, or method |
+| `run_live_tests.sh` | Live integration tests with real Confluence credentials |
+| `run-e2e-tests.sh` | End-to-end tests with Claude Code (Docker or local) |
+| `setup-env.sh` | Environment configuration |
+| `sync-version.sh` | Synchronize version across all project files |
+
+### Testing Commands
+
+```bash
+# Run all unit tests (recommended before merge)
+./scripts/run_tests.sh
+
+# Run specific skill
+./scripts/run_tests.sh --skill confluence-page
+
+# Run single test
+./scripts/run_single_test.sh confluence-page test_create_page.py
+
+# Run with coverage
+./scripts/run_tests.sh --coverage --min-coverage 90
+
+# Run live integration tests (requires Confluence credentials)
+./scripts/run_live_tests.sh
+
+# Run live tests for specific skill
+./scripts/run_live_tests.sh --skill confluence-page
+
+# Run E2E tests
+./scripts/run-e2e-tests.sh --local
+```
+
 ## Git Commit Guidelines
 
 Follow Conventional Commits:
@@ -582,21 +620,33 @@ export CONFLUENCE_API_TOKEN="your-token"
 
 ### Running Tests
 
+Use the `run_live_tests.sh` script for convenient execution:
+
+```bash
+# All live tests
+./scripts/run_live_tests.sh
+
+# Specific skill
+./scripts/run_live_tests.sh --skill confluence-page
+
+# Use existing space (faster, no cleanup)
+./scripts/run_live_tests.sh --space-key=MYTEST
+
+# Keep space after tests (for debugging)
+./scripts/run_live_tests.sh --keep-space
+
+# With verbose output
+./scripts/run_live_tests.sh --verbose
+```
+
+Or run pytest directly:
+
 ```bash
 # All live tests
 pytest .claude-plugin/.claude/skills/*/tests/live_integration/ --live -v
 
 # Specific skill
 pytest .claude-plugin/.claude/skills/confluence-page/tests/live_integration/ --live -v
-
-# With verbose output
-pytest -v -s --live
-
-# Use existing space (faster, no cleanup)
-pytest --live --space-key=MYTEST -v
-
-# Keep space after tests (for debugging)
-pytest --live --keep-space -v
 ```
 
 ### Test Fixtures
