@@ -5,6 +5,46 @@ All notable changes to the Confluence Assistant Skills project will be documente
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0](https://github.com/grandcamel/Confluence-Assistant-Skills/compare/v1.1.0...v2.0.0) (2026-01-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* Remove multi-profile support in favor of environment variables only. This simplifies configuration and improves security boundaries for containerized deployments.
+
+### Features
+
+* add confluence-bulk, confluence-ops, and confluence-admin skills ([f344b2f](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/f344b2f09c671d45a01e1b393a9ff251ffa112fd))
+* **commands:** add slash commands for skill discovery and setup ([91b4fed](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/91b4fed20a1249d917b4a87f9c7094a0281ade17))
+* **scripts:** add test runner scripts for TDD workflow ([fd2bc1c](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/fd2bc1c3c8cb4df24f848cf9c69ee05f4912bab6))
+* **scripts:** add version sync script for release management ([6bf9fab](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/6bf9fabb56cf0e24f22e63f5c1ed9bc171ec58c5))
+* **testing:** add run_live_tests.sh and document test scripts ([730e79d](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/730e79d52b9cded1fa319fee64862a7000202fe6))
+* **testing:** add run_live_tests.sh and document test scripts ([ef8f4b3](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/ef8f4b3693c54ec4850fb608aaebe51bbb4859fc))
+
+
+### Bug Fixes
+
+* **confluence-analytics:** align CLI wrapper with script interfaces ([92ccb61](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/92ccb619af8c2142f39f4db77998cd5d82328267))
+* **confluence-attachment:** align CLI wrapper with script interfaces ([db976d6](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/db976d6d2dffd12839df2fe7fb8b6a47f8460070))
+* **confluence-comment:** align CLI wrapper with script interfaces ([6826b79](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/6826b79289d2ce2c8d51649b9ac3223497ef3613))
+* **confluence-hierarchy:** align CLI wrapper with script interfaces ([860335f](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/860335f94a2935505da61752a4b8300bac4b89de))
+* **confluence-jira:** align CLI wrapper with script interfaces ([aedcce7](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/aedcce7d38cff7e49ad24729e8ea1d0cb384e0ee))
+* **confluence-label:** align CLI wrapper with script interfaces ([a278250](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/a2782506d9c3ad9fcfa9fae3cb769c2863901c50))
+* **confluence-page:** align CLI wrapper with script interfaces ([de47658](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/de47658e133b154c3f227d89a3c8692d86b75c0c))
+* **confluence-permission:** align CLI wrapper with script interfaces ([524a0ce](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/524a0ce91f60fca4946dd1c58b7cfffcf3646fa7))
+* **confluence-property:** align CLI wrapper with script interfaces ([3eb493c](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/3eb493c65f4d53679f2da15c461b483fe5544a26))
+* **confluence-search:** align CLI wrapper with script interfaces ([bc3cdc6](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/bc3cdc64401d1d6ef12be667ac507235fe1ae79e))
+* **confluence-space:** align CLI wrapper with script interfaces ([ab9dac5](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/ab9dac54f43c2679ec6f013225de76f04336062c))
+* **confluence-template:** align CLI wrapper with script interfaces ([f24ebbb](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/f24ebbb8525334a04d43c0b9aeaf090e77db872f))
+* **confluence-watch:** add missing --output option to unwatch-page ([63736f8](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/63736f8cb3a25d082dd2965c58374811045aa7d6))
+* resolve all mypy type errors (61 → 0) ([b5d58a8](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/b5d58a854a5c73ef95c007777cc6cb72a28376e9))
+* **scripts:** use --ignore instead of --ignore-glob for live_integration ([6435579](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/64355792a2d03806dddc566262c7d75614634f83))
+
+
+### Code Refactoring
+
+* remove profile feature from configuration ([c013293](https://github.com/grandcamel/Confluence-Assistant-Skills/commit/c013293d0d4f9751e242d764f9abecdc221314e6))
+
 ## [1.1.0] - 2025-12-31
 
 ### Added
