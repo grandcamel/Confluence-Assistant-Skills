@@ -7,7 +7,7 @@ name = "confluence-assistant-skills-plugin"
 version = "2.0.0"
 description = "Claude Code plugin providing skills (documentation) for Confluence automation."
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 requires-python = ">=3.9"
 authors = [
     {name = "Jason Krueger"}
@@ -17,7 +17,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
@@ -29,8 +28,11 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "confluence-assistant-skills>=0.1.0",
+    "confluence-assistant-skills-lib>=0.1.0",
 ]
+
+[tool.setuptools]
+packages = []  # No Python packages - this is a Claude Code plugin
 
 [project.optional-dependencies]
 dev = [
