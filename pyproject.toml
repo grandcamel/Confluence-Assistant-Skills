@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "confluence-assistant-skills"
+name = "confluence-assistant-skills-plugin"
 version = "1.1.0"
-description = "A collection of CLI-based assistant skills for interacting with Confluence."
+description = "Claude Code plugin providing skills (documentation) for Confluence automation."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
@@ -29,8 +29,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "click>=8.0",
-    "confluence-assistant-skills-lib>=0.1.0",
+    "confluence-assistant-skills>=0.1.0",
 ]
 
 [project.optional-dependencies]
@@ -39,15 +38,7 @@ dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
-    "ruff>=0.8.0",
-    "mypy>=1.0.0",
-    "types-requests>=2.28.0",
-    "types-click>=7.1.0",
-    "bandit[toml]>=1.7.0",
 ]
-
-[project.scripts]
-confluence = "confluence_assistant_skills.cli.main:cli"
 
 [project.urls]
 Homepage = "https://github.com/jasonkrueger/Confluence-Assistant-Skills"
@@ -55,19 +46,12 @@ Documentation = "https://github.com/jasonkrueger/Confluence-Assistant-Skills#rea
 Repository = "https://github.com/jasonkrueger/Confluence-Assistant-Skills"
 Issues = "https://github.com/jasonkrueger/Confluence-Assistant-Skills/issues"
 
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.setuptools.package-data]
-"*" = ["py.typed"]
-
 # =============================================================================
 # Ruff - Fast Python linter and formatter (replaces flake8, isort, black)
 # =============================================================================
 [tool.ruff]
 target-version = "py39"
 line-length = 88
-src = ["src"]
 
 [tool.ruff.lint]
 select = [
@@ -98,7 +82,7 @@ ignore = [
 "**/conftest.py" = ["ARG"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["confluence_assistant_skills", "confluence_assistant_skills_lib"]
+known-first-party = ["confluence_assistant_skills"]
 force-single-line = false
 combine-as-imports = true
 
@@ -132,7 +116,7 @@ module = [
     "colorama.*",
     "tqdm.*",
     "responses.*",
-    "confluence_assistant_skills_lib.*",
+    "confluence_assistant_skills.*",
 ]
 ignore_missing_imports = true
 
@@ -180,7 +164,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = [".claude-plugin/.claude/skills", "src"]
+source = [".claude-plugin/.claude/skills"]
 omit = ["*/tests/*", "*/conftest.py", "*/__init__.py"]
 
 [tool.coverage.report]
