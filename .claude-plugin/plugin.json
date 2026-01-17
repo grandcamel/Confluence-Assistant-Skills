@@ -23,25 +23,5 @@
     "./commands/confluence-assistant-setup.md",
     "./commands/browse-skills.md",
     "./commands/skill-info.md"
-  ],
-  "assistant_skills": {
-    "requirements": "requirements.txt",
-    "env_vars": [
-      {
-        "name": "CONFLUENCE_SITE_URL",
-        "description": "Confluence Cloud site URL (e.g., https://your-site.atlassian.net)",
-        "required": true
-      },
-      {
-        "name": "CONFLUENCE_EMAIL",
-        "description": "Atlassian account email for API authentication",
-        "required": true
-      },
-      {
-        "name": "CONFLUENCE_API_TOKEN",
-        "description": "API token from Atlassian Account Settings",
-        "required": true
-      }
-    ]
-  }
+  ]
 }
