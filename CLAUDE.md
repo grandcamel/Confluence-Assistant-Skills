@@ -706,3 +706,55 @@ Documentation: https://developer.atlassian.com/cloud/confluence/rest/v2/intro/
 ./scripts/run-e2e-tests.sh --verbose # Verbose
 ```
 - Always Test Driven Development / TDD in planning and execution of new features
+
+
+## Plugin Publishing
+
+### plugin.json Schema
+
+Claude Code strictly validates plugin.json. **Only recognized keys are allowed:**
+
+```json
+{
+  "name": "confluence-assistant-skills",
+  "version": "1.1.0",
+  "description": "...",
+  "author": { "name": "...", "url": "..." },
+  "repository": "...",
+  "license": "MIT",
+  "keywords": ["..."],
+  "skills": "./.claude/skills/",
+  "commands": ["./commands/..."],
+  "agents": ["./agents/..."],
+  "hooks": ["./hooks/..."]
+}
+```
+
+**Common mistakes:**
+- Adding custom keys like `assistant_skills` - Claude Code rejects unrecognized keys
+- Wrong marketplace name in install command - must match `marketplace.json` entry name
+- Missing `.claude-plugin/` in cache path when verifying installation
+
+### Marketplace Installation
+
+```bash
+# Add from marketplace (uses marketplace.json name, not plugin name)
+claude plugin marketplace add https://github.com/grandcamel/confluence-assistant-skills.git#main
+
+# Install format: <plugin-name>@<marketplace-name>
+claude plugin install confluence-assistant-skills@confluence-assistant-skills-marketplace --scope user
+
+# Verify - note .claude-plugin/ in path
+cat ~/.claude/plugins/cache/*/confluence-assistant-skills/*/.claude-plugin/plugin.json
+```
+
+### PyPI Package (CLI)
+
+The CLI is published to PyPI as `confluence-assistant-skills`:
+
+```bash
+pip install confluence-assistant-skills
+confluence --version
+```
+
+Trusted Publishers on PyPI are configured per-package, not per-repository.
