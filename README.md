@@ -116,7 +116,13 @@ Claude: ✓ Created page "Q4 Planning"
 /plugin grandcamel/Confluence-Assistant-Skills
 ```
 
-**Option B: Manual**
+**Option B: Marketplace**
+```bash
+claude plugin marketplace add https://github.com/grandcamel/confluence-assistant-skills.git#main
+claude plugin install confluence-assistant-skills@confluence-assistant-skills-marketplace --scope user
+```
+
+**Option C: Manual**
 ```bash
 git clone https://github.com/grandcamel/Confluence-Assistant-Skills.git
 pip install -r requirements.txt
@@ -532,6 +538,22 @@ confluence search validate "your query"
 ```
 
 Check quotes are balanced and field names are valid.
+
+</details>
+
+<details>
+<summary><strong>Plugin installation fails</strong></summary>
+
+Claude Code strictly validates `plugin.json`. Common issues:
+
+1. **Unrecognized keys** - Remove any custom keys (only standard plugin.json fields allowed)
+2. **Wrong marketplace name** - Use `plugin@marketplace-name` format
+3. **Cache path** - Plugin cache includes `.claude-plugin/` directory
+
+```bash
+# Verify installation
+cat ~/.claude/plugins/cache/*/confluence-assistant-skills/*/.claude-plugin/plugin.json
+```
 
 </details>
 
