@@ -46,8 +46,8 @@ repos:
           - types-requests>=2.28.0
           - types-click>=7.1.0
         args: [--config-file=pyproject.toml]
-        # Only run on source code, not skill scripts
-        files: ^(src/confluence_assistant_skills/)
+        # Only run on Python files in skill directories
+        files: ^(\.claude-plugin/\.claude/skills/.*\.py$)
         pass_filenames: false
 
   # Conventional Commits
@@ -65,7 +65,7 @@ repos:
       - id: bandit
         args: [-c, pyproject.toml, -r]
         additional_dependencies: ["bandit[toml]"]
-        files: ^(src/|\.claude-plugin/\.claude/skills/.*\.py$)
+        files: ^(\.claude-plugin/\.claude/skills/.*\.py$)
         exclude: ^(.*test.*\.py|conftest\.py)$
 
   # Dockerfile linting

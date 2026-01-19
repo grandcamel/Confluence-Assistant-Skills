@@ -84,7 +84,7 @@ ignore = [
 "**/conftest.py" = ["ARG"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["confluence_assistant_skills"]
+known-first-party = ["confluence_assistant_skills_lib"]
 force-single-line = false
 combine-as-imports = true
 
@@ -118,7 +118,7 @@ module = [
     "colorama.*",
     "tqdm.*",
     "responses.*",
-    "confluence_assistant_skills.*",
+    "confluence_assistant_skills_lib.*",
 ]
 ignore_missing_imports = true
 
