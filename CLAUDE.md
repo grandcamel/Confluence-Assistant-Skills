@@ -758,3 +758,520 @@ confluence --version
 ```
 
 Trusted Publishers on PyPI are configured per-package, not per-repository.
+
+## Test Framework Architecture
+
+The live integration test framework uses several patterns to ensure thread-safe, efficient testing.
+
+### Singleton Pattern with Double-Checked Locking
+
+Docker containers and external connections use a thread-safe singleton pattern to support parallel test execution with `pytest-xdist`:
+
+```python
+# In confluence_container.py
+_shared_container = None
+_container_lock = threading.Lock()
+
+def get_confluence_connection():
+    global _shared_container
+    if _shared_container is None:
+        with _container_lock:
+            if _shared_container is None:  # Double-check inside lock
+                _shared_container = ConfluenceContainer()
+    return _shared_container
+```
+
+### Reference Counting for Container Lifecycle
+
+`ConfluenceContainer` uses reference counting to share a single container across multiple test sessions:
+
+```python
+class ConfluenceContainer:
+    def start(self):
+        with self._lock:
+            self._ref_count += 1
+            if self._is_started:
+                return self  # Reuse existing container
+            # ... start container
+
+    def stop(self):
+        with self._lock:
+            self._ref_count -= 1
+            if self._ref_count > 0:
+                return  # Keep running for other sessions
+            # ... stop container
+```
+
+### Dual-Phase Health Check
+
+Container startup uses a two-phase approach:
+1. Wait for "Ansible playbook complete" log message (Atlassian containers use Ansible)
+2. Verify REST API responds at `/rest/api/user/current`
+
+This handles variations across Confluence versions where log messages may differ.
+
+### Connection Modes
+
+The test framework supports two connection modes:
+
+| Mode | Environment Variables | Description |
+|------|----------------------|-------------|
+| Docker Container | None (auto-starts) | Spins up Atlassian Confluence Docker image |
+| External Instance | `CONFLUENCE_TEST_URL`, `CONFLUENCE_TEST_EMAIL`, `CONFLUENCE_TEST_TOKEN` | Uses existing Confluence Cloud/Server |
+
+## Test Fixture Reference
+
+### Unit Test Fixtures (Root conftest.py)
+
+| Fixture | Scope | Description |
+|---------|-------|-------------|
+| `temp_path` | function | Temporary directory as Path object (auto-cleanup) |
+| `temp_dir` | function | Temporary directory as string (legacy) |
+| `claude_project_structure` | function | Standard .claude project directory structure |
+| `sample_skill_md` | function | Sample SKILL.md content for testing |
+
+### Shared Unit Test Fixtures (shared/tests/conftest.py)
+
+| Fixture | Scope | Description |
+|---------|-------|-------------|
+| `mock_response` | function | Factory for creating mock HTTP responses |
+| `mock_client` | function | Mock `ConfluenceClient` with setup helpers |
+| `mock_config` | function | Mock configuration dictionary |
+| `sample_page` | function | Sample page data from API |
+| `sample_space` | function | Sample space data from API |
+| `sample_comment` | function | Sample comment data from API |
+| `sample_attachment` | function | Sample attachment data from API |
+| `sample_label` | function | Sample label data from API |
+| `sample_search_results` | function | Sample search results from API |
+| `sample_adf` | function | Sample Atlassian Document Format document |
+| `live_client` | session | Real ConfluenceClient for live tests |
+| `live_test_space` | session | Test space for live integration tests |
+| `live_test_page` | function | Test page created per test |
+| `temp_file` | function | Factory for temporary test files |
+| `capture_output` | function | Helper to capture stdout/stderr |
+
+### Live Integration Fixtures (shared/tests/live_integration/conftest.py)
+
+| Fixture | Scope | Description |
+|---------|-------|-------------|
+| `keep_space` | session | Check if `--keep-space` flag was provided |
+| `existing_space_key` | session | Get `--space-key` option value |
+| `confluence_client` | session | Configured `ConfluenceClient` instance |
+| `test_space` | session | Dedicated test space (auto-created/cleaned) |
+| `test_page` | function | Test page created per test |
+| `test_page_with_content` | function | Test page with rich content |
+| `test_child_page` | function | Child page under test_page |
+| `test_blogpost` | function | Test blog post |
+| `test_label` | function | Unique test label string |
+| `unique_title` | function | Unique page title generator |
+| `unique_space_key` | function | Unique space key generator |
+
+### Fixture Scope Guidelines
+
+- **session**: Shared across all tests (fastest, less isolated)
+- **module**: Fresh per test file (moderate isolation)
+- **function**: Fresh per test (slowest, full isolation)
+
+Use function-scoped fixtures when tests modify data. Use session-scoped fixtures for read-only operations and shared setup.
+
+## Test Data Generation
+
+### PageBuilder Fluent API
+
+```python
+from test_utils import PageBuilder
+
+# Build page creation data
+page_data = (PageBuilder()
+    .with_title("My Test Page")
+    .with_space_id("123456")
+    .with_body("# Heading\n\nParagraph content")
+    .with_parent_id("789")
+    .with_status("current")
+    .build())
+
+# Returns dict ready for API call
+client.post('/api/v2/pages', json_data=page_data)
+```
+
+### Generate Test Content
+
+```python
+from test_utils import generate_test_content, wait_for_indexing
+
+# Generate test pages with random content
+pages = generate_test_content(
+    client,
+    space_id="123",
+    count=10,
+    content_type="page",
+    with_labels=["test", "automation"],
+)
+
+# Wait for search indexing
+wait_for_indexing(client, space_id="123", min_pages=10, timeout=60)
+```
+
+### Assertion Helpers
+
+```python
+from test_utils import (
+    assert_page_exists,
+    assert_page_not_exists,
+    assert_search_returns_results,
+    assert_search_returns_empty,
+)
+
+# Assert page exists
+page = assert_page_exists(client, page_id="12345")
+
+# Assert search returns results
+results = assert_search_returns_results(
+    client,
+    cql='space = "TEST" AND label = "approved"',
+    min_count=5,
+)
+
+# Assert search is empty
+assert_search_returns_empty(client, cql='space = "TEST" AND label = "nonexistent"')
+```
+
+## Pytest Configuration Details
+
+### pytest.ini Configuration
+
+```ini
+[pytest]
+# Test discovery paths
+testpaths = tests .claude-plugin/.claude/skills
+
+# Directories to ignore
+norecursedirs = __pycache__ .git .venv node_modules templates docker scripts references
+
+# Test file patterns
+python_files = test_*.py
+python_classes = Test*
+python_functions = test_*
+
+# Import mode - avoid conflicts with multiple tests/ directories
+pythonpath = .
+addopts = -v --tb=short --import-mode=importlib
+
+# Markers
+markers =
+    e2e: End-to-end tests requiring Claude API access
+    slow: Tests that may take a long time
+    live: Live integration tests requiring Confluence access
+    integration: Integration tests
+    destructive: Tests making destructive changes
+```
+
+### pythonpath Configuration
+
+The shared live integration directory is included in `pythonpath`:
+
+```ini
+pythonpath = . .claude-plugin/.claude/skills/shared/tests/live_integration
+```
+
+This enables importing shared fixtures without relative imports:
+
+```python
+# In any skill's live_integration/conftest.py
+pytest_plugins = ["conftest"]  # Imports from shared conftest
+```
+
+### Test Discovery
+
+- Unit tests are discovered automatically in `testpaths`
+- Live integration tests require `--live` flag
+- Use `--collect-only` to preview test collection without running
+
+### Import Mode
+
+```ini
+addopts = --import-mode=importlib
+```
+
+Uses `importlib` mode to avoid module name conflicts when multiple skills have `tests/` directories with same-named test files.
+
+### Container Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CONFLUENCE_TEST_IMAGE` | `atlassian/confluence` | Docker image |
+| `CONFLUENCE_TEST_ADMIN_USER` | `admin` | Admin username |
+| `CONFLUENCE_TEST_ADMIN_PASSWORD` | `admin` | Admin password |
+| `CONFLUENCE_TEST_LICENSE` | (none) | Confluence license key (required for Docker) |
+| `CONFLUENCE_TEST_STARTUP_TIMEOUT` | `300` | Max startup wait (seconds) |
+| `CONFLUENCE_TEST_URL` | (none) | External Confluence URL (skips Docker) |
+| `CONFLUENCE_TEST_EMAIL` | (none) | Email for external Confluence |
+| `CONFLUENCE_TEST_TOKEN` | (none) | API token for external Confluence |
+
+### Test Markers
+
+```python
+import pytest
+
+@pytest.mark.live
+def test_requires_connection():
+    """Requires live Confluence connection."""
+    pass
+
+@pytest.mark.destructive
+def test_modifies_data():
+    """Creates/modifies/deletes Confluence objects."""
+    pass
+
+@pytest.mark.slow
+def test_takes_long():
+    """Long-running test (>30s)."""
+    pass
+
+@pytest.mark.e2e
+def test_end_to_end():
+    """Requires Claude API access."""
+    pass
+
+@pytest.mark.integration
+def test_integration():
+    """Integration test with external services."""
+    pass
+```
+
+### Running Specific Test Categories
+
+```bash
+# Run only live tests
+pytest --live -v
+
+# Run non-destructive live tests
+pytest --live -m "not destructive" -v
+
+# Run only slow tests
+pytest -m slow -v
+
+# Run everything except slow tests
+pytest -m "not slow" -v
+
+# Run with specific markers combination
+pytest --live -m "live and not destructive and not slow" -v
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### Authentication Errors
+
+**Error:** `AuthenticationError: 401 Unauthorized`
+
+**Solutions:**
+1. Verify API token is valid (regenerate at https://id.atlassian.com/manage-profile/security/api-tokens)
+2. Check email matches your Atlassian account exactly
+3. Ensure site URL is correct (`https://your-site.atlassian.net`, not `atlassian.net/wiki`)
+4. Test with curl: `curl -u email:token https://your-site.atlassian.net/wiki/rest/api/user/current`
+
+#### Permission Errors
+
+**Error:** `PermissionError: 403 Forbidden`
+
+**Solutions:**
+1. Check space permissions: `confluence permission space get SPACE-KEY`
+2. Verify page restrictions: `confluence permission page get PAGE-ID`
+3. Ensure user has required capabilities (view/edit/admin)
+4. Request access from space administrator
+
+#### Rate Limiting
+
+**Error:** `RateLimitError: 429 Too Many Requests`
+
+**Solutions:**
+1. Wait for `Retry-After` header duration (usually 60s)
+2. Reduce parallel request count in bulk operations
+3. Add delays between operations: `time.sleep(0.5)`
+4. Use batch endpoints where available
+5. Check Atlassian rate limit documentation for your tier
+
+#### Connection Timeouts
+
+**Error:** `TimeoutError: Request timed out after 30 seconds`
+
+**Solutions:**
+1. Increase timeout in client configuration
+2. Check network connectivity to Confluence
+3. Verify Confluence is responsive (check status.atlassian.com)
+4. Use async mode for long operations
+
+### Docker Container Issues
+
+#### Container Won't Start
+
+**Error:** `Container exited with code 1`
+
+**Solutions:**
+1. Ensure Docker has sufficient memory (4GB+ recommended)
+2. Check if ports 8090/8091 are available
+3. Verify license key is valid (Confluence requires license even for Docker)
+4. Review container logs: `docker logs confluence-test`
+
+#### Slow Container Startup
+
+**Problem:** Container takes 3-5 minutes to start
+
+**Solutions:**
+1. Use a pre-warmed base image with common plugins
+2. Increase startup timeout: `CONFLUENCE_TEST_STARTUP_TIMEOUT=600`
+3. Consider using external Confluence instance for CI/CD
+
+#### Container Health Check Failures
+
+**Error:** `Health check timeout after 300 seconds`
+
+**Solutions:**
+1. Check container logs for startup errors
+2. Verify license key is valid
+3. Ensure sufficient disk space
+4. Try increasing health check interval
+
+### Test Failures
+
+#### Flaky Tests
+
+**Problem:** Tests pass/fail inconsistently
+
+**Solutions:**
+1. Add explicit waits for async operations
+2. Use unique identifiers for test resources
+3. Ensure proper cleanup between tests
+4. Check for race conditions in parallel tests
+
+#### Search Index Delay
+
+**Problem:** Content not found immediately after creation
+
+**Solutions:**
+1. Use `wait_for_indexing()` helper
+2. Add short delay after content creation
+3. Use direct API calls instead of search for immediate verification
+
+#### Cleanup Failures
+
+**Problem:** Test resources not cleaned up
+
+**Solutions:**
+1. Use `@pytest.fixture` with cleanup in `yield` pattern
+2. Implement session-level cleanup hooks
+3. Add `--keep-space` flag for debugging
+4. Review test logs for cleanup errors
+
+### CQL Query Issues
+
+#### Syntax Errors
+
+**Error:** `400 Bad Request - Invalid CQL`
+
+**Solutions:**
+1. Validate query first: `confluence search validate "your query"`
+2. Check field names are correct (case-sensitive)
+3. Quote values with spaces: `space = "My Space"`
+4. Use correct operators for field types
+
+#### Empty Results
+
+**Problem:** Query returns no results when content exists
+
+**Solutions:**
+1. Check space permissions
+2. Verify space key case sensitivity
+3. Wait for search indexing (new content)
+4. Try broader query to confirm access
+
+### Version-Specific Issues
+
+#### v2 API Not Available
+
+**Error:** `404 Not Found` on v2 API endpoints
+
+**Solutions:**
+1. Verify Confluence Cloud (not Server/Data Center)
+2. Check API version support for your Confluence version
+3. Fall back to v1 API for unsupported features
+
+#### Feature Deprecation
+
+**Problem:** API endpoint returns unexpected results
+
+**Solutions:**
+1. Check Atlassian deprecation notices
+2. Review API changelog for changes
+3. Update to latest API version
+4. Use feature detection instead of version detection
+
+### Debug Mode
+
+Enable debug logging for troubleshooting:
+
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logging.getLogger('confluence_assistant_skills_lib').setLevel(logging.DEBUG)
+```
+
+Or via environment variable:
+
+```bash
+export CONFLUENCE_LOG_LEVEL=DEBUG
+```
+
+### Getting Help
+
+1. **Check documentation**: Review SKILL.md files and this CLAUDE.md
+2. **Search issues**: Check GitHub issues for similar problems
+3. **Run diagnostics**: Use `confluence-ops` skill for API diagnostics
+4. **Contact support**: For Confluence API issues, contact Atlassian support
+
+## Test Coverage Summary
+
+### Current Test Coverage
+
+| Category | Tests | Status |
+|----------|-------|--------|
+| Unit Tests (shared library) | 50+ | Passing |
+| Unit Tests (per skill) | 100+ | Passing |
+| Live Integration Tests | 150+ | Requires `--live` flag |
+| E2E Tests | 10+ | Requires `ANTHROPIC_API_KEY` |
+
+### Coverage by Skill
+
+| Skill | Unit | Live | Notes |
+|-------|------|------|-------|
+| confluence-page | 15+ | 20+ | Core CRUD operations |
+| confluence-space | 10+ | 15+ | Space management |
+| confluence-search | 20+ | 25+ | CQL validation, export |
+| confluence-comment | 10+ | 15+ | Comments and replies |
+| confluence-attachment | 12+ | 18+ | Upload, download, versions |
+| confluence-label | 8+ | 12+ | Add, remove, search |
+| confluence-hierarchy | 8+ | 15+ | Parent/child, ancestors |
+| confluence-permission | 10+ | 12+ | Space and page permissions |
+| confluence-property | 8+ | 10+ | Custom metadata |
+| confluence-analytics | 5+ | 8+ | Views, watchers |
+| confluence-watch | 4+ | 6+ | Watch/unwatch |
+| confluence-template | 6+ | 8+ | Template management |
+| confluence-jira | 5+ | 8+ | JIRA integration |
+| confluence-bulk | 8+ | 10+ | Bulk operations |
+| confluence-ops | 4+ | 4+ | Cache, diagnostics |
+| confluence-admin | 6+ | 6+ | Administration |
+
+### Running Coverage Report
+
+```bash
+# Run tests with coverage
+pytest --cov=confluence_assistant_skills_lib --cov-report=html
+
+# View coverage report
+open htmlcov/index.html
+
+# Run with minimum coverage threshold
+pytest --cov=confluence_assistant_skills_lib --cov-fail-under=80
+```
