@@ -723,29 +723,31 @@ Claude Code strictly validates plugin.json. **Only recognized keys are allowed:*
   "repository": "...",
   "license": "MIT",
   "keywords": ["..."],
-  "skills": "./.claude/skills/",
+  "skills": "./skills/",
   "commands": ["./commands/..."],
   "agents": ["./agents/..."],
   "hooks": ["./hooks/..."]
 }
 ```
 
+**Important:** Paths in plugin.json are relative to the plugin root (the directory containing `.claude-plugin/`), not relative to plugin.json itself. Component directories (`skills/`, `commands/`, etc.) must be at the plugin root level, not inside `.claude-plugin/`.
+
 **Common mistakes:**
 - Adding custom keys like `assistant_skills` - Claude Code rejects unrecognized keys
 - Wrong marketplace name in install command - must match `marketplace.json` entry name
-- Missing `.claude-plugin/` in cache path when verifying installation
+- Putting skills/commands inside `.claude-plugin/` instead of at the plugin root
 
 ### Marketplace Installation
 
 ```bash
-# Add from marketplace (uses marketplace.json name, not plugin name)
-claude plugin marketplace add https://github.com/grandcamel/confluence-assistant-skills.git#main
+# Add the as-plugins marketplace
+claude plugin marketplace add grandcamel/as-plugins
 
 # Install format: <plugin-name>@<marketplace-name>
-claude plugin install confluence-assistant-skills@confluence-assistant-skills-marketplace --scope user
+claude plugin install confluence-assistant-skills@as-plugins --scope user
 
-# Verify - note .claude-plugin/ in path
-cat ~/.claude/plugins/cache/*/confluence-assistant-skills/*/.claude-plugin/plugin.json
+# Verify installation
+claude plugin list | grep confluence
 ```
 
 ### PyPI Package (CLI)
