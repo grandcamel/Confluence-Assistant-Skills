@@ -43,7 +43,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          for skill_dir in .claude-plugin/.claude/skills/*/tests/; do
+          for skill_dir in skills/*/tests/; do
             if [ -d "$skill_dir" ]; then
               skill_name=$(basename $(dirname $skill_dir))
               echo "Testing $skill_name..."
@@ -55,7 +55,7 @@ jobs:
 
       - name: Lint skill scripts
         run: |
-          flake8 .claude-plugin/.claude/skills/*/scripts/ \
+          flake8 skills/*/scripts/ \
             --count \
             --select=E9,F63,F7,F82 \
             --show-source \

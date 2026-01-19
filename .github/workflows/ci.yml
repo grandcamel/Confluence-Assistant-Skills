@@ -90,7 +90,7 @@ jobs:
 
       - name: Run bandit security scan
         run: |
-          bandit -r src .claude-plugin/.claude/skills \
+          bandit -r src skills \
             -c pyproject.toml \
             -f sarif \
             -o bandit-results.sarif \
@@ -156,7 +156,7 @@ jobs:
       - name: Run unit tests
         run: |
           # Run tests per skill to avoid conftest.py conflicts
-          for skill_dir in .claude-plugin/.claude/skills/*/tests/; do
+          for skill_dir in skills/*/tests/; do
             if [ -d "$skill_dir" ]; then
               skill_name=$(basename $(dirname $skill_dir))
               echo "Testing $skill_name..."

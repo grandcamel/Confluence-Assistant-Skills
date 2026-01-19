@@ -138,7 +138,7 @@ skips = [
 [tool.pytest.ini_options]
 minversion = "7.0"
 pythonpath = ["."]
-testpaths = [".claude-plugin/.claude/skills", "tests"]
+testpaths = ["skills", "tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -166,7 +166,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = [".claude-plugin/.claude/skills"]
+source = ["skills"]
 omit = ["*/tests/*", "*/conftest.py", "*/__init__.py"]
 
 [tool.coverage.report]

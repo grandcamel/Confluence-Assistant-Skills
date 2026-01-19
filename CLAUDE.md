@@ -28,7 +28,7 @@ This project provides Claude Code skills for automating Confluence Cloud operati
 
 ### Shared Documentation
 
-Reference documentation in `.claude-plugin/.claude/skills/shared/docs/`:
+Reference documentation in `skills/shared/docs/`:
 
 | Document | Purpose |
 |----------|---------|
@@ -267,10 +267,10 @@ The `--live` option is defined in the root `conftest.py` and available to all te
 pytest -v
 
 # Run only skill tests
-pytest .claude-plugin/.claude/skills/ -v
+pytest skills/ -v
 
 # Run tests for a specific skill
-pytest .claude-plugin/.claude/skills/confluence-page/tests/ -v
+pytest skills/confluence-page/tests/ -v
 
 # Run with coverage
 pytest --cov=confluence_assistant_skills_lib --cov-report=html
@@ -280,10 +280,10 @@ pytest --cov=confluence_assistant_skills_lib --cov-report=html
 
 ```bash
 # Run all live integration tests
-pytest .claude-plugin/.claude/skills/*/tests/live_integration/ --live -v
+pytest skills/*/tests/live_integration/ --live -v
 
 # Run live tests for a specific skill
-pytest .claude-plugin/.claude/skills/confluence-page/tests/live_integration/ --live -v
+pytest skills/confluence-page/tests/live_integration/ --live -v
 
 # Use existing space instead of creating temporary one
 pytest --live --space-key=EXISTING -v
@@ -366,7 +366,7 @@ if __name__ == '__main__':
 ### Required Structure
 
 ```
-.claude-plugin/.claude/skills/confluence-{name}/
+skills/confluence-{name}/
 ├── SKILL.md           # Skill definition and triggers
 ├── scripts/           # Python scripts
 │   ├── __init__.py
@@ -452,7 +452,7 @@ Natural language examples that trigger this skill.
 
 ### Modifying the Schema
 
-1. Edit `.claude-plugin/.claude/skills/shared/config/config.schema.json`
+1. Edit `skills/shared/config/config.schema.json`
 2. Update `config.example.json` with examples
 3. Document in this file
 
@@ -462,7 +462,7 @@ Note: Configuration handling is provided by the `confluence-assistant-skills-lib
 
 The schema is JSON Schema draft-07. Validate with:
 ```bash
-python -c "import json; print(json.load(open('.claude-plugin/.claude/skills/shared/config/config.schema.json')))"
+python -c "import json; print(json.load(open('skills/shared/config/config.schema.json')))"
 ```
 
 ## Credentials Security
@@ -646,18 +646,18 @@ Or run pytest directly:
 
 ```bash
 # All live tests
-pytest .claude-plugin/.claude/skills/*/tests/live_integration/ --live -v
+pytest skills/*/tests/live_integration/ --live -v
 
 # Specific skill
-pytest .claude-plugin/.claude/skills/confluence-page/tests/live_integration/ --live -v
+pytest skills/confluence-page/tests/live_integration/ --live -v
 ```
 
 ### Test Fixtures
 
 Shared fixtures are defined in:
 - **Root `conftest.py`** - `temp_path`, `temp_dir`, pytest hooks, `--live` option
-- **`.claude-plugin/.claude/skills/shared/tests/conftest.py`** - `mock_client`, `sample_page`, etc.
-- **`.claude-plugin/.claude/skills/shared/tests/live_integration/conftest.py`** - `confluence_client`, `test_space`, `test_page`
+- **`skills/shared/tests/conftest.py`** - `mock_client`, `sample_page`, etc.
+- **`skills/shared/tests/live_integration/conftest.py`** - `confluence_client`, `test_space`, `test_page`
 
 Example session-scoped fixture for setup/teardown:
 
@@ -943,7 +943,7 @@ assert_search_returns_empty(client, cql='space = "TEST" AND label = "nonexistent
 ```ini
 [pytest]
 # Test discovery paths
-testpaths = tests .claude-plugin/.claude/skills
+testpaths = tests skills
 
 # Directories to ignore
 norecursedirs = __pycache__ .git .venv node_modules templates docker scripts references
@@ -971,7 +971,7 @@ markers =
 The shared live integration directory is included in `pythonpath`:
 
 ```ini
-pythonpath = . .claude-plugin/.claude/skills/shared/tests/live_integration
+pythonpath = . skills/shared/tests/live_integration
 ```
 
 This enables importing shared fixtures without relative imports:
