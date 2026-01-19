@@ -58,7 +58,12 @@ def mock_client(mock_response):
         # Helper to set up responses
         def setup_response(method: str, response_data, status_code: int = 200):
             response = mock_response(status_code=status_code, json_data=response_data)
-            getattr(client.session, method.lower()).return_value = response
+            method_upper = method.upper()
+            # POST/PUT/PATCH use session.request(), GET/DELETE use direct methods
+            if method_upper in ("POST", "PUT", "PATCH"):
+                client.session.request.return_value = response
+            else:
+                getattr(client.session, method.lower()).return_value = response
 
         client.setup_response = setup_response
 
