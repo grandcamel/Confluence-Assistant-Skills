@@ -31,6 +31,7 @@ from .confluence_container import (
     ConfluenceConnection,
     ConfluenceContainer,
     get_confluence_connection,
+    reset_confluence_connection,
 )
 from .test_utils import (
     BlogPostBuilder,
@@ -59,6 +60,7 @@ __all__ = [
     "ConfluenceConnection",
     "ConfluenceContainer",
     "get_confluence_connection",
+    "reset_confluence_connection",
     # Builders
     "PageBuilder",
     "BlogPostBuilder",

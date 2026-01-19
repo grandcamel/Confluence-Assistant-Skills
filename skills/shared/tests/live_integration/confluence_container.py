@@ -465,3 +465,7 @@ def should_skip_test(connection: ConfluenceConnection, marker: str) -> tuple[boo
         return True, "Test skipped on external Confluence"
 
     return False, ""
+
+
+# Alias for backward compatibility with __init__.py exports
+ConfluenceContainer = DockerConfluenceContainer
