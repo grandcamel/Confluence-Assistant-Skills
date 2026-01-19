@@ -8,7 +8,7 @@
 <!-- STATS BAR -->
 <table>
 <tr>
-<td align="center"><strong>14</strong><br><sub>Skills</sub></td>
+<td align="center"><strong>17</strong><br><sub>Skills</sub></td>
 <td align="center"><strong>88</strong><br><sub>Scripts</sub></td>
 <td align="center"><strong>940</strong><br><sub>Tests</sub></td>
 <td align="center"><strong>CQL</strong><br><sub>Query Support</sub></td>
