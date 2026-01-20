@@ -257,3 +257,104 @@ If you encounter critical issues:
 1. **Confluence Status**: https://status.atlassian.com
 2. **Support**: https://support.atlassian.com
 3. **Community**: https://community.atlassian.com
+
+---
+
+<!-- PERMISSIONS
+permissions:
+  cli: confluence
+  operations:
+    # Safe - Read-only operations (page/space/search reads)
+    - pattern: "confluence page get *"
+      risk: safe
+    - pattern: "confluence page view *"
+      risk: safe
+    - pattern: "confluence page list *"
+      risk: safe
+    - pattern: "confluence page versions *"
+      risk: safe
+    - pattern: "confluence page children *"
+      risk: safe
+    - pattern: "confluence page ancestors *"
+      risk: safe
+    - pattern: "confluence space get *"
+      risk: safe
+    - pattern: "confluence space list *"
+      risk: safe
+    - pattern: "confluence space view *"
+      risk: safe
+    - pattern: "confluence search cql *"
+      risk: safe
+    - pattern: "confluence search query *"
+      risk: safe
+    - pattern: "confluence permission list *"
+      risk: safe
+    - pattern: "confluence permission page *"
+      risk: safe
+    - pattern: "confluence comment list *"
+      risk: safe
+    - pattern: "confluence comment get *"
+      risk: safe
+    - pattern: "confluence attachment list *"
+      risk: safe
+    - pattern: "confluence attachment download *"
+      risk: safe
+    - pattern: "confluence label list *"
+      risk: safe
+    - pattern: "confluence property get *"
+      risk: safe
+    - pattern: "confluence property list *"
+      risk: safe
+
+    # Caution - Modifiable but easily reversible (create/update/labels)
+    - pattern: "confluence page create *"
+      risk: caution
+    - pattern: "confluence page update *"
+      risk: caution
+    - pattern: "confluence page copy *"
+      risk: caution
+    - pattern: "confluence page move *"
+      risk: caution
+    - pattern: "confluence page restore *"
+      risk: caution
+    - pattern: "confluence space create *"
+      risk: caution
+    - pattern: "confluence space update *"
+      risk: caution
+    - pattern: "confluence permission add *"
+      risk: caution
+    - pattern: "confluence permission restrict *"
+      risk: caution
+    - pattern: "confluence comment add *"
+      risk: caution
+    - pattern: "confluence comment update *"
+      risk: caution
+    - pattern: "confluence attachment upload *"
+      risk: caution
+    - pattern: "confluence label add *"
+      risk: caution
+    - pattern: "confluence label remove *"
+      risk: caution
+    - pattern: "confluence property set *"
+      risk: caution
+    - pattern: "confluence property delete *"
+      risk: caution
+
+    # Warning - Destructive but potentially recoverable (page/comment deletes)
+    - pattern: "confluence page delete *"
+      risk: warning
+    - pattern: "confluence comment delete *"
+      risk: warning
+    - pattern: "confluence attachment delete *"
+      risk: warning
+    - pattern: "confluence permission remove *"
+      risk: warning
+
+    # Danger - IRREVERSIBLE operations (space delete/purge)
+    - pattern: "confluence space delete *"
+      risk: danger
+    - pattern: "confluence space purge *"
+      risk: danger
+    - pattern: "confluence page purge *"
+      risk: danger
+-->
