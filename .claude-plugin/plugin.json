@@ -17,11 +17,5 @@
     "pages",
     "spaces",
     "collaboration"
-  ],
-  "skills": "./skills/",
-  "commands": [
-    "./commands/confluence-assistant-setup.md",
-    "./commands/browse-skills.md",
-    "./commands/skill-info.md"
   ]
 }
