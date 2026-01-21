@@ -26,7 +26,7 @@ class TestAddInlineComment:
 
     def test_validate_inline_text_selection(self):
         """Test that text selection is validated."""
-        from confluence_assistant_skills_lib import ValidationError
+        from confluence_as import ValidationError
 
         selection = ""
         if not selection.strip():
@@ -45,14 +45,14 @@ class TestInlineCommentValidation:
 
     def test_page_id_required(self):
         """Test that page ID is required."""
-        from confluence_assistant_skills_lib import ValidationError, validate_page_id
+        from confluence_as import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("")
 
     def test_comment_body_required(self):
         """Test that comment body is required."""
-        from confluence_assistant_skills_lib import ValidationError
+        from confluence_as import ValidationError
 
         body = ""
         if not body.strip():
@@ -63,7 +63,7 @@ class TestInlineCommentValidation:
         """Test that text selection is required for inline comments."""
         selection = "   "
         if not selection.strip():
-            from confluence_assistant_skills_lib import ValidationError
+            from confluence_as import ValidationError
 
             with pytest.raises(ValidationError):
                 raise ValidationError("Text selection is required")

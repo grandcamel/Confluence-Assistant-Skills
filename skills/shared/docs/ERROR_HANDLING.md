@@ -42,7 +42,7 @@ The `ConfluenceClient` automatically retries failed requests for transient error
 **Behavior**: Stop immediately, report clear error message.
 
 ```python
-from confluence_assistant_skills_lib import ValidationError
+from confluence_as import ValidationError
 
 def get_page(page_id: str):
     if not page_id:
@@ -136,7 +136,7 @@ ConfluenceError (base)
 The `@handle_errors` decorator provides consistent error handling:
 
 ```python
-from confluence_assistant_skills_lib import handle_errors, get_confluence_client
+from confluence_as import handle_errors, get_confluence_client
 
 @handle_errors
 def main(argv=None):

@@ -25,11 +25,11 @@ Phase 1 of the library consolidation refactoring was largely successful, but int
 ModuleNotFoundError: No module named 'assistant_skills_lib'
 ```
 
-**Root Cause:** The refactored `confluence-assistant-skills-lib` now depends on `assistant-skills-lib`, but this dependency was not installed.
+**Root Cause:** The refactored `confluence-as` now depends on `assistant-skills-lib`, but this dependency was not installed.
 
 **Fix:** Installed `assistant-skills-lib==0.2.0` from PyPI.
 
-**Recommendation:** Update `pyproject.toml` in `confluence-assistant-skills-lib` to declare explicit dependency:
+**Recommendation:** Update `pyproject.toml` in `confluence-as` to declare explicit dependency:
 ```toml
 [project]
 dependencies = [
@@ -41,7 +41,7 @@ dependencies = [
 
 ### Category 2: Orphaned Imports in `__init__.py`
 
-**Issue:** The `confluence_assistant_skills_lib/__init__.py` attempted to import symbols that no longer exist.
+**Issue:** The `confluence_as/__init__.py` attempted to import symbols that no longer exist.
 
 **Affected Imports:**
 | Symbol | Status | Resolution |
@@ -138,7 +138,7 @@ The issues stem from three process gaps:
 
 ### 1. No Integration Testing Before Handoff
 
-The refactoring was performed on the library (`confluence-assistant-skills-lib`) without running the consuming project's test suite (`Confluence-Assistant-Skills`). A simple `pytest` run would have caught all 78 import errors immediately.
+The refactoring was performed on the library (`confluence-as`) without running the consuming project's test suite (`Confluence-Assistant-Skills`). A simple `pytest` run would have caught all 78 import errors immediately.
 
 ### 2. Aliasing vs. Wrapping
 
@@ -154,7 +154,7 @@ The `__init__.py` was modified to import symbols (`ConfigError`, `get_config`, `
 
 ### For Immediate Action
 
-1. **Add dependency declaration** to `confluence-assistant-skills-lib/pyproject.toml`:
+1. **Add dependency declaration** to `confluence-as/pyproject.toml`:
    ```toml
    dependencies = ["assistant-skills-lib>=0.2.0"]
    ```
@@ -191,9 +191,9 @@ The `__init__.py` was modified to import symbols (`ConfigError`, `get_config`, `
 
 | File | Changes |
 |------|---------|
-| `confluence-assistant-skills-lib/src/.../init__.py` | Removed orphaned imports, fixed cache import |
-| `confluence-assistant-skills-lib/src/.../formatters.py` | Added missing imports, implemented `truncate()` |
-| `confluence-assistant-skills-lib/src/.../validators.py` | Replaced alias with proper wrapper function |
+| `confluence-as/src/.../init__.py` | Removed orphaned imports, fixed cache import |
+| `confluence-as/src/.../formatters.py` | Added missing imports, implemented `truncate()` |
+| `confluence-as/src/.../validators.py` | Replaced alias with proper wrapper function |
 
 ---
 

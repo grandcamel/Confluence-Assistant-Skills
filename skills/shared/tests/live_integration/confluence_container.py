@@ -37,7 +37,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
-    from confluence_assistant_skills_lib import ConfluenceClient
+    from confluence_as import ConfluenceClient
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +170,7 @@ class ConfluenceConnection:
             raise RuntimeError("Connection not started")
 
         if self._client is None:
-            from confluence_assistant_skills_lib import ConfluenceClient
+            from confluence_as import ConfluenceClient
             info = self.get_connection_info()
             self._client = ConfluenceClient(**info.as_dict())
 

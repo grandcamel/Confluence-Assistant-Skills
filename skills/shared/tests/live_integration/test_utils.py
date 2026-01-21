@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
-    from confluence_assistant_skills_lib import ConfluenceClient
+    from confluence_as import ConfluenceClient
 
 
 # =============================================================================

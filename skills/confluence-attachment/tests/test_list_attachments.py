@@ -110,7 +110,7 @@ class TestAttachmentFormatting:
 
     def test_format_attachment_basic(self, sample_attachment):
         """Test basic attachment formatting."""
-        from confluence_assistant_skills_lib import format_json
+        from confluence_as import format_json
 
         # Test JSON formatting
         json_output = format_json(sample_attachment)

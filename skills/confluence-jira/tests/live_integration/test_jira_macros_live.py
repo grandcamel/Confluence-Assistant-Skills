@@ -9,7 +9,7 @@ import uuid
 
 import pytest
 
-from confluence_assistant_skills_lib import (
+from confluence_as import (
     get_confluence_client,
 )
 

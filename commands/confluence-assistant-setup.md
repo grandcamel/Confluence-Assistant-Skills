@@ -15,14 +15,14 @@ First, verify the environment:
 python3 --version
 ```
 
-Check if the confluence-assistant-skills-lib package is installed:
+Check if the confluence-as package is installed:
 ```bash
-pip show confluence-assistant-skills-lib 2>/dev/null && echo "Library installed" || echo "Library missing"
+pip show confluence-as 2>/dev/null && echo "Library installed" || echo "Library missing"
 ```
 
 If the library is missing, install it:
 ```bash
-pip install confluence-assistant-skills-lib>=0.1.0
+pip install confluence-as>=0.1.0
 ```
 
 ## Step 2: Get API Token
@@ -87,7 +87,7 @@ confluence space list
 Or test with a Python script:
 ```bash
 python3 -c "
-from confluence_assistant_skills_lib import get_confluence_client
+from confluence_as import get_confluence_client
 client = get_confluence_client()
 me = client.get('/wiki/rest/api/user/current')
 print(f'Connected as: {me.get(\"displayName\", \"Unknown\")}')
@@ -124,4 +124,4 @@ If the CLI is not found:
 - Ensure the package is installed: `pip install confluence-assistant-skills`
 
 If import errors occur:
-- Ensure the library is installed: `pip install confluence-assistant-skills-lib>=0.1.0`
+- Ensure the library is installed: `pip install confluence-as>=0.1.0`

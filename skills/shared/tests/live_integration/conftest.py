@@ -19,7 +19,7 @@ from typing import Any, Optional
 
 import pytest
 
-from confluence_assistant_skills_lib import (
+from confluence_as import (
     ConfluenceClient,
     get_confluence_client,
 )

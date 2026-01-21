@@ -42,7 +42,7 @@ class TestLabelFormatting:
 
     def test_format_label_with_prefix(self):
         """Test formatting label with prefix."""
-        from confluence_assistant_skills_lib import format_label
+        from confluence_as import format_label
 
         label = {"id": "1", "name": "test", "prefix": "global"}
         result = format_label(label)
@@ -51,7 +51,7 @@ class TestLabelFormatting:
 
     def test_format_label_without_prefix(self):
         """Test formatting label without prefix."""
-        from confluence_assistant_skills_lib import format_label
+        from confluence_as import format_label
 
         label = {"id": "1", "name": "test", "prefix": ""}
         result = format_label(label)

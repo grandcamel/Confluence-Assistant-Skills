@@ -12,7 +12,7 @@ import uuid
 
 import pytest
 
-from confluence_assistant_skills_lib import (
+from confluence_as import (
     get_confluence_client,
 )
 
@@ -127,7 +127,7 @@ class TestGetPropertyLive:
 
     def test_get_nonexistent_property(self, confluence_client, test_page):
         """Test getting a property that doesn't exist."""
-        from confluence_assistant_skills_lib import NotFoundError
+        from confluence_as import NotFoundError
 
         with pytest.raises(NotFoundError):
             confluence_client.get(
@@ -194,7 +194,7 @@ class TestDeletePropertyLive:
         )
 
         # Verify deleted
-        from confluence_assistant_skills_lib import NotFoundError
+        from confluence_as import NotFoundError
 
         with pytest.raises(NotFoundError):
             confluence_client.get(

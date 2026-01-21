@@ -12,14 +12,14 @@ class TestUploadAttachment:
 
     def test_validate_page_id_valid(self):
         """Test that valid page IDs pass validation."""
-        from confluence_assistant_skills_lib import validate_page_id
+        from confluence_as import validate_page_id
 
         assert validate_page_id("12345") == "12345"
         assert validate_page_id(67890) == "67890"
 
     def test_validate_page_id_invalid(self):
         """Test that invalid page IDs fail validation."""
-        from confluence_assistant_skills_lib import ValidationError, validate_page_id
+        from confluence_as import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("")
@@ -32,7 +32,7 @@ class TestUploadAttachment:
 
     def test_validate_file_path_exists(self, test_file):
         """Test file path validation with existing file."""
-        from confluence_assistant_skills_lib import validate_file_path
+        from confluence_as import validate_file_path
 
         result = validate_file_path(test_file)
         assert result == test_file
@@ -41,7 +41,7 @@ class TestUploadAttachment:
 
     def test_validate_file_path_not_exists(self):
         """Test file path validation with non-existent file."""
-        from confluence_assistant_skills_lib import ValidationError, validate_file_path
+        from confluence_as import ValidationError, validate_file_path
 
         with pytest.raises(ValidationError) as exc_info:
             validate_file_path("/nonexistent/file.txt")
@@ -50,7 +50,7 @@ class TestUploadAttachment:
 
     def test_validate_file_path_is_directory(self, tmp_path):
         """Test file path validation when path is a directory."""
-        from confluence_assistant_skills_lib import ValidationError, validate_file_path
+        from confluence_as import ValidationError, validate_file_path
 
         with pytest.raises(ValidationError) as exc_info:
             validate_file_path(tmp_path)
@@ -100,7 +100,7 @@ class TestUploadAttachment:
         self, mock_client, test_file, test_pdf_file, test_image_file
     ):
         """Test uploading different file types."""
-        from confluence_assistant_skills_lib import validate_file_path
+        from confluence_as import validate_file_path
 
         # All should pass validation
         assert validate_file_path(test_file).suffix == ".txt"
@@ -129,7 +129,7 @@ class TestAttachmentValidation:
         # Don't actually create a huge file, just test the concept
         large_file.write_bytes(b"x" * 1000)
 
-        from confluence_assistant_skills_lib import validate_file_path
+        from confluence_as import validate_file_path
 
         # Should validate successfully
         result = validate_file_path(large_file)
@@ -137,14 +137,14 @@ class TestAttachmentValidation:
 
     def test_attachment_id_validation(self):
         """Test attachment ID validation."""
-        from confluence_assistant_skills_lib import validate_page_id
+        from confluence_as import validate_page_id
 
         # Attachment IDs are numeric like page IDs
         assert validate_page_id("123456") == "123456"
 
     def test_allowed_extensions(self, tmp_path):
         """Test file extension validation."""
-        from confluence_assistant_skills_lib import ValidationError, validate_file_path
+        from confluence_as import ValidationError, validate_file_path
 
         # Create test files
         pdf_file = tmp_path / "doc.pdf"

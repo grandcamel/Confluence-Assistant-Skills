@@ -47,7 +47,7 @@ class TestUpdateValidation:
 
     def test_comment_id_required(self):
         """Test that comment ID is required."""
-        from confluence_assistant_skills_lib import ValidationError, validate_page_id
+        from confluence_as import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("", "comment_id")
@@ -57,7 +57,7 @@ class TestUpdateValidation:
         # Same validation as add_comment
         body = ""
         if not body.strip():
-            from confluence_assistant_skills_lib import ValidationError
+            from confluence_as import ValidationError
 
             with pytest.raises(ValidationError):
                 raise ValidationError("Comment body cannot be empty")

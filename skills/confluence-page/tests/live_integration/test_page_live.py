@@ -12,7 +12,7 @@ import uuid
 
 import pytest
 
-from confluence_assistant_skills_lib import (
+from confluence_as import (
     get_confluence_client,
 )
 
@@ -123,7 +123,7 @@ class TestGetPageLive:
 
     def test_get_nonexistent_page(self, confluence_client):
         """Test getting a non-existent page."""
-        from confluence_assistant_skills_lib import NotFoundError
+        from confluence_as import NotFoundError
 
         with pytest.raises(NotFoundError):
             confluence_client.get("/api/v2/pages/999999999999")
@@ -193,7 +193,7 @@ class TestDeletePageLive:
         confluence_client.delete(f"/api/v2/pages/{page_id}")
 
         # Verify deleted or trashed
-        from confluence_assistant_skills_lib import NotFoundError
+        from confluence_as import NotFoundError
 
         try:
             result = confluence_client.get(f"/api/v2/pages/{page_id}")

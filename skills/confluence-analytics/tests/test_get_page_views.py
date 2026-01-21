@@ -10,14 +10,14 @@ class TestGetPageViews:
 
     def test_validate_page_id_valid(self):
         """Test that valid page IDs pass validation."""
-        from confluence_assistant_skills_lib import validate_page_id
+        from confluence_as import validate_page_id
 
         assert validate_page_id("123456") == "123456"
         assert validate_page_id(123456) == "123456"
 
     def test_validate_page_id_invalid(self):
         """Test that invalid page IDs fail validation."""
-        from confluence_assistant_skills_lib import ValidationError, validate_page_id
+        from confluence_as import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("")
@@ -90,7 +90,7 @@ class TestOutputFormats:
         """Test JSON output formatting."""
         import json
 
-        from confluence_assistant_skills_lib import format_json
+        from confluence_as import format_json
 
         output = format_json(sample_page_history)
         parsed = json.loads(output)

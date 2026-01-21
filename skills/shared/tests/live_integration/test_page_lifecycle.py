@@ -164,7 +164,7 @@ class TestPageRead:
 
     def test_get_nonexistent_page(self, confluence_client):
         """Test retrieving a non-existent page returns 404."""
-        from confluence_assistant_skills_lib import NotFoundError
+        from confluence_as import NotFoundError
 
         with pytest.raises(NotFoundError):
             confluence_client.get(
@@ -278,7 +278,7 @@ class TestPageDelete:
 
         # Verify it's gone or trashed
         # In Confluence Cloud, deleted pages go to trash first
-        from confluence_assistant_skills_lib import NotFoundError
+        from confluence_as import NotFoundError
 
         try:
             page = confluence_client.get(

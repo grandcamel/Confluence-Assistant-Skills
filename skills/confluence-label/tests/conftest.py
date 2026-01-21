@@ -38,7 +38,7 @@ def mock_response():
 @pytest.fixture
 def mock_client(mock_response):
     """Create a mock Confluence client."""
-    from confluence_assistant_skills_lib import ConfluenceClient
+    from confluence_as import ConfluenceClient
 
     with patch.object(ConfluenceClient, "_create_session"):
         client = ConfluenceClient(

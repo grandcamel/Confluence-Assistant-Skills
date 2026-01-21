@@ -10,7 +10,7 @@ class TestWatchSpace:
 
     def test_validate_space_key_valid(self):
         """Test that valid space keys pass validation."""
-        from confluence_assistant_skills_lib import validate_space_key
+        from confluence_as import validate_space_key
 
         assert validate_space_key("DOCS") == "DOCS"
         assert validate_space_key("kb") == "KB"
@@ -18,7 +18,7 @@ class TestWatchSpace:
 
     def test_validate_space_key_invalid(self):
         """Test that invalid space keys fail validation."""
-        from confluence_assistant_skills_lib import ValidationError, validate_space_key
+        from confluence_as import ValidationError, validate_space_key
 
         with pytest.raises(ValidationError):
             validate_space_key("")
@@ -45,7 +45,7 @@ class TestWatchSpace:
 
     def test_watch_space_not_found(self, mock_client, mock_response):
         """Test watching a non-existent space."""
-        from confluence_assistant_skills_lib import handle_confluence_error
+        from confluence_as import handle_confluence_error
 
         error_response = mock_response(
             status_code=404, json_data={"message": "Space not found"}
@@ -56,7 +56,7 @@ class TestWatchSpace:
 
     def test_watch_space_permission_denied(self, mock_client, mock_response):
         """Test watching a space without permission."""
-        from confluence_assistant_skills_lib import handle_confluence_error
+        from confluence_as import handle_confluence_error
 
         error_response = mock_response(
             status_code=403, json_data={"message": "Permission denied"}

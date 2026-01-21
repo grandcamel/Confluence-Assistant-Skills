@@ -43,14 +43,14 @@ class TestDeleteValidation:
 
     def test_comment_id_required(self):
         """Test that comment ID is required."""
-        from confluence_assistant_skills_lib import ValidationError, validate_page_id
+        from confluence_as import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("", "comment_id")
 
     def test_comment_id_numeric(self):
         """Test that comment ID must be numeric."""
-        from confluence_assistant_skills_lib import ValidationError, validate_page_id
+        from confluence_as import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("abc", "comment_id")

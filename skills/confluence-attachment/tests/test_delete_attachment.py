@@ -59,14 +59,14 @@ class TestDeleteAttachment:
 
     def test_validate_attachment_id_for_delete(self):
         """Test attachment ID validation for deletion."""
-        from confluence_assistant_skills_lib import validate_page_id
+        from confluence_as import validate_page_id
 
         # Attachment IDs use same validation as page IDs (numeric)
         assert validate_page_id("123456") == "123456"
         assert validate_page_id("789012") == "789012"
 
         # Invalid IDs should fail
-        from confluence_assistant_skills_lib import ValidationError
+        from confluence_as import ValidationError
 
         with pytest.raises(ValidationError):
             validate_page_id("")

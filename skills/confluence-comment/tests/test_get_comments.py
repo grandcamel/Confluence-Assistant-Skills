@@ -33,7 +33,7 @@ class TestGetComments:
 
     def test_get_comments_with_limit(self, mock_client, sample_comment):
         """Test getting comments with limit parameter."""
-        from confluence_assistant_skills_lib import validate_limit
+        from confluence_as import validate_limit
 
         limit = validate_limit(5)
         assert limit == 5
@@ -54,14 +54,14 @@ class TestCommentListFormatting:
 
     def test_format_empty_comments(self):
         """Test formatting empty comment list."""
-        from confluence_assistant_skills_lib import format_comments
+        from confluence_as import format_comments
 
         result = format_comments([])
         assert "No comments" in result
 
     def test_format_multiple_comments(self, sample_comment):
         """Test formatting multiple comments."""
-        from confluence_assistant_skills_lib import format_comments
+        from confluence_as import format_comments
 
         comments = [
             sample_comment,
@@ -84,7 +84,7 @@ class TestCommentListFormatting:
 
     def test_format_comments_with_limit(self, sample_comment):
         """Test formatting comments with display limit."""
-        from confluence_assistant_skills_lib import format_comments
+        from confluence_as import format_comments
 
         comments = [sample_comment] * 10
         result = format_comments(comments, limit=3)

@@ -10,14 +10,14 @@ class TestGetProperties:
 
     def test_validate_content_id_valid(self):
         """Test that valid content IDs pass validation."""
-        from confluence_assistant_skills_lib import validate_page_id
+        from confluence_as import validate_page_id
 
         assert validate_page_id("12345") == "12345"
         assert validate_page_id(67890) == "67890"
 
     def test_validate_content_id_invalid(self):
         """Test that invalid content IDs fail validation."""
-        from confluence_assistant_skills_lib import ValidationError, validate_page_id
+        from confluence_as import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("")
@@ -97,7 +97,7 @@ class TestGetSingleProperty:
 
     def test_validate_property_key_invalid(self):
         """Test that invalid property keys fail validation."""
-        from confluence_assistant_skills_lib import ValidationError
+        from confluence_as import ValidationError
 
         # Empty key should fail
         with pytest.raises(ValidationError):

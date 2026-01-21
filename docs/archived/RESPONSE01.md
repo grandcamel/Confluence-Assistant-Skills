@@ -71,7 +71,7 @@ confluence label add 12345 documentation api
 Consider using `click` with its group/subcommand pattern or `typer` for a modern approach:
 
 ```python
-# confluence_assistant_skills_lib/cli/main.py
+# confluence_as/cli/main.py
 import click
 
 @click.group()
@@ -98,7 +98,7 @@ def get(ctx, page_id, output):
 
 # Entry point in pyproject.toml:
 # [project.scripts]
-# confluence = "confluence_assistant_skills_lib.cli.main:cli"
+# confluence = "confluence_as.cli.main:cli"
 ```
 
 ---

@@ -136,7 +136,7 @@ class TestDownloadValidation:
 
     def test_validate_output_path(self, tmp_path):
         """Test output path validation."""
-        from confluence_assistant_skills_lib import validate_file_path
+        from confluence_as import validate_file_path
 
         # Valid output path (doesn't need to exist)
         output = tmp_path / "output.pdf"
@@ -145,7 +145,7 @@ class TestDownloadValidation:
 
     def test_validate_attachment_id(self):
         """Test attachment ID validation."""
-        from confluence_assistant_skills_lib import validate_page_id
+        from confluence_as import validate_page_id
 
         # Attachment IDs are numeric strings like page IDs
         assert validate_page_id("123456") == "123456"

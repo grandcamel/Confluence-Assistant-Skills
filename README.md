@@ -19,7 +19,7 @@
 
 <!-- BADGES -->
 [![Release](https://img.shields.io/github/v/release/grandcamel/Confluence-Assistant-Skills?style=for-the-badge&logo=github&logoColor=white&color=36B37E)](https://github.com/grandcamel/Confluence-Assistant-Skills/releases)
-[![PyPI](https://img.shields.io/pypi/v/confluence-assistant-skills-lib?style=for-the-badge&logo=pypi&logoColor=white&color=36B37E)](https://pypi.org/project/confluence-assistant-skills-lib/)
+[![PyPI](https://img.shields.io/pypi/v/confluence-as?style=for-the-badge&logo=pypi&logoColor=white&color=36B37E)](https://pypi.org/project/confluence-as/)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge&logo=opensourceinitiative&logoColor=white&color=0052CC)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-blue?style=for-the-badge&logo=python&logoColor=white&color=0052CC)](https://www.python.org/downloads/)
 [![Confluence](https://img.shields.io/badge/Confluence-Cloud-blue?style=for-the-badge&logo=confluence&logoColor=white&color=0052CC)](https://www.atlassian.com/software/confluence)
@@ -438,7 +438,7 @@ conftest.py                   # Shared fixtures and pytest hooks
     └── tests/                # Shared test fixtures
 
 # Shared library (PyPI package)
-confluence-assistant-skills-lib
+confluence-as
 ├── confluence_client.py      # HTTP client with retry
 ├── config_manager.py         # Configuration management
 ├── error_handler.py          # Exception handling
@@ -493,7 +493,7 @@ pytest -v
 pytest .claude/skills/ -v --ignore-glob="**/live_integration/*"
 
 # Run with coverage
-pytest --cov=confluence_assistant_skills_lib --cov-report=html
+pytest --cov=confluence_as --cov-report=html
 
 # Run live integration tests
 pytest .claude/skills/*/tests/live_integration/ --live -v

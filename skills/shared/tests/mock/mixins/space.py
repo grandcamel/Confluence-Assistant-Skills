@@ -230,7 +230,7 @@ class SpaceMixin:
     def _not_found_error(self, message: str) -> Exception:
         """Create a not found error."""
         try:
-            from confluence_assistant_skills_lib import NotFoundError
+            from confluence_as import NotFoundError
             return NotFoundError(message)
         except ImportError:
             return Exception(f"404: {message}")

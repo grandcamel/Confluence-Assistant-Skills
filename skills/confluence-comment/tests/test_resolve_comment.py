@@ -44,7 +44,7 @@ class TestResolveValidation:
 
     def test_comment_id_required(self):
         """Test that comment ID is required."""
-        from confluence_assistant_skills_lib import ValidationError, validate_page_id
+        from confluence_as import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("", "comment_id")
@@ -58,7 +58,7 @@ class TestResolveValidation:
 
     def test_invalid_resolution_status(self):
         """Test that invalid status is rejected."""
-        from confluence_assistant_skills_lib import ValidationError
+        from confluence_as import ValidationError
 
         status = "invalid"
         if status not in ["resolved", "open"]:

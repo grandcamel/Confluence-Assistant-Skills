@@ -54,11 +54,11 @@ Operations are marked with risk indicators throughout skill documentation:
 
 ### Shared Library (PyPI Package)
 
-All skills use the [`confluence-assistant-skills-lib`](https://pypi.org/project/confluence-assistant-skills-lib/) package from PyPI.
+All skills use the [`confluence-as`](https://pypi.org/project/confluence-as/) package from PyPI.
 
 **Installation:**
 ```bash
-pip install confluence-assistant-skills-lib
+pip install confluence-as
 ```
 
 **Key Components:**
@@ -147,7 +147,7 @@ Every script should import shared utilities like this:
 ```python
 #!/usr/bin/env python3
 import argparse
-from confluence_assistant_skills_lib import (
+from confluence_as import (
     get_confluence_client,
     handle_errors,
     validate_page_id,
@@ -200,7 +200,7 @@ ConfluenceError (base)
 ### Using the Error Handler
 
 ```python
-from confluence_assistant_skills_lib import (
+from confluence_as import (
     handle_errors, ValidationError, get_confluence_client, print_success,
 )
 
@@ -227,7 +227,7 @@ if __name__ == '__main__':
 The v2 API uses JSON-based ADF for content:
 
 ```python
-from confluence_assistant_skills_lib import markdown_to_adf, adf_to_markdown
+from confluence_as import markdown_to_adf, adf_to_markdown
 
 # Convert Markdown to ADF for API
 adf = markdown_to_adf("# Heading\n\nParagraph with **bold** text.")
@@ -241,7 +241,7 @@ markdown = adf_to_markdown(page['body']['atlas_doc_format']['value'])
 The v1 API uses XHTML storage format:
 
 ```python
-from confluence_assistant_skills_lib import markdown_to_xhtml, xhtml_to_markdown
+from confluence_as import markdown_to_xhtml, xhtml_to_markdown
 
 # Convert Markdown to XHTML for v1 API
 xhtml = markdown_to_xhtml("# Heading\n\nParagraph")
@@ -273,7 +273,7 @@ pytest skills/ -v
 pytest skills/confluence-page/tests/ -v
 
 # Run with coverage
-pytest --cov=confluence_assistant_skills_lib --cov-report=html
+pytest --cov=confluence_as --cov-report=html
 ```
 
 ### Live Integration Tests
@@ -314,7 +314,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
-from confluence_assistant_skills_lib import (
+from confluence_as import (
     get_confluence_client,
     handle_errors,
     validate_space_key,
@@ -456,7 +456,7 @@ Natural language examples that trigger this skill.
 2. Update `config.example.json` with examples
 3. Document in this file
 
-Note: Configuration handling is provided by the `confluence-assistant-skills-lib` package.
+Note: Configuration handling is provided by the `confluence-as` package.
 
 ### Validation
 
@@ -1217,7 +1217,7 @@ Enable debug logging for troubleshooting:
 ```python
 import logging
 logging.basicConfig(level=logging.DEBUG)
-logging.getLogger('confluence_assistant_skills_lib').setLevel(logging.DEBUG)
+logging.getLogger('confluence_as').setLevel(logging.DEBUG)
 ```
 
 Or via environment variable:
@@ -1269,11 +1269,11 @@ export CONFLUENCE_LOG_LEVEL=DEBUG
 
 ```bash
 # Run tests with coverage
-pytest --cov=confluence_assistant_skills_lib --cov-report=html
+pytest --cov=confluence_as --cov-report=html
 
 # View coverage report
 open htmlcov/index.html
 
 # Run with minimum coverage threshold
-pytest --cov=confluence_assistant_skills_lib --cov-fail-under=80
+pytest --cov=confluence_as --cov-fail-under=80
 ```

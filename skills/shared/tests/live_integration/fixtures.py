@@ -42,7 +42,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 import pytest
 
 if TYPE_CHECKING:
-    from confluence_assistant_skills_lib import ConfluenceClient
+    from confluence_as import ConfluenceClient
 
 from confluence_container import ConfluenceConnection, get_confluence_connection
 

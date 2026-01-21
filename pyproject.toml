@@ -28,7 +28,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "confluence-assistant-skills-lib>=0.1.0",
+    "confluence-as>=0.1.0",
 ]
 
 [tool.setuptools]
@@ -84,7 +84,7 @@ ignore = [
 "**/conftest.py" = ["ARG"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["confluence_assistant_skills_lib"]
+known-first-party = ["confluence_as"]
 force-single-line = false
 combine-as-imports = true
 
@@ -118,7 +118,7 @@ module = [
     "colorama.*",
     "tqdm.*",
     "responses.*",
-    "confluence_assistant_skills_lib.*",
+    "confluence_as.*",
 ]
 ignore_missing_imports = true
 

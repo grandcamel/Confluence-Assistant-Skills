@@ -88,7 +88,7 @@ class TestUpdateAttachment:
 
     def test_validate_file_for_update(self, test_file):
         """Test file validation for update."""
-        from confluence_assistant_skills_lib import validate_file_path
+        from confluence_as import validate_file_path
 
         # File must exist
         result = validate_file_path(test_file)
@@ -96,7 +96,7 @@ class TestUpdateAttachment:
         assert result.is_file()
 
         # Non-existent file should fail
-        from confluence_assistant_skills_lib import ValidationError
+        from confluence_as import ValidationError
 
         with pytest.raises(ValidationError):
             validate_file_path("/nonexistent/file.txt")

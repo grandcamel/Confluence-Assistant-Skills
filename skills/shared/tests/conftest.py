@@ -65,7 +65,7 @@ def mock_response():
 @pytest.fixture
 def mock_client(mock_response):
     """Create a mock Confluence client."""
-    from confluence_assistant_skills_lib import ConfluenceClient
+    from confluence_as import ConfluenceClient
 
     with patch.object(ConfluenceClient, "_create_session"):
         client = ConfluenceClient(
@@ -272,7 +272,7 @@ def live_client():
 
     Uses environment variables: CONFLUENCE_API_TOKEN, CONFLUENCE_EMAIL, CONFLUENCE_SITE_URL
     """
-    from confluence_assistant_skills_lib import get_confluence_client
+    from confluence_as import get_confluence_client
 
     return get_confluence_client()
 

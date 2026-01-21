@@ -150,7 +150,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install confluence-assistant-skills-lib pytest pytest-asyncio pytest-cov
+          pip install confluence-as pytest pytest-asyncio pytest-cov
           pip install -e .
 
       - name: Run unit tests

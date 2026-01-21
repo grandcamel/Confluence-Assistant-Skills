@@ -10,7 +10,7 @@ class TestGetSpacePermissions:
 
     def test_validate_space_id_valid(self):
         """Test that valid space IDs pass validation."""
-        from confluence_assistant_skills_lib import (
+        from confluence_as import (
             validate_page_id,  # Space IDs use same format
         )
 
@@ -19,7 +19,7 @@ class TestGetSpacePermissions:
 
     def test_validate_space_id_invalid(self):
         """Test that invalid space IDs fail validation."""
-        from confluence_assistant_skills_lib import ValidationError, validate_page_id
+        from confluence_as import ValidationError, validate_page_id
 
         with pytest.raises(ValidationError):
             validate_page_id("", "space_id")

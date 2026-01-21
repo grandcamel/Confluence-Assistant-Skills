@@ -91,7 +91,7 @@ Understanding the full scope of this refactoring is critical for planning and ri
 ### Repositories Affected
 
 1. `assistant-skills-lib` (base library)
-2. `confluence-assistant-skills-lib`
+2. `confluence-as`
 3. `jira-assistant-skills-lib`
 4. `splunk-assistant-skills-lib`
 5. `Confluence-Assistant-Skills` (skills project)
@@ -198,7 +198,7 @@ class BaseConfigManager:
 The `ConfigManager` within each service library will be refactored to inherit from `BaseConfigManager`:
 
 ```python
-# In confluence_assistant_skills_lib/config_manager.py
+# In confluence_as/config_manager.py
 from assistant_skills_lib import BaseConfigManager
 
 class ConfigManager(BaseConfigManager):
@@ -287,8 +287,8 @@ Confluence-Assistant-Skills/
     └── get_page.py
 
 # After
-confluence-assistant-skills-lib/
-└── src/confluence_assistant_skills_lib/
+confluence-as/
+└── src/confluence_as/
     └── cli/
         ├── __init__.py
         └── page/
@@ -303,14 +303,14 @@ Update `pyproject.toml` to register CLI commands:
 ```toml
 [project.scripts]
 # Page operations
-confluence-get-page = "confluence_assistant_skills_lib.cli.page.get_page:main"
-confluence-create-page = "confluence_assistant_skills_lib.cli.page.create_page:main"
-confluence-update-page = "confluence_assistant_skills_lib.cli.page.update_page:main"
-confluence-delete-page = "confluence_assistant_skills_lib.cli.page.delete_page:main"
+confluence-get-page = "confluence_as.cli.page.get_page:main"
+confluence-create-page = "confluence_as.cli.page.create_page:main"
+confluence-update-page = "confluence_as.cli.page.update_page:main"
+confluence-delete-page = "confluence_as.cli.page.delete_page:main"
 
 # Space operations
-confluence-get-space = "confluence_assistant_skills_lib.cli.space.get_space:main"
-confluence-create-space = "confluence_assistant_skills_lib.cli.space.create_space:main"
+confluence-get-space = "confluence_as.cli.space.get_space:main"
+confluence-create-space = "confluence_as.cli.space.create_space:main"
 # ... etc
 ```
 
@@ -348,7 +348,7 @@ warnings.warn(
     stacklevel=2
 )
 
-from confluence_assistant_skills_lib.cli.page.get_page import main
+from confluence_as.cli.page.get_page import main
 sys.exit(main())
 ```
 
@@ -515,10 +515,10 @@ If critical issues are discovered post-deployment:
 
 ### B. Files to Delete in Phase 1
 
-**From `confluence-assistant-skills-lib`:**
-- `src/confluence_assistant_skills_lib/error_handler.py` (after migration)
-- `src/confluence_assistant_skills_lib/validators.py` (keep Confluence-specific only)
-- `src/confluence_assistant_skills_lib/formatters.py` (keep Confluence-specific only)
+**From `confluence-as`:**
+- `src/confluence_as/error_handler.py` (after migration)
+- `src/confluence_as/validators.py` (keep Confluence-specific only)
+- `src/confluence_as/formatters.py` (keep Confluence-specific only)
 
 **From each skill's `tests/conftest.py`:**
 - `mock_response()` fixture

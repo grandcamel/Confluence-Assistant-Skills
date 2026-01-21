@@ -237,7 +237,7 @@ class PageMixin:
         """Create a not found error."""
         # Import here to avoid circular dependency
         try:
-            from confluence_assistant_skills_lib import NotFoundError
+            from confluence_as import NotFoundError
             return NotFoundError(message)
         except ImportError:
             return Exception(f"404: {message}")
