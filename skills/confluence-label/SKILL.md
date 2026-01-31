@@ -55,12 +55,17 @@ All operations are **low risk** and easily reversible:
 ## CLI Commands
 
 ### confluence label add
-Add a label to content.
+Add one or more labels to content.
 
 **Usage:**
 ```bash
-confluence label add 12345 --label documentation
-confluence label add 12345 --labels doc,approved,v2
+confluence label add PAGE_ID LABEL [LABEL ...]
+```
+
+**Examples:**
+```bash
+confluence label add 12345 documentation
+confluence label add 12345 doc approved v2
 ```
 
 ### confluence label remove
@@ -68,7 +73,12 @@ Remove a label from content.
 
 **Usage:**
 ```bash
-confluence label remove 12345 --label draft
+confluence label remove PAGE_ID LABEL
+```
+
+**Examples:**
+```bash
+confluence label remove 12345 draft
 ```
 
 ### confluence label list
