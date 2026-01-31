@@ -93,29 +93,55 @@ Grant a permission to a user or group for a space.
 
 **Usage:**
 ```bash
-confluence permission space add SPACE_KEY --user email@example.com --operation read
-confluence permission space add DOCS --group confluence-users --operation write
-confluence permission space add TEST --user account-id:123456 --operation administer
+confluence permission space add SPACE_KEY --user ACCOUNT_ID --operation read
+confluence permission space add DOCS --group confluence-users --operation create
+confluence permission space add TEST --user 557058:12345678-abcd-1234-efgh-123456789abc --operation administer
+confluence permission space add DOCS --group editors --operation create --target page
 ```
 
+**Options:**
+- `--user` - User account ID (plain ID, no prefix)
+- `--group` - Group name
+- `--operation` - Permission operation (required)
+- `--target` - Target type (default: `space`)
+
 **Valid Operations:**
-- `read` - View space content
-- `write` - Create and edit content
-- `create` - Create pages
+- `read` - View content
+- `create` - Create content
 - `delete` - Delete content
-- `export` - Export content
 - `administer` - Manage space
-- `setpermissions` - Modify permissions
-- `createattachment` - Add attachments
+- `archive` - Archive content
+- `restrict_content` - Set content restrictions
+- `export` - Export content
+
+**Valid Targets:**
+- `space` - Space-level permission (default)
+- `page` - Page-level permission
+- `blogpost` - Blog post permission
+- `comment` - Comment permission
+- `attachment` - Attachment permission
 
 ### confluence permission space remove
 Revoke a permission from a user or group for a space.
 
 **Usage:**
 ```bash
-confluence permission space remove SPACE_KEY --user email@example.com --operation read
-confluence permission space remove DOCS --group confluence-users --operation write
+# Method 1: Remove by permission ID (preferred)
+confluence permission space remove SPACE_KEY --permission-id 12345
+confluence permission space remove DOCS -p 67890
+
+# Method 2: Remove by user/group + operation (finds and removes matching permissions)
+confluence permission space remove SPACE_KEY --user ACCOUNT_ID --operation read
+confluence permission space remove DOCS --group confluence-users --operation create
 ```
+
+**Options:**
+- `--permission-id`, `-p` - Permission ID to remove (primary method)
+- `--user` - User account ID (requires `--operation`)
+- `--group` - Group name (requires `--operation`)
+- `--operation` - Operation to match (REQUIRED when using `--user` or `--group`)
+
+**Note:** Use `confluence permission space get` to find permission IDs.
 
 ### confluence permission page get
 List restrictions on a page (who can read/edit).
@@ -133,10 +159,15 @@ Add a restriction to limit page access.
 
 **Usage:**
 ```bash
-confluence permission page add PAGE_ID --operation read --user email@example.com
+confluence permission page add PAGE_ID --operation read --user ACCOUNT_ID
 confluence permission page add 123456 --operation update --group confluence-users
-confluence permission page add 123456 --operation read --user account-id:123456
+confluence permission page add 123456 --operation read --user 557058:12345678-abcd-1234-efgh-123456789abc
 ```
+
+**Options:**
+- `--user` - User account ID (plain ID, no prefix)
+- `--group` - Group name
+- `--operation` - Restriction type (required): `read` or `update`
 
 **Restriction Types:**
 - `read` - Who can view the page
@@ -147,10 +178,16 @@ Remove a restriction from a page.
 
 **Usage:**
 ```bash
-confluence permission page remove PAGE_ID --operation read --user email@example.com
+confluence permission page remove PAGE_ID --operation read --user ACCOUNT_ID
 confluence permission page remove 123456 --operation update --group confluence-users
 confluence permission page remove 123456 --operation read --all
 ```
+
+**Options:**
+- `--user` - User account ID to remove from restriction
+- `--group` - Group name to remove from restriction
+- `--operation` - Restriction type (required): `read` or `update`
+- `--all` - Remove all restrictions of this type
 
 Use `--all` to remove all restrictions of a type (makes page accessible to all space members).
 
@@ -161,9 +198,9 @@ Use `--all` to remove all restrictions of a type (makes page accessible to all s
 # Get current restrictions
 confluence permission page get 123456
 
-# Add read restriction to specific users
-confluence permission page add 123456 --operation read --user john@example.com
-confluence permission page add 123456 --operation read --user jane@example.com
+# Add read restriction to specific users (use account IDs)
+confluence permission page add 123456 --operation read --user 557058:john-account-id
+confluence permission page add 123456 --operation read --user 557058:jane-account-id
 
 # Add edit restriction to admins group
 confluence permission page add 123456 --operation update --group confluence-administrators
@@ -174,8 +211,8 @@ confluence permission page add 123456 --operation update --group confluence-admi
 # Add read permission for the team
 confluence permission space add TEAMSPACE --group engineering-team --operation read
 
-# Add write permission for contributors
-confluence permission space add TEAMSPACE --group engineering-leads --operation write
+# Add create permission for contributors (to create pages)
+confluence permission space add TEAMSPACE --group engineering-leads --operation create --target page
 
 # Verify permissions
 confluence permission space get TEAMSPACE
@@ -222,7 +259,7 @@ confluence permission page remove 123456 --operation update --all
 
 ### 3. User vs Account ID
 - **Problem**: `--user` not finding the person
-- **Solution**: Use email address or account ID (`account-id:123456`)
+- **Solution**: Use the plain account ID (e.g., `557058:12345678-abcd-1234-efgh-123456789abc`), no prefix needed
 
 ### 4. Group Name Mismatch
 - **Problem**: Group not found when adding permissions
