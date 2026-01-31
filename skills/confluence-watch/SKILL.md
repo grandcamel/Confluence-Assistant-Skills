@@ -103,15 +103,16 @@ confluence watch unwatch-page 123456 --output json
 ```
 
 ### confluence watch space
-Start watching an entire Confluence space to receive notifications for new content.
+Start or stop watching an entire Confluence space to receive notifications for new content.
 
 **Usage:**
 ```bash
-confluence watch space SPACE_KEY [--output FORMAT]
+confluence watch space SPACE_KEY [--unwatch] [--output FORMAT]
 ```
 
 **Arguments:**
-- `SPACE_KEY` - Key of the space to watch (required)
+- `SPACE_KEY` - Key of the space to watch/unwatch (required)
+- `--unwatch, -u` - Unwatch the space instead of watching it
 - `--output, -o` - Output format: text or json (default: text)
 
 **Examples:**
@@ -121,6 +122,12 @@ confluence watch space DOCS
 
 # Watch space with lowercase key (auto-converted to uppercase)
 confluence watch space kb
+
+# Unwatch a space
+confluence watch space DOCS --unwatch
+
+# Unwatch using short flag
+confluence watch space TEST -u
 
 # Get JSON output
 confluence watch space TEST --output json
@@ -149,32 +156,37 @@ confluence watch list 123456 --output json
 
 **Output (text format):**
 ```
-Watchers for page 123456:
-Total: 2
+Watchers for "My Project Page":
 
-- John Doe (john.doe@example.com)
-- Jane Smith (jane.smith@example.com)
+Name                  Type
+--------------------  ----------
+John Doe              user
+Jane Smith            user
 
-Success: Retrieved 2 watcher(s)
+Total: 2 watcher(s)
 ```
 
 **Output (JSON format):**
 ```json
 {
-  "page_id": "123456",
-  "watcher_count": 2,
+  "page": {
+    "id": "123456",
+    "title": "My Project Page",
+    "type": "page"
+  },
   "watchers": [
     {
       "accountId": "user-123",
       "displayName": "John Doe",
-      "email": "john.doe@example.com"
+      "type": "user"
     },
     {
       "accountId": "user-456",
       "displayName": "Jane Smith",
-      "email": "jane.smith@example.com"
+      "type": "user"
     }
-  ]
+  ],
+  "count": 2
 }
 ```
 
@@ -201,30 +213,28 @@ confluence watch status 123456 --output json
 
 **Output (text format - watching):**
 ```
-Yes - John Doe is watching page 123456
-You will receive notifications for updates to this page.
-
-Success: Watching confirmed
+Watch Status: My Project Page
+  Page ID: 123456
+  Status: Watching
+  You will receive notifications for updates to this page.
 ```
 
 **Output (text format - not watching):**
 ```
-No - John Doe is not watching page 123456
-Use `confluence watch page` to start watching this page.
-
-Success: Not watching
+Watch Status: My Project Page
+  Page ID: 123456
+  Status: Not watching
+  Use `confluence watch page 123456` to start watching.
 ```
 
 **Output (JSON format):**
 ```json
 {
-  "page_id": "123456",
-  "watching": true,
-  "user": {
-    "accountId": "user-123",
-    "displayName": "John Doe",
-    "email": "john.doe@example.com"
-  }
+  "page": {
+    "id": "123456",
+    "title": "My Project Page"
+  },
+  "watching": true
 }
 ```
 
@@ -235,8 +245,12 @@ This skill uses the Confluence v1 REST API:
 - `POST /rest/api/user/watch/content/{id}` - Watch a page
 - `DELETE /rest/api/user/watch/content/{id}` - Unwatch a page
 - `POST /rest/api/user/watch/space/{key}` - Watch a space
-- `GET /rest/api/content/{id}/notification/created` - Get watchers
+- `DELETE /rest/api/user/watch/space/{key}` - Unwatch a space
+- `GET /rest/api/content/{id}/notification/child-created` - Get watchers (primary endpoint)
+- `GET /rest/api/content/{id}/notification/created` - Get watchers (fallback endpoint)
 - `GET /rest/api/user/current` - Get current user info
+
+**Note:** The watchers list endpoint uses `/notification/child-created` as the primary endpoint, with automatic fallback to `/notification/created` for compatibility with different Confluence versions.
 
 ## Common Use Cases
 
