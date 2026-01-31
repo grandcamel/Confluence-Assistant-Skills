@@ -125,6 +125,7 @@ All commands support `--help` for full documentation.
 # Search users
 confluence admin user search "name or email"
 confluence admin user search "john" --include-groups
+confluence admin user search "john" --limit 50
 
 # Get user details
 confluence admin user get ACCOUNT_ID
@@ -133,17 +134,24 @@ confluence admin user get ACCOUNT_ID
 confluence admin user groups ACCOUNT_ID
 ```
 
+**Options for `user search`:**
+- `--include-groups` - Include group membership in results
+- `--limit, -l` - Maximum results (default: 25)
+- `--output, -o` - Output format: text or json
+
 ### Group Management
 
 ```bash
 # List all groups
 confluence admin group list
+confluence admin group list --limit 100
 
 # Get group details
 confluence admin group get "group-name"
 
 # List group members
 confluence admin group members "group-name"
+confluence admin group members "group-name" --limit 100
 
 # Create group
 confluence admin group create "new-group-name"
@@ -157,6 +165,14 @@ confluence admin group add-user "group-name" --user "user@email.com"
 # Remove user from group
 confluence admin group remove-user "group-name" --user "user@email.com" --confirm
 ```
+
+**Options for `group list`:**
+- `--limit, -l` - Maximum results (default: 50)
+- `--output, -o` - Output format: text or json
+
+**Options for `group members`:**
+- `--limit, -l` - Maximum results (default: 50)
+- `--output, -o` - Output format: text or json
 
 ### Space Administration
 
@@ -177,10 +193,16 @@ confluence admin space permissions SPACEKEY
 # List templates
 confluence admin template list
 confluence admin template list --space DOCS
+confluence admin template list --limit 100
 
 # Get template details
 confluence admin template get TEMPLATE_ID
 ```
+
+**Options for `template list`:**
+- `--space, -s` - Filter by space key
+- `--limit, -l` - Maximum results (default: 50)
+- `--output, -o` - Output format: text or json
 
 ### Permission Diagnostics
 

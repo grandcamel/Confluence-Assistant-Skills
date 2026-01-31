@@ -170,6 +170,8 @@ confluence property list 12345 --output json
 - `--verbose, -v` - Show detailed information
 - `--output, -o` - Output format: text or json
 
+**Note:** This command retrieves up to 100 properties maximum.
+
 ## API Reference
 
 Uses Confluence REST API v1 endpoints:

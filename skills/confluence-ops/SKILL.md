@@ -90,6 +90,9 @@ confluence ops cache-warm --spaces
 
 # Test API connectivity
 confluence ops health-check
+
+# Full API diagnostics
+confluence ops api-diagnostics
 ```
 
 ---

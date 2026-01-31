@@ -88,6 +88,8 @@ confluence permission space get DOCS --output json
 
 **Output:** Lists all users and groups with their assigned operations (read, write, administer, etc.)
 
+**Note:** Use `--output json` to see permission IDs, which are required for removing specific permissions with `confluence permission space remove --permission-id`.
+
 ### confluence permission space add
 Grant a permission to a user or group for a space.
 

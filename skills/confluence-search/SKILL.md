@@ -304,12 +304,12 @@ confluence search history cleanup --days 30
 ```
 
 **Subcommands:**
-- `list` - List recent queries (--limit, --output)
+- `list` - List recent queries (--limit default: 20, --output)
 - `search KEYWORD` - Search history for queries containing keyword
 - `show INDEX` - Show specific query by index
 - `clear` - Clear all query history
 - `export FILE` - Export history to file (--format: csv or json)
-- `cleanup` - Remove old entries (--days: default 90)
+- `cleanup` - Remove old entries (--days default: 90)
 
 ### confluence search content
 

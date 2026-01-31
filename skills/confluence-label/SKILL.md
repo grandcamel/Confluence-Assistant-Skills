@@ -60,7 +60,11 @@ Add one or more labels to content.
 **Usage:**
 ```bash
 confluence label add PAGE_ID LABEL [LABEL ...]
+confluence label add 12345 documentation --output json
 ```
+
+**Options:**
+- `--output, -o` - Output format: text or json
 
 **Examples:**
 ```bash
@@ -74,7 +78,11 @@ Remove a label from content.
 **Usage:**
 ```bash
 confluence label remove PAGE_ID LABEL
+confluence label remove 12345 draft --output json
 ```
+
+**Options:**
+- `--output, -o` - Output format: text or json
 
 **Examples:**
 ```bash
@@ -87,7 +95,11 @@ List labels on content.
 **Usage:**
 ```bash
 confluence label list 12345
+confluence label list 12345 --output json
 ```
+
+**Options:**
+- `--output, -o` - Output format: text or json
 
 ### confluence label search
 Find content by label.
@@ -96,7 +108,14 @@ Find content by label.
 ```bash
 confluence label search documentation
 confluence label search approved --space DOCS
+confluence label search api-docs --type page --limit 50
 ```
+
+**Options:**
+- `--space, -s` - Limit to specific space
+- `--type` - Content type filter: page or blogpost
+- `--limit, -l` - Maximum results (default: 25)
+- `--output, -o` - Output format: text or json
 
 ### confluence label popular
 List most used labels.
@@ -105,4 +124,10 @@ List most used labels.
 ```bash
 confluence label popular --space DOCS
 confluence label popular --limit 20
+confluence label popular --output json
 ```
+
+**Options:**
+- `--space, -s` - Limit to specific space
+- `--limit, -l` - Maximum labels to return (default: 25)
+- `--output, -o` - Output format: text or json

@@ -208,23 +208,19 @@ confluence analytics popular --space DOCS --type blogpost --limit 5
 
 **Output (text):**
 ```
-Popular Content (sorted by modified)
+Popular Content
 Space: DOCS
-Type: all
+Sort: modified
+════════════════════════════════════════════════════════════
 
-Found 10 items:
-
-1. API Documentation
-   Type: page | Space: DOCS
-   Last Modified: 2024-01-15T10:30:00.000Z
-   URL: https://your-site.atlassian.net/wiki/spaces/DOCS/pages/12345
-
-2. Getting Started Guide
-   Type: page | Space: DOCS
-   Last Modified: 2024-01-14T16:20:00.000Z
-   URL: https://your-site.atlassian.net/wiki/spaces/DOCS/pages/12346
-
+ID      Title                               Type   Space  Modified
+──────  ──────────────────────────────────  ─────  ─────  ──────────
+12345   API Documentation                   page   DOCS   2024-01-15
+12346   Getting Started Guide               page   DOCS   2024-01-14
+12347   Configuration Reference             page   DOCS   2024-01-13
 ...
+
+✓ Found 10 content item(s)
 ```
 
 ---
@@ -253,17 +249,16 @@ confluence analytics watchers 12345 --output json
 
 **Output (text):**
 ```
-Page: API Documentation
-ID: 12345
-Type: page
-Space: DOCS
+Watchers of: API Documentation (12345)
+════════════════════════════════════════════════════════════
 
-Watchers: 3
+Name             Type   Email
+───────────────  ─────  ──────────────────────────────
+John Doe         user   john.doe@example.com
+Jane Smith       user   jane.smith@example.com
+Alice Johnson    user   alice.johnson@example.com
 
-Watcher List:
-  - John Doe (john.doe@example.com)
-  - Jane Smith (jane.smith@example.com)
-  - Alice Johnson (alice.johnson@example.com)
+✓ Found 3 watcher(s)
 ```
 
 **Note:** Some Confluence Cloud instances may have restricted watcher API access. If the watchers endpoint is not available, the command will report this.

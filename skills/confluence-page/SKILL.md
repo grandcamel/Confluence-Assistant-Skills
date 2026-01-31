@@ -141,7 +141,7 @@ confluence page get 12345 --output json
 **Arguments:**
 - `page_id` - Page ID (required)
 - `--body` - Include body content
-- `--format` - Body format: storage, view, or markdown
+- `--format` - Body format: storage (default), view, or markdown
 - `--output, -o` - Output format: text or json
 
 ### confluence page update
@@ -364,6 +364,10 @@ User: Create a page called "API Documentation" in DOCS space with content explai
 ### 6. Permanent Delete Recovery
 - **Problem**: Accidentally used `--permanent` flag
 - **Solution**: **No recovery possible** - always use trash (default) first
+
+### 7. Blog Post Update/Delete
+- **Problem**: Trying to update or delete a blog post using page commands
+- **Solution**: Blog posts currently only support `create` and `get` operations via CLI. Update/delete must be done via Confluence UI.
 
 ---
 

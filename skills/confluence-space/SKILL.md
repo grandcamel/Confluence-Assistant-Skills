@@ -184,7 +184,7 @@ List pages in a space.
 # List all pages
 confluence space content DOCS
 
-# Filter by depth
+# Filter by depth (only "root" is supported)
 confluence space content DOCS --depth root
 
 # Include archived
@@ -193,7 +193,7 @@ confluence space content DOCS --include-archived
 
 **Arguments:**
 - `space_key` - Space key (required)
-- `--depth` - Content depth: root, children, or all (default)
+- `--depth` - Content depth filter (only `root` is currently supported)
 - `--status` - Filter by status (current, archived, draft)
 - `--include-archived` - Include archived content
 - `--limit, -l` - Maximum results

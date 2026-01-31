@@ -102,7 +102,12 @@ Remove an attachment.
 ```bash
 confluence attachment delete ATTACHMENT_ID
 confluence attachment delete ATTACHMENT_ID --force
+confluence attachment delete ATTACHMENT_ID --purge --force
 ```
+
+**Options:**
+- `--force`, `-f` - Skip confirmation prompt
+- `--purge` - Permanently delete (otherwise moves to trash)
 
 ### confluence attachment update
 Replace an attachment file.

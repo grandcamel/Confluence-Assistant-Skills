@@ -69,11 +69,13 @@ confluence comment add PAGE_ID --file comment.txt
 
 **Arguments:**
 - `page_id` - Page ID to add comment to
-- `body` - Comment body text (or use --file)
+- `body` - Comment body text (optional if using --file)
 
 **Options:**
-- `--file`, `-f` - Read comment body from file
+- `--file`, `-f` - Read comment body from file (alternative to body argument)
 - `--output`, `-o` - Output format (text or json)
+
+**Note:** Either `body` argument or `--file` option is required, but not both.
 
 ### confluence comment list
 
@@ -207,14 +209,14 @@ confluence comment resolve COMMENT_ID --unresolve
 This skill uses the Confluence v2 REST API:
 
 - **Footer Comments:**
-  - `POST /api/v2/pages/{id}/footer-comments` - Add comment
-  - `GET /api/v2/pages/{id}/footer-comments` - Get comments
+  - `POST /api/v2/footer-comments` - Add comment (pageId in request body)
+  - `GET /api/v2/pages/{id}/footer-comments` - Get comments on a page
   - `GET /api/v2/footer-comments/{id}` - Get specific comment
   - `PUT /api/v2/footer-comments/{id}` - Update comment
   - `DELETE /api/v2/footer-comments/{id}` - Delete comment
 
 - **Inline Comments:**
-  - `POST /api/v2/pages/{id}/inline-comments` - Add inline comment
+  - `POST /api/v2/inline-comments` - Add inline comment (pageId in request body)
 
 ## Error Handling
 
