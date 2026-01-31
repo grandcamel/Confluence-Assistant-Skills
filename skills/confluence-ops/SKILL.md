@@ -152,8 +152,8 @@ confluence ops cache-warm --space DOCS
 # Cache all available metadata
 confluence ops cache-warm --all --verbose
 
-# Cache with specific TTL
-confluence ops cache-warm --spaces --ttl 3600
+# JSON output for scripting
+confluence ops cache-warm --spaces --output json
 ```
 
 ### Clear Cache
@@ -176,6 +176,9 @@ confluence ops cache-clear --pattern "DOCS-*" --category pages --force
 
 # Clear entries older than N days
 confluence ops cache-clear --older-than 7 --force
+
+# JSON output for scripting
+confluence ops cache-clear --force --output json
 ```
 
 ### API Diagnostics
@@ -226,12 +229,16 @@ confluence ops rate-limit-status --output json
 ```
 Rate Limit Status
 ────────────────────────────
-Limit:            100 requests/minute
-Used:             45 requests
-Remaining:        55 requests
-Resets in:        32 seconds
+Status:           ✓ No rate limit errors detected
 
-Status:           ✓ OK (45% used)
+Note: Confluence Cloud does not expose rate limit headers in API responses.
+Rate limits are applied server-side and vary by endpoint and account tier.
+
+Recommendations:
+  - Monitor for HTTP 429 responses
+  - Implement exponential backoff on retries
+  - Limit bulk operations to 5-10 concurrent requests
+  - Add small delays between rapid sequential calls
 ```
 
 ---
