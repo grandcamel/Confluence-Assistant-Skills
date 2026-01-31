@@ -52,7 +52,7 @@ Work with Confluence page templates and blueprints.
 
 ## Overview
 
-Templates in Confluence allow you to standardize page creation. Blueprints are pre-built templates provided by Confluence or apps. This skill uses the Confluence v1 REST API (`/rest/api/template/*`) to manage templates.
+Templates in Confluence allow you to standardize page creation. Blueprints are pre-built templates provided by Confluence or apps. This skill primarily uses the Confluence v1 REST API (`/rest/api/template/*`) for template management, while `create-from` uses the v2 API (`/api/v2/pages`) for page creation.
 
 ## CLI Commands
 
@@ -81,11 +81,11 @@ confluence template list --limit 50
 ```
 
 **Arguments:**
-- `--space`: Filter templates by space key
-- `--type`: Filter by template type (page or blogpost)
+- `--space`, `-s`: Filter templates by space key
+- `--type`, `-t`: Filter by template type (page or blogpost)
 - `--blueprints`: List blueprints instead of templates
 - `--output`, `-o`: Output format (text or json)
-- `--limit`: Maximum number of results (default: 100)
+- `--limit`, `-l`: Maximum number of results (default: 100, max: 250)
 
 ### confluence template get
 Retrieve detailed information about a specific template or blueprint.
@@ -179,14 +179,16 @@ confluence template create --name "Custom" --space DOCS --blueprint-id com.atlas
 
 **Arguments:**
 - `--name`: Template name (required)
-- `--space`: Space key (required)
+- `--space`, `-s`: Space key (required)
 - `--description`: Template description
-- `--content`: Template body content (HTML/XHTML)
-- `--file`: File with template content (Markdown or HTML)
+- `--content`: Template body content (HTML/XHTML) - required if `--file` not provided
+- `--file`: File with template content (Markdown or HTML) - required if `--content` not provided
 - `--labels`: Comma-separated labels
-- `--type`: Template type - page or blogpost (default: page)
+- `--type`, `-t`: Template type - page or blogpost (default: page)
 - `--blueprint-id`: Base on existing blueprint
 - `--output`, `-o`: Output format (text or json)
+
+Note: Either `--content` or `--file` must be provided to specify the template body.
 
 ### confluence template update
 Update an existing page template.
@@ -232,14 +234,17 @@ Note: At least one field must be specified to update.
 
 ## API Endpoints Used
 
-This skill uses the Confluence v1 REST API:
+This skill uses the Confluence REST API:
 
+**v1 API (template management):**
 - `GET /rest/api/template/page` - List page templates
 - `GET /rest/api/template/blueprint` - List blueprints
 - `GET /rest/api/template/{templateId}` - Get template details
 - `POST /rest/api/template` - Create template
 - `PUT /rest/api/template/{templateId}` - Update template
-- `POST /rest/api/content` - Create page from template
+
+**v2 API (page creation):**
+- `POST /api/v2/pages` - Create page from template (used by `create-from`)
 
 ## Examples
 

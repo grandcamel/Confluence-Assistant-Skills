@@ -73,7 +73,7 @@ Use this skill when you need to:
 **Scale guidance:**
 - 5-10 pages: Run directly, no special options needed
 - 50-100 pages: Use `--dry-run` first, then execute
-- 500+ pages: Use `--batch-size` and consider off-peak hours
+- 500+ pages: Consider off-peak hours; use `--batch-size` for label add operations
 
 ---
 
@@ -98,10 +98,10 @@ confluence bulk delete --cql "space = ARCHIVE AND created < '2023-01-01'" --dry-
 |---------|---------|------|---------|
 | `confluence bulk label add` | Add labels to pages | ⚠️ | `--cql "..." --labels "tag1,tag2"` |
 | `confluence bulk label remove` | Remove labels from pages | ⚠️ | `--cql "..." --labels "old-tag"` |
-| `confluence bulk update` | Update page properties | ⚠️⚠️ | `--cql "..." --title-prefix "[Archive]"` |
+| `confluence bulk update` | Update page properties | ⚠️⚠️ | `--cql "..." --title-prefix "[Archive]" --title-suffix " (Old)"` |
 | `confluence bulk move` | Move pages to new location | ⚠️⚠️ | `--cql "..." --target-space NEWSPACE` |
 | `confluence bulk delete` | **Delete pages permanently** | ⚠️⚠️⚠️ | `--cql "..." --dry-run` |
-| `confluence bulk permission` | Change page permissions | ⚠️⚠️ | `--cql "..." --add-group viewers` |
+| `confluence bulk permission` | Change page permissions | ⚠️⚠️ | `--cql "..." --add-group GROUP` / `--remove-group GROUP` / `--add-user USERID` / `--remove-user USERID` |
 
 ---
 
@@ -114,7 +114,7 @@ All commands support these options:
 | `--dry-run` | Preview changes | **Always** use for ⚠️⚠️+ operations |
 | `--yes` / `-y` | Skip confirmation | Scripted automation |
 | `--max-pages N` | Limit scope (default: 100) | Testing, large operations |
-| `--batch-size N` | Control batching | 500+ pages or rate limits |
+| `--batch-size N` | Control batching (label add only) | 500+ pages or rate limits (not all commands support this) |
 | `--output json` | JSON output | Scripting, pipelines |
 
 ---
@@ -178,12 +178,21 @@ confluence bulk delete --cql "space = CLEANUP" --max-pages 50 --dry-run
 # Add group to page permissions
 confluence bulk permission --cql "space = INTERNAL" --add-group "engineering" --dry-run
 
-# Remove user from permissions
-confluence bulk permission --cql "label = 'sensitive'" --remove-user "contractor@email.com" --dry-run
+# Remove group from page permissions
+confluence bulk permission --cql "space = INTERNAL" --remove-group "contractors" --dry-run
 
-# Restrict to specific group
-confluence bulk permission --cql "space = PRIVATE" --restrict-to-group "executives" --dry-run
+# Add user to page permissions
+confluence bulk permission --cql "label = 'team-docs'" --add-user "user123" --dry-run
+
+# Remove user from permissions
+confluence bulk permission --cql "label = 'sensitive'" --remove-user "contractor123" --dry-run
 ```
+
+**Permission options:**
+- `--add-group GROUP` - Add a group to page permissions
+- `--remove-group GROUP` - Remove a group from page permissions
+- `--add-user USERID` - Add a user to page permissions
+- `--remove-user USERID` - Remove a user from page permissions
 
 ---
 
@@ -195,12 +204,12 @@ confluence bulk permission --cql "space = PRIVATE" --restrict-to-group "executiv
 |------------|-------------------|
 | <50 | Defaults are fine |
 | 50-500 | `--dry-run` first, then execute |
-| 500-1,000 | `--batch-size 100` |
-| 1,000+ | `--batch-size 50`, run during off-peak |
+| 500-1,000 | Use `--batch-size 100` for label add; run off-peak for other commands |
+| 1,000+ | Use `--batch-size 50` for label add; run off-peak for other commands |
 
 **Getting rate limit (429) errors?**
-- Reduce batch size: `--batch-size 25`
-- Consider running during off-peak hours
+- For label add: Reduce batch size with `--batch-size 25`
+- For other commands: Run during off-peak hours, use `--max-pages` to limit scope
 
 ---
 

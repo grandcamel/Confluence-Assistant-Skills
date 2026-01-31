@@ -97,12 +97,11 @@ ID: 12345
 Type: page
 Space: DOCS
 
-Version: 15
-Last Modified: 2024-01-15T10:30:00.000Z
+History Information
+Last Modified: 2024-01-15
 Modified By: John Doe
 
-Created: 2024-01-01T10:00:00.000Z
-Created By: Jane Smith
+Created: 2024-01-01
 
 Contributors (5):
   - Jane Smith
@@ -153,22 +152,16 @@ confluence analytics space DOCS --output json
 Space: DOCS
 Period: Last 30 days
 
+Content Summary
 Total Items: 156
-
-By Type:
-  page: 142
-  blogpost: 14
-
-Top Contributors:
-  John Doe: 45 items
-  Jane Smith: 38 items
-  Alice Johnson: 22 items
-  ...
+Pages: 142+
+Blog Posts: 14+
+Contributors: 8
 
 Recent Updates:
-  - API Documentation (page) - 2024-01-15T10:30:00.000Z
-  - Release Notes v2.1 (page) - 2024-01-14T15:20:00.000Z
-  - Q1 Planning (blogpost) - 2024-01-13T09:45:00.000Z
+  - API Documentation (page) - 2024-01-15
+  - Release Notes v2.1 (page) - 2024-01-14
+  - Q1 Planning (blogpost) - 2024-01-13
   ...
 ```
 
@@ -196,7 +189,7 @@ confluence analytics popular [--space SPACE_KEY] [--label LABEL] [--type TYPE] [
 - `--limit` - Number of results (default: 10)
 - `--output` - Output format: text or json (default: text)
 
-**Note:** Must specify either `--space` or `--label`
+**Note:** Both `--space` and `--label` are optional. If neither is specified, the command searches across all accessible spaces.
 
 **Examples:**
 ```bash

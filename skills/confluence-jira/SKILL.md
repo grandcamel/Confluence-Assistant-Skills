@@ -122,7 +122,7 @@ confluence jira create-from-page 12345 --project PROJ --type Task --output json
 
 **Options:**
 - `--project`, `-p`: JIRA project key (required)
-- `--type`, `-t`: Issue type (default: Task). Options: Task, Story, Bug, Epic, Subtask, Improvement, New Feature
+- `--type`, `-t`: Issue type (default: Task). Common values include: Task, Story, Bug, Epic, Subtask, Improvement, New Feature. Any valid issue type for your JIRA project is accepted.
 - `--priority`: Priority level (e.g., High, Medium, Low)
 - `--assignee`: Assignee username
 - `--jira-url`: JIRA base URL (or set JIRA_URL env var)
@@ -132,6 +132,8 @@ confluence jira create-from-page 12345 --project PROJ --type Task --output json
 
 ### confluence jira link
 Create a remote link between a Confluence page and a JIRA issue. The link appears in both systems.
+
+**Implementation Note:** Links are tracked using HTML comment markers in the page content (e.g., `<!-- JIRA-LINK: PROJ-123 -->`). The `--skip-if-exists` option checks for these markers to avoid duplicate links.
 
 **Usage:**
 ```bash
@@ -150,7 +152,7 @@ confluence jira link 12345 PROJ-123 --jira-url https://jira.example.com --output
 
 **Options:**
 - `--jira-url`: Base JIRA URL (required, e.g., https://jira.example.com)
-- `--relationship`: Relationship type (default: "relates to"). Options: relates to, documents, mentions, references, implements
+- `--relationship`: Relationship type (default: "relates to"). Common values include: relates to, documents, mentions, references, implements. Any string value is accepted. Note: This is descriptive metadata stored in the link; it does not affect how Confluence or JIRA process the link itself.
 - `--skip-if-exists`: Skip if link already exists
 - `--output`: Output format (`text` or `json`)
 

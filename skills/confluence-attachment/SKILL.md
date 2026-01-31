@@ -61,7 +61,12 @@ Upload a file to a page.
 confluence attachment upload PAGE_ID FILE_PATH
 confluence attachment upload 12345 report.pdf
 confluence attachment upload 12345 image.png --comment "Screenshot"
+confluence attachment upload 12345 data.csv --output json
 ```
+
+**Options:**
+- `--comment` - Comment describing the attachment
+- `--output, -o` - Output format: `text` (default) or `json`
 
 ### confluence attachment download
 Download an attachment.
@@ -82,7 +87,13 @@ confluence attachment list 12345
 confluence attachment list 12345 --output json
 confluence attachment list 12345 --output table
 confluence attachment list 12345 --media-type application/pdf
+confluence attachment list 12345 --limit 50
 ```
+
+**Options:**
+- `--output, -o` - Output format: `text`, `json`, or `table`
+- `--media-type` - Filter by media type (e.g., `application/pdf`)
+- `--limit` - Maximum number of results (default 25, max 250)
 
 ### confluence attachment delete
 Remove an attachment.
@@ -101,4 +112,9 @@ Replace an attachment file.
 confluence attachment update ATTACHMENT_ID FILE_PATH
 confluence attachment update att123456 new_version.pdf
 confluence attachment update att123456 updated.docx --comment "Updated content"
+confluence attachment update att123456 report.pdf --output json
 ```
+
+**Options:**
+- `--comment` - Comment describing the update
+- `--output, -o` - Output format: `text` (default) or `json`
