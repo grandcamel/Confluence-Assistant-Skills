@@ -25,9 +25,15 @@ while [[ $# -gt 0 ]]; do
             ;;
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
             echo "  --local     Run locally without Docker"
             echo "  --shell     Open debug shell in Docker"
             echo "  --verbose   Verbose output"
+            echo ""
+            echo "Authentication (one required):"
+            echo "  ANTHROPIC_API_KEY    Set env var with API key"
+            echo "  claude auth login    OAuth via browser (creates ~/.claude/credentials.json)"
             exit 0
             ;;
         *) echo -e "${RED}Unknown: $1${NC}"; exit 1 ;;
@@ -35,13 +41,33 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Check auth
-if [[ -n "$ANTHROPIC_API_KEY" ]]; then
-    echo -e "${GREEN}✓ API key configured${NC}"
-elif [[ -f "$HOME/.claude/credentials.json" ]]; then
-    echo -e "${GREEN}✓ OAuth configured${NC}"
-else
-    echo -e "${RED}✗ No authentication${NC}"
-    echo "Set ANTHROPIC_API_KEY or run: claude auth login"
+check_authentication() {
+    if [[ -n "$ANTHROPIC_API_KEY" ]]; then
+        echo -e "${GREEN}✓ Authentication: API key configured${NC}"
+        return 0
+    elif [[ -f "$HOME/.claude/credentials.json" ]]; then
+        echo -e "${GREEN}✓ Authentication: OAuth configured${NC}"
+        return 0
+    fi
+    return 1
+}
+
+if ! check_authentication; then
+    echo -e "${RED}✗ No authentication configured${NC}"
+    echo ""
+    echo "E2E tests require authentication to access Claude. Choose one option:"
+    echo ""
+    echo -e "${YELLOW}Option A: OAuth Login (Recommended for local development)${NC}"
+    echo "  Run: claude auth login"
+    echo "  This opens your browser for OAuth authentication and stores"
+    echo "  credentials in ~/.claude/credentials.json"
+    echo ""
+    echo -e "${YELLOW}Option B: API Key${NC}"
+    echo "  Set the ANTHROPIC_API_KEY environment variable:"
+    echo "  export ANTHROPIC_API_KEY=\"sk-ant-...\""
+    echo ""
+    echo "For CI/CD environments, use Option B with a secret."
+    echo "For local development, Option A is recommended."
     exit 1
 fi
 
