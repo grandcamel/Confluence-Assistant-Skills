@@ -32,8 +32,9 @@ while [[ $# -gt 0 ]]; do
             echo "  --verbose   Verbose output"
             echo ""
             echo "Authentication (one required):"
-            echo "  ANTHROPIC_API_KEY    Set env var with API key"
-            echo "  claude auth login    OAuth via browser (creates ~/.claude/credentials.json)"
+            echo "  ANTHROPIC_API_KEY         Set env var with API key"
+            echo "  CLAUDE_CODE_OAUTH_TOKEN   Set env var with OAuth token"
+            echo "  claude auth login         OAuth via browser (creates ~/.claude/credentials.json)"
             exit 0
             ;;
         *) echo -e "${RED}Unknown: $1${NC}"; exit 1 ;;
@@ -45,8 +46,11 @@ check_authentication() {
     if [[ -n "$ANTHROPIC_API_KEY" ]]; then
         echo -e "${GREEN}✓ Authentication: API key configured${NC}"
         return 0
+    elif [[ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]]; then
+        echo -e "${GREEN}✓ Authentication: OAuth token configured${NC}"
+        return 0
     elif [[ -f "$HOME/.claude/credentials.json" ]]; then
-        echo -e "${GREEN}✓ Authentication: OAuth configured${NC}"
+        echo -e "${GREEN}✓ Authentication: OAuth credentials file configured${NC}"
         return 0
     fi
     return 1
@@ -62,11 +66,15 @@ if ! check_authentication; then
     echo "  This opens your browser for OAuth authentication and stores"
     echo "  credentials in ~/.claude/credentials.json"
     echo ""
-    echo -e "${YELLOW}Option B: API Key${NC}"
+    echo -e "${YELLOW}Option B: OAuth Token${NC}"
+    echo "  Set the CLAUDE_CODE_OAUTH_TOKEN environment variable:"
+    echo "  export CLAUDE_CODE_OAUTH_TOKEN=\"your-oauth-token\""
+    echo ""
+    echo -e "${YELLOW}Option C: API Key${NC}"
     echo "  Set the ANTHROPIC_API_KEY environment variable:"
     echo "  export ANTHROPIC_API_KEY=\"sk-ant-...\""
     echo ""
-    echo "For CI/CD environments, use Option B with a secret."
+    echo "For CI/CD environments, use Option B or C with a secret."
     echo "For local development, Option A is recommended."
     exit 1
 fi
