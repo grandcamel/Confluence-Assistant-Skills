@@ -1,36 +1,31 @@
 ---
 name: confluence-admin
 description: >
-  Complete Confluence administration including spaces, templates, users, groups,
-  permissions, and site settings. Use when managing space structure, configuring
-  templates, controlling access, or setting up Confluence for teams.
+  Confluence administration including users, groups, space settings,
+  and permission diagnostics. Use when managing user access, group membership,
+  viewing space configuration, or checking permissions.
 triggers:
   - admin
   - administration
-  - site settings
-  - global settings
   - user management
   - group management
-  - template management
   - space settings
   - configure
-  - setup
 ---
 
 # Confluence Admin Skill
 
-Comprehensive administration tools for Confluence Cloud covering space management, templates, users, groups, and permissions.
+Administration tools for Confluence Cloud covering user management, group management, space settings, and permission diagnostics.
 
 ---
 
-## ⚠️ PRIMARY USE CASE
+## PRIMARY USE CASE
 
 **This skill handles Confluence administration tasks.** Use for:
+- User search and information
+- Group management and membership
 - Space settings and configuration
-- Template management and creation
-- User and group management
-- Permission scheme configuration
-- Site-level settings
+- Permission diagnostics
 
 ---
 
@@ -39,13 +34,13 @@ Comprehensive administration tools for Confluence Cloud covering space managemen
 | Use This Skill | Use Instead |
 |----------------|-------------|
 | Space settings/configuration | - |
-| Create/manage templates | - |
 | User/group management | - |
-| Permission schemes | - |
-| Site settings | - |
+| Permission diagnostics | - |
+| View templates | - |
 | Page content CRUD | `confluence-page` |
 | Single page permissions | `confluence-permission` |
 | Search content | `confluence-search` |
+| Create pages from templates | `confluence-template` |
 
 ---
 
@@ -55,25 +50,25 @@ Comprehensive administration tools for Confluence Cloud covering space managemen
 |-----------|------|-------|
 | List users/groups | - | Read-only |
 | View settings | - | Read-only |
-| Create templates | ⚠️ | Can be deleted |
+| View templates | - | Read-only |
+| Check permissions | - | Read-only |
 | Update space settings | ⚠️ | Affects space behavior |
-| Modify groups | ⚠️⚠️ | Affects access |
-| Change permission schemes | ⚠️⚠️ | Can lock users out |
-| Delete space | ⚠️⚠️⚠️ | **IRREVERSIBLE** |
+| Create groups | ⚠️ | Can be deleted |
+| Modify group membership | ⚠️⚠️ | Affects access |
+| Delete groups | ⚠️⚠️ | Affects access |
 
 ---
 
 ## What This Skill Does
 
-**5 Major Administration Areas:**
+**4 Major Administration Areas:**
 
-| Area | Scripts | Key Operations |
-|------|---------|----------------|
-| **Space Administration** | 8 | Configure settings, themes, features |
-| **Template Management** | 6 | Create, update, delete templates |
-| **User Management** | 5 | Search, view, manage users |
-| **Group Management** | 6 | Create, manage groups, membership |
-| **Permission Management** | 7 | Schemes, grants, diagnostics |
+| Area | Commands | Key Operations |
+|------|----------|----------------|
+| **User Management** | 3 | Search, view details, list groups |
+| **Group Management** | 7 | Create, delete, manage membership |
+| **Space Administration** | 3 | View settings, update, permissions |
+| **Templates & Permissions** | 3 | List templates, check permissions |
 
 ---
 
@@ -81,33 +76,24 @@ Comprehensive administration tools for Confluence Cloud covering space managemen
 
 Reach for this skill when you need to:
 
-**Space Administration:**
-- Configure space settings (homepage, description)
-- Enable/disable space features
-- Set space themes and look-and-feel
-- Manage space categories
-
-**Template Management:**
-- Create page templates for standardization
-- Update existing templates
-- Manage blueprint configurations
-- Set default templates for spaces
-
 **User Management:**
 - Search for users by name or email
-- View user details and permissions
+- View user details
 - Check user's group memberships
 
 **Group Management:**
-- Create and manage groups
+- Create and delete groups
 - Add/remove users from groups
 - View group membership
 
-**Permission Administration:**
-- Create permission schemes
-- Assign permissions to groups/users
-- Diagnose permission issues
-- Audit access control
+**Space Administration:**
+- View space settings
+- Update space description
+- View space permissions
+
+**Permission Diagnostics:**
+- Check what permissions you have on a space
+- Diagnose access issues
 
 ---
 
@@ -133,52 +119,6 @@ confluence admin template list --space DOCS
 
 All commands support `--help` for full documentation.
 
-### Space Administration
-
-```bash
-# View space settings
-confluence admin space settings SPACEKEY
-
-# Update space description
-confluence admin space update SPACEKEY --description "New description"
-
-# Set space homepage
-confluence admin space set-homepage SPACEKEY --page-id 12345
-
-# Enable/disable features
-confluence admin space feature enable SPACEKEY --feature blog
-confluence admin space feature disable SPACEKEY --feature blog
-
-# View space theme
-confluence admin space theme SPACEKEY
-
-# List all space categories
-confluence admin category list
-```
-
-### Template Management
-
-```bash
-# List templates
-confluence admin template list
-confluence admin template list --space DOCS
-
-# Get template details
-confluence admin template get TEMPLATE_ID
-
-# Create template
-confluence admin template create --space DOCS --name "Meeting Notes" --file template.md
-
-# Update template
-confluence admin template update TEMPLATE_ID --file updated.md
-
-# Delete template
-confluence admin template delete TEMPLATE_ID --confirm
-
-# Set default template for space
-confluence admin template set-default --space DOCS --template-id TEMPLATE_ID
-```
-
 ### User Management
 
 ```bash
@@ -191,9 +131,6 @@ confluence admin user get ACCOUNT_ID
 
 # List user's groups
 confluence admin user groups ACCOUNT_ID
-
-# Check user permissions on space
-confluence admin user permissions ACCOUNT_ID --space DOCS
 ```
 
 ### Group Management
@@ -221,43 +158,43 @@ confluence admin group add-user "group-name" --user "user@email.com"
 confluence admin group remove-user "group-name" --user "user@email.com" --confirm
 ```
 
-### Permission Management
+### Space Administration
 
 ```bash
-# List permission schemes
-confluence admin permission-scheme list
+# View space settings
+confluence admin space settings SPACEKEY
 
-# Get scheme details
-confluence admin permission-scheme get SCHEME_ID
+# Update space description
+confluence admin space update SPACEKEY --description "New description"
 
-# Create permission scheme
-confluence admin permission-scheme create --name "Custom Scheme" --description "..."
+# View space permissions
+confluence admin space permissions SPACEKEY
+```
 
-# Add permission grant
-confluence admin permission-scheme add-grant SCHEME_ID --permission edit --group "editors"
+### Templates
 
-# Remove permission grant
-confluence admin permission-scheme remove-grant SCHEME_ID --permission edit --group "editors"
+```bash
+# List templates
+confluence admin template list
+confluence admin template list --space DOCS
 
-# Assign scheme to space
-confluence admin permission-scheme assign --space DOCS --scheme-id SCHEME_ID
+# Get template details
+confluence admin template get TEMPLATE_ID
+```
 
-# Diagnose permissions (check your access)
+### Permission Diagnostics
+
+```bash
+# Check what permissions you have on a space
 confluence admin permissions check --space DOCS
+
+# Show only permissions you're missing
 confluence admin permissions check --space DOCS --only-missing
 ```
 
 ---
 
 ## Common Patterns
-
-### Preview Before Changing
-
-```bash
-confluence admin group delete "group-name" --dry-run
-confluence admin template delete TEMPLATE_ID --dry-run
-confluence admin permission-scheme assign --space DOCS --scheme-id 123 --dry-run
-```
 
 ### JSON Output for Scripting
 
@@ -275,10 +212,9 @@ confluence admin template list --output json
 |-----------|---------------------|
 | View settings | Space View |
 | Update space | Space Admin |
-| Template CRUD | Space Admin |
+| View templates | Space View |
 | User/Group (read) | Browse Users |
 | User/Group (write) | Site Admin |
-| Permission schemes | Site Admin |
 
 ---
 
@@ -305,7 +241,7 @@ confluence admin permissions check --space DOCS
 confluence admin permissions check --space DOCS --only-missing
 
 # See who has access via groups
-confluence admin space permissions --space DOCS
+confluence admin space permissions DOCS
 
 # Check your group memberships
 confluence admin user groups YOUR_ACCOUNT_ID
@@ -319,9 +255,6 @@ confluence admin user search "user@email.com"
 
 # Check their groups
 confluence admin user groups ACCOUNT_ID
-
-# Check their space permissions
-confluence admin user permissions ACCOUNT_ID --space DOCS
 ```
 
 ---
@@ -342,35 +275,25 @@ confluence admin user permissions ACCOUNT_ID --space DOCS
 
 | Skill | Use Case |
 |-------|----------|
-| **confluence-space** | Create/delete spaces (uses settings from here) |
-| **confluence-page** | Page CRUD (uses templates created here) |
+| **confluence-space** | Create/delete spaces |
+| **confluence-page** | Page CRUD |
 | **confluence-permission** | Single-page permissions |
-| **confluence-bulk** | Bulk operations (uses permission schemes) |
-| **confluence-template** | Template creation from pages |
-| **confluence-ops** | Cache management for admin operations |
+| **confluence-bulk** | Bulk operations |
+| **confluence-template** | Create pages from templates |
+| **confluence-ops** | Cache management |
 
 ---
 
 ## Best Practices
 
-### Space Setup Workflow
+### Group Management Workflow
 
-1. Create space: `confluence space create ...`
-2. Configure settings: `confluence admin space settings ...`
-3. Set up templates: `confluence admin template create ...`
-4. Configure permissions: `confluence admin permission-scheme assign ...`
-5. Add users: `confluence admin group add-user ...`
+1. Create role-based groups (viewers, editors, admins)
+2. Add users to appropriate groups: `confluence admin group add-user ...`
+3. Verify membership: `confluence admin group members ...`
 
-### Permission Scheme Design
+### Permission Diagnostics Workflow
 
-- Create role-based groups (viewers, editors, admins)
-- Use permission schemes for consistent access control
-- Test with `--dry-run` before applying changes
-- Document permission decisions
-
-### Template Management
-
-- Use templates for standardized content
-- Name templates descriptively
-- Include placeholder sections
-- Set default templates for common page types
+1. Check your permissions: `confluence admin permissions check --space DOCS`
+2. Review space permissions: `confluence admin space permissions DOCS`
+3. Verify group membership: `confluence admin user groups ACCOUNT_ID`
