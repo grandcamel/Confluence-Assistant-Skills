@@ -29,6 +29,35 @@ def test_space(confluence_client):
     return spaces["results"][0]
 
 
+def _update_page_with_retry(client, page_id, title, version_num, max_retries=3):
+    """Update page with retry logic for version conflicts."""
+    from confluence_as.error_handler import ConflictError
+
+    for attempt in range(max_retries):
+        # Always re-fetch to get current version
+        current = client.get(f"/api/v2/pages/{page_id}")
+        current_version = current["version"]["number"]
+
+        try:
+            return client.put(
+                f"/api/v2/pages/{page_id}",
+                json_data={
+                    "id": page_id,
+                    "status": "current",
+                    "title": title,
+                    "version": {"number": current_version + 1, "message": f"Version {version_num}"},
+                    "body": {"representation": "storage", "value": f"<p>Version {version_num}</p>"},
+                },
+            )
+        except ConflictError:
+            if attempt < max_retries - 1:
+                time.sleep(1.0 * (attempt + 1))  # Exponential backoff
+            else:
+                raise
+
+    return None  # Should not reach here
+
+
 @pytest.fixture
 def versioned_page(confluence_client, test_space):
     """Create a page with multiple versions."""
@@ -42,18 +71,11 @@ def versioned_page(confluence_client, test_space):
         },
     )
 
-    # Create additional versions
+    # Create additional versions with retry logic
     for i in range(2, 5):
-        time.sleep(0.3)
-        page = confluence_client.put(
-            f"/api/v2/pages/{page['id']}",
-            json_data={
-                "id": page["id"],
-                "status": "current",
-                "title": page["title"],
-                "version": {"number": i, "message": f"Version {i}"},
-                "body": {"representation": "storage", "value": f"<p>Version {i}</p>"},
-            },
+        time.sleep(0.5)
+        page = _update_page_with_retry(
+            confluence_client, page["id"], page["title"], i
         )
 
     yield page
