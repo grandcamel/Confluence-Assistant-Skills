@@ -104,11 +104,13 @@ Get all descendant pages recursively (children, grandchildren, etc.).
 ```bash
 confluence hierarchy descendants <page_id>
 confluence hierarchy descendants <page_id> --max-depth 2
+confluence hierarchy descendants <page_id> --limit 200
 confluence hierarchy descendants <page_id> --output json
 ```
 
 **Options:**
 - `--max-depth` - Maximum depth to traverse (default: unlimited)
+- `--limit` - Maximum number of descendants to retrieve (default: 100, max: 500)
 - `--output` - Output format: text (default) or json
 
 **Examples:**
@@ -137,25 +139,27 @@ confluence hierarchy tree <page_id> --stats
 
 ### confluence hierarchy reorder
 
-Reorder child pages of a parent page.
+Calculate and display proposed child page order. This command helps plan reordering operations.
 
 **Usage:**
 ```bash
 confluence hierarchy reorder <parent_id>
-confluence hierarchy reorder <parent_id> <id1,id2,id3>
+confluence hierarchy reorder <parent_id> "id1,id2,id3"
 confluence hierarchy reorder <parent_id> --reverse
 ```
 
+**Arguments:**
+- `order` - (Optional) Comma-separated child page IDs in desired order (must be quoted)
+
 **Options:**
-- `--order` - Comma-separated child page IDs in desired order
 - `--reverse` - Reverse current order
 
 **Examples:**
-- Show current order: `confluence hierarchy reorder 12345`
-- Reorder: `confluence hierarchy reorder 12345 200,201,202`
+- Sort alphabetically: `confluence hierarchy reorder 12345`
+- Specify custom order: `confluence hierarchy reorder 12345 "200,201,202"`
 - Reverse order: `confluence hierarchy reorder 12345 --reverse`
 
-**Note:** The Confluence v2 API may have limited support for page reordering. This command provides validation and structure for when the API fully supports it.
+**IMPORTANT:** This command only CALCULATES and DISPLAYS the proposed new order - it does NOT apply changes to Confluence. To actually reorder pages, you must use the Confluence UI (drag and drop in the page tree).
 
 ## Natural Language Examples
 
@@ -172,7 +176,7 @@ These phrases will trigger this skill:
 
 ## API Endpoints Used
 
-- `GET /api/v2/pages/{id}?include=ancestors` - Get page with ancestors
+- `GET /api/v2/pages/{id}/ancestors` - Get page ancestors
 - `GET /api/v2/pages/{id}/children` - Get direct children
 - `GET /api/v2/pages/{id}` - Get page information
 
