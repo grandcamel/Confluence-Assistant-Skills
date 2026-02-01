@@ -278,22 +278,14 @@ pytest --cov=confluence_as --cov-report=html
 
 ### Live Integration Tests
 
+**Note:** Live integration tests have been migrated to the `confluence-as` library. Run them from that project:
+
 ```bash
-# Run all live integration tests
-pytest skills/*/tests/live_integration/ --live -v
-
-# Run live tests for a specific skill
-pytest skills/confluence-page/tests/live_integration/ --live -v
-
-# Use existing space instead of creating temporary one
-pytest --live --space-key=EXISTING -v
-
-# Keep test space after tests (for debugging)
-pytest --live --keep-space -v
-
-# Skip destructive tests
-pytest --ignore-glob="**/test_delete*"
+cd /path/to/confluence-as
+pytest tests/live/ --live -v
 ```
+
+See the [confluence-as repository](https://github.com/grandcamel/confluence-as) for live test documentation.
 
 ## Adding New Scripts
 
@@ -373,9 +365,7 @@ skills/confluence-{name}/
 │   └── operation.py
 ├── tests/             # Unit tests
 │   ├── conftest.py    # Skill-specific fixtures only
-│   ├── test_operation.py
-│   └── live_integration/
-│       └── test_operation_live.py
+│   └── test_operation.py
 └── references/        # API docs, examples
 ```
 
@@ -611,68 +601,19 @@ chore: update dependencies
 
 ## Live Integration Testing
 
-### Setup
+**Note:** Live integration tests have been migrated to the [`confluence-as`](https://github.com/grandcamel/confluence-as) library.
 
-1. Create a test space in your Confluence instance
-2. Set environment variables:
+To run live integration tests:
+
 ```bash
+cd /path/to/confluence-as
 export CONFLUENCE_SITE_URL="https://your-site.atlassian.net"
 export CONFLUENCE_EMAIL="your-email@example.com"
 export CONFLUENCE_API_TOKEN="your-token"
+pytest tests/live/ --live -v
 ```
 
-### Running Tests
-
-Use the `run_live_tests.sh` script for convenient execution:
-
-```bash
-# All live tests
-./scripts/run_live_tests.sh
-
-# Specific skill
-./scripts/run_live_tests.sh --skill confluence-page
-
-# Use existing space (faster, no cleanup)
-./scripts/run_live_tests.sh --space-key=MYTEST
-
-# Keep space after tests (for debugging)
-./scripts/run_live_tests.sh --keep-space
-
-# With verbose output
-./scripts/run_live_tests.sh --verbose
-```
-
-Or run pytest directly:
-
-```bash
-# All live tests
-pytest skills/*/tests/live_integration/ --live -v
-
-# Specific skill
-pytest skills/confluence-page/tests/live_integration/ --live -v
-```
-
-### Test Fixtures
-
-Shared fixtures are defined in:
-- **Root `conftest.py`** - `temp_path`, `temp_dir`, pytest hooks, `--live` option
-- **`skills/shared/tests/conftest.py`** - `mock_client`, `sample_page`, etc.
-- **`skills/shared/tests/live_integration/conftest.py`** - `confluence_client`, `test_space`, `test_page`
-
-Example session-scoped fixture for setup/teardown:
-
-```python
-@pytest.fixture(scope="session")
-def test_space(confluence_client):
-    """Create test space for the session."""
-    space = confluence_client.post('/api/v2/spaces', json_data={
-        'key': 'CASTEST',
-        'name': 'CAS Integration Tests'
-    })
-    yield space
-    # Cleanup after all tests
-    confluence_client.delete(f"/api/v2/spaces/{space['id']}")
-```
+See the `confluence-as` CLAUDE.md for full documentation on live test fixtures, builders, and utilities.
 
 ## API Reference
 
@@ -846,27 +787,10 @@ The test framework supports two connection modes:
 | `sample_label` | function | Sample label data from API |
 | `sample_search_results` | function | Sample search results from API |
 | `sample_adf` | function | Sample Atlassian Document Format document |
-| `live_client` | session | Real ConfluenceClient for live tests |
-| `live_test_space` | session | Test space for live integration tests |
-| `live_test_page` | function | Test page created per test |
 | `temp_file` | function | Factory for temporary test files |
 | `capture_output` | function | Helper to capture stdout/stderr |
 
-### Live Integration Fixtures (shared/tests/live_integration/conftest.py)
-
-| Fixture | Scope | Description |
-|---------|-------|-------------|
-| `keep_space` | session | Check if `--keep-space` flag was provided |
-| `existing_space_key` | session | Get `--space-key` option value |
-| `confluence_client` | session | Configured `ConfluenceClient` instance |
-| `test_space` | session | Dedicated test space (auto-created/cleaned) |
-| `test_page` | function | Test page created per test |
-| `test_page_with_content` | function | Test page with rich content |
-| `test_child_page` | function | Child page under test_page |
-| `test_blogpost` | function | Test blog post |
-| `test_label` | function | Unique test label string |
-| `unique_title` | function | Unique page title generator |
-| `unique_space_key` | function | Unique space key generator |
+**Note:** Live integration fixtures have been migrated to `confluence-as/tests/live/`. See the `confluence-as` CLAUDE.md for fixture documentation.
 
 ### Fixture Scope Guidelines
 
@@ -970,17 +894,8 @@ markers =
 
 ### pythonpath Configuration
 
-The shared live integration directory is included in `pythonpath`:
-
 ```ini
-pythonpath = . skills/shared/tests/live_integration
-```
-
-This enables importing shared fixtures without relative imports:
-
-```python
-# In any skill's live_integration/conftest.py
-pytest_plugins = ["conftest"]  # Imports from shared conftest
+pythonpath = .
 ```
 
 ### Test Discovery
@@ -1044,21 +959,17 @@ def test_integration():
 ### Running Specific Test Categories
 
 ```bash
-# Run only live tests
-pytest --live -v
-
-# Run non-destructive live tests
-pytest --live -m "not destructive" -v
-
 # Run only slow tests
-pytest -m slow -v
+pytest --run-slow -v
 
 # Run everything except slow tests
 pytest -m "not slow" -v
 
-# Run with specific markers combination
-pytest --live -m "live and not destructive and not slow" -v
+# Run destructive tests
+pytest --run-destructive -v
 ```
+
+**Note:** Live tests have been migrated to `confluence-as`. Run them from that project with `pytest tests/live/ --live -v`.
 
 ## Troubleshooting
 
@@ -1241,8 +1152,9 @@ export CONFLUENCE_LOG_LEVEL=DEBUG
 |----------|-------|--------|
 | Unit Tests (shared library) | 50+ | Passing |
 | Unit Tests (per skill) | 100+ | Passing |
-| Live Integration Tests | 150+ | Requires `--live` flag |
 | E2E Tests | 10+ | Requires `ANTHROPIC_API_KEY` |
+
+**Note:** Live integration tests (150+) have been migrated to the `confluence-as` library.
 
 ### Coverage by Skill
 

@@ -480,27 +480,25 @@ export CONFLUENCE_API_TOKEN="your-api-token"
 
 | Metric | Value |
 |--------|-------|
-| Total Tests | 940 |
 | Unit Tests | Comprehensive coverage |
-| Live Integration Tests | 64 test files |
+| E2E Tests | Claude Code integration |
 | Code Style | PEP 8 compliant |
+
+*Live integration tests are maintained in the [confluence-as](https://github.com/grandcamel/confluence-as) library.*
 
 ```bash
 # Run all tests
 pytest -v
 
-# Run unit tests only (skip live integration)
-pytest .claude/skills/ -v --ignore-glob="**/live_integration/*"
-
 # Run with coverage
 pytest --cov=confluence_as --cov-report=html
-
-# Run live integration tests
-pytest .claude/skills/*/tests/live_integration/ --live -v
 
 # Run E2E tests (requires ANTHROPIC_API_KEY)
 ./scripts/run-e2e-tests.sh           # Docker
 ./scripts/run-e2e-tests.sh --local   # Local
+
+# Live integration tests have been migrated to confluence-as library
+# See: https://github.com/grandcamel/confluence-as
 ```
 
 <br>

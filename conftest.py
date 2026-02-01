@@ -11,10 +11,10 @@ This root conftest.py centralizes:
 - Mock client fixtures
 """
 
+import contextlib
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Optional
 
 import pytest
 
@@ -22,57 +22,21 @@ import pytest
 # PYTEST HOOKS
 # =============================================================================
 
+
 def pytest_addoption(parser):
     """Add custom command-line options."""
-    try:
+    with contextlib.suppress(ValueError):
         parser.addoption(
-            "--live",
-            action="store_true",
-            default=False,
-            help="Run live integration tests"
+            "--run-slow", action="store_true", default=False, help="Run slow tests"
         )
-    except ValueError:
-        pass  # Option already added
 
-    try:
-        parser.addoption(
-            "--keep-space",
-            action="store_true",
-            default=False,
-            help="Keep the test space after tests complete (for debugging)"
-        )
-    except ValueError:
-        pass
-
-    try:
-        parser.addoption(
-            "--space-key",
-            action="store",
-            default=None,
-            help="Use an existing space instead of creating a new one"
-        )
-    except ValueError:
-        pass
-
-    try:
-        parser.addoption(
-            "--run-slow",
-            action="store_true",
-            default=False,
-            help="Run slow tests"
-        )
-    except ValueError:
-        pass
-
-    try:
+    with contextlib.suppress(ValueError):
         parser.addoption(
             "--run-destructive",
             action="store_true",
             default=False,
-            help="Run destructive tests"
+            help="Run destructive tests",
         )
-    except ValueError:
-        pass
 
 
 def pytest_configure(config):
@@ -86,36 +50,34 @@ def pytest_collection_modifyitems(config, items):
     """
     Modify test collection based on command-line options.
 
-    - Skip live tests unless --live is provided
     - Skip slow tests unless --run-slow is provided
     - Skip destructive tests unless --run-destructive is provided
-    """
-    skip_live = pytest.mark.skip(reason="Need --live to run")
-    skip_slow = pytest.mark.skip(reason="Need --run-slow to run slow tests")
-    skip_destructive = pytest.mark.skip(reason="Need --run-destructive to run destructive tests")
 
-    run_live = config.getoption("--live", False)
+    Note: Live integration tests have been migrated to the confluence-as library.
+    Run them with: cd confluence-as && pytest tests/live/ --live -v
+    """
+    skip_slow = pytest.mark.skip(reason="Need --run-slow to run slow tests")
+    skip_destructive = pytest.mark.skip(
+        reason="Need --run-destructive to run destructive tests"
+    )
+
     run_slow = config.getoption("--run-slow", False)
     run_destructive = config.getoption("--run-destructive", False)
 
     for item in items:
-        # Skip live tests
-        if "live" in item.keywords and not run_live:
-            item.add_marker(skip_live)
-
         # Skip slow tests (only if not explicitly running slow tests)
         if "slow" in item.keywords and not run_slow:
             item.add_marker(skip_slow)
 
         # Skip destructive tests (only if not explicitly running destructive tests)
-        # Note: In live mode, we default to running destructive tests unless skipped
-        if "destructive" in item.keywords and not run_destructive and not run_live:
+        if "destructive" in item.keywords and not run_destructive:
             item.add_marker(skip_destructive)
 
 
 # =============================================================================
 # TEMPORARY DIRECTORY FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def temp_path():
@@ -140,6 +102,7 @@ def temp_dir(temp_path):
 # PROJECT STRUCTURE FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def claude_project_structure(temp_path):
     """Create a standard .claude project structure."""
@@ -152,7 +115,7 @@ def claude_project_structure(temp_path):
     shared_lib.mkdir(parents=True)
 
     settings = claude_dir / "settings.json"
-    settings.write_text('{}')
+    settings.write_text("{}")
 
     return {
         "root": project,
@@ -166,7 +129,7 @@ def claude_project_structure(temp_path):
 @pytest.fixture
 def sample_skill_md():
     """Return sample SKILL.md content."""
-    return '''---
+    return """---
 name: sample-skill
 description: A sample skill for testing.
 ---
@@ -178,12 +141,13 @@ description: A sample skill for testing.
 ```bash
 echo "Hello"
 ```
-'''
+"""
 
 
 # =============================================================================
 # MOCK CLIENT FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def mock_confluence_client():
@@ -197,11 +161,13 @@ def mock_confluence_client():
             assert page["title"] == "Test"
     """
     try:
-        from mock import MockConfluenceClient
+        from confluence_as.mock import MockConfluenceClient
+
         return MockConfluenceClient()
     except ImportError:
         # Fall back to basic mock if mock module not available
         from unittest.mock import MagicMock
+
         return MagicMock()
 
 
@@ -225,6 +191,7 @@ def mock_config():
 # SESSION CLEANUP FIXTURES
 # =============================================================================
 
+
 @pytest.fixture(scope="session", autouse=True)
 def session_cleanup(request):
     """
@@ -233,20 +200,13 @@ def session_cleanup(request):
     Ensures all resources are cleaned up at the end of the test session.
     """
     yield
-
-    # Clean up any session-level resources
-    # This runs after all tests complete
-    try:
-        # Reset singleton connections
-        from confluence_container import reset_confluence_connection
-        reset_confluence_connection()
-    except ImportError:
-        pass
+    # Session cleanup runs after all tests complete
 
 
 # =============================================================================
 # ENVIRONMENT FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def confluence_env_vars():
@@ -285,6 +245,7 @@ def confluence_env_vars():
 # =============================================================================
 # SAMPLE DATA FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def sample_page_data():

@@ -147,8 +147,9 @@ import_mode = "importlib"
 markers = [
     "unit: Unit tests (fast, no external dependencies)",
     "integration: Integration tests (may hit external services)",
-    "live: Live integration tests against real Confluence",
     "slow: Slow-running tests",
+    "destructive: Tests that modify data (use --run-destructive to run)",
+    "e2e: End-to-end tests requiring Claude Code CLI",
     "analytics: Tests for confluence-analytics skill",
     "attachment: Tests for confluence-attachment skill",
     "comment: Tests for confluence-comment skill",
@@ -164,6 +165,7 @@ markers = [
     "watch: Tests for confluence-watch skill",
     "shared: Tests for shared library",
 ]
+# Note: Live integration tests have been migrated to the confluence-as library
 
 [tool.coverage.run]
 source = ["skills"]
