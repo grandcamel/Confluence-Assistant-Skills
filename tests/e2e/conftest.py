@@ -4,7 +4,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -17,11 +17,11 @@ class ResponseLogger:
     def __init__(self, output_dir: Path, enabled: bool = True):
         self.output_dir = output_dir
         self.enabled = enabled
-        self.responses: List[Dict[str, Any]] = []
+        self.responses: list[dict[str, Any]] = []
         if enabled:
             self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def log(self, test_name: str, prompt: str, result: Dict[str, Any]) -> None:
+    def log(self, test_name: str, prompt: str, result: dict[str, Any]) -> None:
         """Log a response for later analysis."""
         entry = {
             "timestamp": datetime.now().isoformat(),
@@ -39,22 +39,19 @@ class ResponseLogger:
             # Write individual response file
             safe_name = test_name.replace("::", "_").replace(" ", "_")[:50]
             response_file = self.output_dir / f"{safe_name}.json"
-            with open(response_file, "w") as f:
+            with response_file.open("w") as f:
                 json.dump(entry, f, indent=2)
 
     def save_all(self) -> None:
         """Save all responses to a single file."""
         if self.enabled and self.responses:
             all_responses_file = self.output_dir / "all_responses.json"
-            with open(all_responses_file, "w") as f:
+            with all_responses_file.open("w") as f:
                 json.dump(self.responses, f, indent=2)
 
 
 def assert_response_contains(
-    result: Dict[str, Any],
-    terms: List[str],
-    message: str,
-    match_any: bool = True
+    result: dict[str, Any], terms: list[str], message: str, match_any: bool = True
 ) -> None:
     """
     Assert that response contains expected terms, with helpful error message.
@@ -83,13 +80,10 @@ def assert_response_contains(
             output[:2000] if output else "(empty)",
         ]
         if error:
-            error_details.extend([
-                "\n\n--- STDERR ---",
-                error[:500]
-            ])
+            error_details.extend(["\n\n--- STDERR ---", error[:500]])
         error_details.append("\n--- END RESPONSE ---\n")
 
-        assert False, "".join(error_details)
+        raise AssertionError("".join(error_details))
 
 
 def pytest_addoption(parser):
@@ -124,13 +118,14 @@ def pytest_addoption(parser):
 def e2e_enabled():
     """Check if E2E tests should run."""
     api_key = os.environ.get("ANTHROPIC_API_KEY")
+    oauth_token = os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
     claude_dir = Path.home() / ".claude"
 
     if api_key:
         return True
-    if claude_dir.exists() and (claude_dir / "credentials.json").exists():
+    if oauth_token:
         return True
-    return False
+    return bool(claude_dir.exists() and (claude_dir / "credentials.json").exists())
 
 
 @pytest.fixture(scope="session")
@@ -196,7 +191,9 @@ def claude_runner(project_root, e2e_timeout, e2e_model, e2e_verbose, e2e_enabled
 
 
 @pytest.fixture(scope="session")
-def e2e_runner(test_cases_path, project_root, e2e_timeout, e2e_model, e2e_verbose, e2e_enabled):
+def e2e_runner(
+    test_cases_path, project_root, e2e_timeout, e2e_model, e2e_verbose, e2e_enabled
+):
     """Create E2E test runner."""
     if not e2e_enabled:
         pytest.skip("E2E tests disabled (no API key or OAuth credentials)")
@@ -217,7 +214,10 @@ def installed_plugin(claude_runner, e2e_enabled):
         pytest.skip("E2E tests disabled")
 
     result = claude_runner.install_plugin(".")
-    if not result["success"] and "already installed" not in result.get("output", "").lower():
+    if (
+        not result["success"]
+        and "already installed" not in result.get("output", "").lower()
+    ):
         pytest.fail(f"Failed to install plugin: {result.get('error', 'Unknown error')}")
 
     return result

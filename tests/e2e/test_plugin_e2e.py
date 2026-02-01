@@ -17,11 +17,12 @@ pytestmark = [pytest.mark.e2e, pytest.mark.slow]
 
 def _discover_skills() -> list[str]:
     """Dynamically discover skills from plugin directory."""
-    skills_dir = Path(__file__).parent.parent.parent / ".claude-plugin" / ".claude" / "skills"
+    skills_dir = Path(__file__).parent.parent.parent / "skills"
     if not skills_dir.exists():
         return []
     return sorted(
-        d.name for d in skills_dir.iterdir()
+        d.name
+        for d in skills_dir.iterdir()
         if d.is_dir() and d.name.startswith("confluence-")
     )
 
@@ -53,7 +54,7 @@ class TestPluginInstallation:
             result,
             EXPECTED_SKILLS,
             "No Confluence skills found in output",
-            match_any=True
+            match_any=True,
         )
 
 
@@ -68,10 +69,14 @@ class TestConfluenceSkills:
 
         # Extract the operation type from skill name
         operation = skill.replace("confluence-", "")
-        result = claude_runner.send_prompt(f"What can I do with Confluence {operation}?")
+        result = claude_runner.send_prompt(
+            f"What can I do with Confluence {operation}?"
+        )
 
         # Should get a response without errors
-        assert result["success"] or not result.get("error"), f"Error for {skill}: {result.get('error')}"
+        assert result["success"] or not result.get("error"), (
+            f"Error for {skill}: {result.get('error')}"
+        )
 
 
 class TestPageOperations:
@@ -82,12 +87,14 @@ class TestPageOperations:
         if not e2e_enabled:
             pytest.skip("E2E disabled")
 
-        result = claude_runner.send_prompt("How do I create a new Confluence page?")
+        result = claude_runner.send_prompt(
+            "Without reading any files, briefly explain: what CLI command creates a Confluence page?"
+        )
 
         assert_response_contains(
             result,
             ["create", "page", "space", "confluence"],
-            "Expected page creation info in response"
+            "Expected page creation info in response",
         )
 
     def test_page_update_help(self, claude_runner, installed_plugin, e2e_enabled):
@@ -95,12 +102,14 @@ class TestPageOperations:
         if not e2e_enabled:
             pytest.skip("E2E disabled")
 
-        result = claude_runner.send_prompt("How do I update an existing Confluence page?")
+        result = claude_runner.send_prompt(
+            "Without reading any files, briefly explain: what CLI command updates a Confluence page?"
+        )
 
         assert_response_contains(
             result,
             ["update", "edit", "modify", "page", "content"],
-            "Expected page update info in response"
+            "Expected page update info in response",
         )
 
 
@@ -117,7 +126,7 @@ class TestSearchOperations:
         assert_response_contains(
             result,
             ["cql", "query", "search", "confluence"],
-            "Expected CQL info in response"
+            "Expected CQL info in response",
         )
 
     def test_export_help(self, claude_runner, installed_plugin, e2e_enabled):
@@ -125,12 +134,14 @@ class TestSearchOperations:
         if not e2e_enabled:
             pytest.skip("E2E disabled")
 
-        result = claude_runner.send_prompt("How do I export Confluence search results?")
+        result = claude_runner.send_prompt(
+            "Without reading any files, briefly explain: what CLI command exports Confluence search results to CSV?"
+        )
 
         assert_response_contains(
             result,
             ["export", "csv", "json", "results", "search"],
-            "Expected export info in response"
+            "Expected export info in response",
         )
 
 
@@ -144,7 +155,7 @@ class TestYAMLSuites:
             pytest.skip("E2E disabled")
 
         results = e2e_runner.run_all()
-        success = e2e_runner.print_summary(results)
+        e2e_runner.print_summary(results)
 
         failures = [
             f"{s.suite_name}::{t.test_id}"
@@ -169,7 +180,9 @@ class TestErrorHandling:
         assert "segmentation fault" not in result.get("error", "").lower()
         assert "panic" not in result.get("error", "").lower()
 
-    def test_missing_credentials_message(self, claude_runner, installed_plugin, e2e_enabled):
+    def test_missing_credentials_message(
+        self, claude_runner, installed_plugin, e2e_enabled
+    ):
         """Test helpful message for missing credentials."""
         if not e2e_enabled:
             pytest.skip("E2E disabled")
@@ -180,7 +193,17 @@ class TestErrorHandling:
 
         assert_response_contains(
             result,
-            ["api_token", "api token", "credential", "authentication", "configure",
-             "token", "url", "email", "settings", "environment"],
-            "Expected configuration info in response"
+            [
+                "api_token",
+                "api token",
+                "credential",
+                "authentication",
+                "configure",
+                "token",
+                "url",
+                "email",
+                "settings",
+                "environment",
+            ],
+            "Expected configuration info in response",
         )

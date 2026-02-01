@@ -8,6 +8,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -159,18 +160,23 @@ jobs:
           for skill_dir in skills/*/tests/; do
             if [ -d "$skill_dir" ]; then
               skill_name=$(basename $(dirname $skill_dir))
-              echo "Testing $skill_name..."
-              python -m pytest "$skill_dir" -v \
-                --ignore="${skill_dir}live_integration" \
-                -m "not live and not slow" \
-                || exit 1
+              # Check if there are actual test files (not just conftest.py)
+              test_count=$(find "$skill_dir" -maxdepth 1 -name "test_*.py" | wc -l)
+              if [ "$test_count" -gt 0 ]; then
+                echo "Testing $skill_name ($test_count test files)..."
+                python -m pytest "$skill_dir" -v \
+                  -m "not slow" \
+                  || exit 1
+              else
+                echo "Skipping $skill_name (no test files)"
+              fi
             fi
           done
 
       - name: Run CLI tests
         run: |
           if [ -d "tests" ]; then
-            python -m pytest tests -v -m "not live and not slow" || true
+            python -m pytest tests -v -m "not slow" || true
           fi
         continue-on-error: true
 
@@ -199,17 +205,27 @@ jobs:
         continue-on-error: true
 
   # ==========================================================================
-  # Docker Build Validation
+  # Docker Build Validation (skipped if no Dockerfile)
   # ==========================================================================
   docker-lint:
     name: Docker Lint
     runs-on: ubuntu-latest
-    if: hashFiles('Dockerfile') != ''
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check for Dockerfile
+        id: check
+        run: |
+          if [ -f "Dockerfile" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "No Dockerfile found, skipping lint"
+          fi
+
       - name: Lint Dockerfiles with hadolint
+        if: steps.check.outputs.exists == 'true'
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile

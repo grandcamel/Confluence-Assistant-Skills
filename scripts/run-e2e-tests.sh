@@ -90,9 +90,9 @@ else
     echo -e "${YELLOW}Running locally...${NC}"
     pip install -q -r requirements-e2e.txt
     if [[ "$VERBOSE" == "true" ]]; then
-        python -m pytest tests/e2e/ -v --e2e-verbose --tb=short
+        python -m pytest tests/e2e/ -v --run-slow --e2e-verbose --tb=short
     else
-        python -m pytest tests/e2e/ -v --tb=short
+        python -m pytest tests/e2e/ -v --run-slow --tb=short
     fi
 fi
 
