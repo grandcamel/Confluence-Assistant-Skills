@@ -70,7 +70,7 @@ class TestConfluenceSkills:
         # Extract the operation type from skill name
         operation = skill.replace("confluence-", "")
         result = claude_runner.send_prompt(
-            f"What can I do with Confluence {operation}?"
+            f"Without reading any files, in one sentence: what does the confluence-{operation} skill do?"
         )
 
         # Should get a response without errors
