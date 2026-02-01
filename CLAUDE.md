@@ -262,30 +262,26 @@ The `--live` option is defined in the root `conftest.py` and available to all te
 
 ### Unit Tests
 
+**Note:** Unit tests have been migrated to the [`confluence-as`](https://github.com/grandcamel/confluence-as) library. Run them from that project:
+
 ```bash
-# Run all tests (unit + e2e)
-pytest -v
+cd /path/to/confluence-as
+pytest tests/unit/ -v      # Unit tests (383 tests)
+pytest tests/live/ --live -v  # Live integration tests
+```
 
-# Run only skill tests
-pytest skills/ -v
+This project retains only E2E tests that test Claude Code skill invocation:
 
-# Run tests for a specific skill
-pytest skills/confluence-page/tests/ -v
-
-# Run with coverage
-pytest --cov=confluence_as --cov-report=html
+```bash
+# Run E2E tests (requires ANTHROPIC_API_KEY)
+pytest tests/e2e/ -v
 ```
 
 ### Live Integration Tests
 
-**Note:** Live integration tests have been migrated to the `confluence-as` library. Run them from that project:
+**Note:** Live integration tests have been migrated to the `confluence-as` library.
 
-```bash
-cd /path/to/confluence-as
-pytest tests/live/ --live -v
-```
-
-See the [confluence-as repository](https://github.com/grandcamel/confluence-as) for live test documentation.
+See the [confluence-as repository](https://github.com/grandcamel/confluence-as) for test documentation.
 
 ## Adding New Scripts
 
@@ -363,13 +359,10 @@ skills/confluence-{name}/
 ├── scripts/           # Python scripts
 │   ├── __init__.py
 │   └── operation.py
-├── tests/             # Unit tests
-│   ├── conftest.py    # Skill-specific fixtures only
-│   └── test_operation.py
 └── references/        # API docs, examples
 ```
 
-**Note:** Do not add `__init__.py` to test directories. Pytest hooks (`pytest_addoption`, `pytest_configure`) are defined in the root `conftest.py`. Skill-specific `conftest.py` files should only contain fixtures unique to that skill.
+**Note:** Unit tests for skills are maintained in the [`confluence-as`](https://github.com/grandcamel/confluence-as) library under `tests/unit/`. Add tests for new skills there following the existing domain-based organization (test_page.py, test_comment.py, etc.).
 
 ### SKILL.md Template
 
@@ -773,24 +766,9 @@ The test framework supports two connection modes:
 | `claude_project_structure` | function | Standard .claude project directory structure |
 | `sample_skill_md` | function | Sample SKILL.md content for testing |
 
-### Shared Unit Test Fixtures (shared/tests/conftest.py)
+### Unit Test Fixtures (confluence-as)
 
-| Fixture | Scope | Description |
-|---------|-------|-------------|
-| `mock_response` | function | Factory for creating mock HTTP responses |
-| `mock_client` | function | Mock `ConfluenceClient` with setup helpers |
-| `mock_config` | function | Mock configuration dictionary |
-| `sample_page` | function | Sample page data from API |
-| `sample_space` | function | Sample space data from API |
-| `sample_comment` | function | Sample comment data from API |
-| `sample_attachment` | function | Sample attachment data from API |
-| `sample_label` | function | Sample label data from API |
-| `sample_search_results` | function | Sample search results from API |
-| `sample_adf` | function | Sample Atlassian Document Format document |
-| `temp_file` | function | Factory for temporary test files |
-| `capture_output` | function | Helper to capture stdout/stderr |
-
-**Note:** Live integration fixtures have been migrated to `confluence-as/tests/live/`. See the `confluence-as` CLAUDE.md for fixture documentation.
+Unit test fixtures have been migrated to `confluence-as/tests/unit/conftest.py`. See the `confluence-as` CLAUDE.md for fixture documentation.
 
 ### Fixture Scope Guidelines
 
@@ -1148,44 +1126,24 @@ export CONFLUENCE_LOG_LEVEL=DEBUG
 
 ### Current Test Coverage
 
-| Category | Tests | Status |
-|----------|-------|--------|
-| Unit Tests (shared library) | 50+ | Passing |
-| Unit Tests (per skill) | 100+ | Passing |
-| E2E Tests | 10+ | Requires `ANTHROPIC_API_KEY` |
+| Category | Tests | Location |
+|----------|-------|----------|
+| Unit Tests | 383 | `confluence-as/tests/unit/` |
+| Live Integration Tests | 435 | `confluence-as/tests/live/` |
+| E2E Tests | 10+ | `tests/e2e/` (this repo) |
 
-**Note:** Live integration tests (150+) have been migrated to the `confluence-as` library.
+**Note:** Unit and live integration tests have been migrated to the `confluence-as` library. This repository retains only E2E tests that verify Claude Code skill invocation.
 
-### Coverage by Skill
-
-| Skill | Unit | Live | Notes |
-|-------|------|------|-------|
-| confluence-page | 15+ | 20+ | Core CRUD operations |
-| confluence-space | 10+ | 15+ | Space management |
-| confluence-search | 20+ | 25+ | CQL validation, export |
-| confluence-comment | 10+ | 15+ | Comments and replies |
-| confluence-attachment | 12+ | 18+ | Upload, download, versions |
-| confluence-label | 8+ | 12+ | Add, remove, search |
-| confluence-hierarchy | 8+ | 15+ | Parent/child, ancestors |
-| confluence-permission | 10+ | 12+ | Space and page permissions |
-| confluence-property | 8+ | 10+ | Custom metadata |
-| confluence-analytics | 5+ | 8+ | Views, watchers |
-| confluence-watch | 4+ | 6+ | Watch/unwatch |
-| confluence-template | 6+ | 8+ | Template management |
-| confluence-jira | 5+ | 8+ | JIRA integration |
-| confluence-bulk | 8+ | 10+ | Bulk operations |
-| confluence-ops | 4+ | 4+ | Cache, diagnostics |
-| confluence-admin | 6+ | 6+ | Administration |
-
-### Running Coverage Report
+### Running Tests
 
 ```bash
-# Run tests with coverage
-pytest --cov=confluence_as --cov-report=html
+# E2E tests (this repository)
+pytest tests/e2e/ -v  # Requires ANTHROPIC_API_KEY
 
-# View coverage report
-open htmlcov/index.html
+# Unit tests (confluence-as repository)
+cd /path/to/confluence-as
+pytest tests/unit/ -v
 
-# Run with minimum coverage threshold
-pytest --cov=confluence_as --cov-fail-under=80
+# Live integration tests (confluence-as repository)
+pytest tests/live/ --live -v  # Requires CONFLUENCE_* env vars
 ```
