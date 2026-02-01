@@ -7,7 +7,7 @@ Provides mock behavior for page CRUD operations.
 from __future__ import annotations
 
 import re
-from typing import Any, Optional
+from typing import Any
 
 
 class PageMixin:
@@ -28,13 +28,13 @@ class PageMixin:
 
     def add_page(
         self,
-        page_id: Optional[str] = None,
+        page_id: str | None = None,
         title: str = "Test Page",
         space_id: str = "123456",
-        parent_id: Optional[str] = None,
+        parent_id: str | None = None,
         body: str = "<p>Test content</p>",
         status: str = "current",
-        labels: Optional[list[str]] = None,
+        labels: list[str] | None = None,
         version: int = 1,
     ) -> dict[str, Any]:
         """
@@ -80,17 +80,17 @@ class PageMixin:
 
         return page
 
-    def get_page(self, page_id: str) -> Optional[dict[str, Any]]:
+    def get_page(self, page_id: str) -> dict[str, Any] | None:
         """Get a page from the mock store."""
         return self._pages.get(page_id)
 
     def update_page(
         self,
         page_id: str,
-        title: Optional[str] = None,
-        body: Optional[str] = None,
-        status: Optional[str] = None,
-    ) -> Optional[dict[str, Any]]:
+        title: str | None = None,
+        body: str | None = None,
+        status: str | None = None,
+    ) -> dict[str, Any] | None:
         """Update a page in the mock store."""
         page = self._pages.get(page_id)
         if not page:
@@ -122,9 +122,9 @@ class PageMixin:
 
     def list_pages(
         self,
-        space_id: Optional[str] = None,
-        parent_id: Optional[str] = None,
-        status: Optional[str] = None,
+        space_id: str | None = None,
+        parent_id: str | None = None,
+        status: str | None = None,
     ) -> list[dict[str, Any]]:
         """List pages matching filters."""
         results = list(self._pages.values())
@@ -145,9 +145,9 @@ class PageMixin:
     def _handle_get(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle GET requests for pages."""
         # GET /api/v2/pages/{id}
         match = re.match(r"/api/v2/pages/(\d+)$", endpoint)
@@ -177,9 +177,9 @@ class PageMixin:
     def _handle_post(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle POST requests for pages."""
         # POST /api/v2/pages
         if endpoint == "/api/v2/pages" and data:
@@ -196,9 +196,9 @@ class PageMixin:
     def _handle_put(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle PUT requests for pages."""
         # PUT /api/v2/pages/{id}
         match = re.match(r"/api/v2/pages/(\d+)$", endpoint)
@@ -219,9 +219,9 @@ class PageMixin:
     def _handle_delete(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle DELETE requests for pages."""
         # DELETE /api/v2/pages/{id}
         match = re.match(r"/api/v2/pages/(\d+)$", endpoint)
@@ -238,6 +238,7 @@ class PageMixin:
         # Import here to avoid circular dependency
         try:
             from confluence_as import NotFoundError
+
             return NotFoundError(message)
         except ImportError:
             return Exception(f"404: {message}")

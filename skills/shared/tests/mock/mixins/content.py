@@ -7,7 +7,7 @@ Provides mock behavior for generic content operations (blog posts, etc.).
 from __future__ import annotations
 
 import re
-from typing import Any, Optional
+from typing import Any
 
 
 class ContentMixin:
@@ -20,7 +20,9 @@ class ContentMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._blogposts: dict[str, dict[str, Any]] = {}
-        self._properties: dict[str, dict[str, dict[str, Any]]] = {}  # content_id -> key -> property
+        self._properties: dict[
+            str, dict[str, dict[str, Any]]
+        ] = {}  # content_id -> key -> property
 
     # =========================================================================
     # Blog Post Management
@@ -28,7 +30,7 @@ class ContentMixin:
 
     def add_blogpost(
         self,
-        blogpost_id: Optional[str] = None,
+        blogpost_id: str | None = None,
         title: str = "Test Blog Post",
         space_id: str = "123456",
         body: str = "<p>Test blog content</p>",
@@ -61,7 +63,7 @@ class ContentMixin:
         self._blogposts[blogpost_id] = blogpost
         return blogpost
 
-    def get_blogpost(self, blogpost_id: str) -> Optional[dict[str, Any]]:
+    def get_blogpost(self, blogpost_id: str) -> dict[str, Any] | None:
         """Get a blog post from the mock store."""
         return self._blogposts.get(blogpost_id)
 
@@ -97,7 +99,7 @@ class ContentMixin:
         self._properties[content_id][key] = prop
         return prop
 
-    def get_property(self, content_id: str, key: str) -> Optional[dict[str, Any]]:
+    def get_property(self, content_id: str, key: str) -> dict[str, Any] | None:
         """Get a content property."""
         return self._properties.get(content_id, {}).get(key)
 
@@ -119,9 +121,9 @@ class ContentMixin:
     def _handle_get(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle GET requests for content."""
         # GET /api/v2/blogposts/{id}
         match = re.match(r"/api/v2/blogposts/(\d+)$", endpoint)
@@ -161,9 +163,9 @@ class ContentMixin:
     def _handle_post(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle POST requests for content."""
         # POST /api/v2/blogposts
         if endpoint == "/api/v2/blogposts" and data:
@@ -189,9 +191,9 @@ class ContentMixin:
     def _handle_delete(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle DELETE requests for content."""
         # DELETE /api/v2/blogposts/{id}
         match = re.match(r"/api/v2/blogposts/(\d+)$", endpoint)
@@ -215,6 +217,7 @@ class ContentMixin:
         """Create a not found error."""
         try:
             from confluence_as import NotFoundError
+
             return NotFoundError(message)
         except ImportError:
             return Exception(f"404: {message}")

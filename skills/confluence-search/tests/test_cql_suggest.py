@@ -130,7 +130,9 @@ class TestCQLValueSuggestions:
         """Test suggesting label values."""
         mock_client.setup_response("get", sample_labels_for_suggestion)
 
-        label_names = [l["name"] for l in sample_labels_for_suggestion["results"]]
+        label_names = [
+            label["name"] for label in sample_labels_for_suggestion["results"]
+        ]
 
         assert "documentation" in label_names
         assert "api" in label_names

@@ -7,7 +7,7 @@ Provides mock behavior for space management operations.
 from __future__ import annotations
 
 import re
-from typing import Any, Optional
+from typing import Any
 
 
 class SpaceMixin:
@@ -27,13 +27,13 @@ class SpaceMixin:
 
     def add_space(
         self,
-        space_id: Optional[str] = None,
+        space_id: str | None = None,
         key: str = "TEST",
         name: str = "Test Space",
         space_type: str = "global",
         status: str = "current",
         description: str = "",
-        homepage_id: Optional[str] = None,
+        homepage_id: str | None = None,
     ) -> dict[str, Any]:
         """
         Add a space to the mock store.
@@ -50,9 +50,9 @@ class SpaceMixin:
             "type": space_type,
             "status": status,
             "homepageId": homepage_id,
-            "description": {
-                "plain": {"value": description, "representation": "plain"}
-            } if description else None,
+            "description": {"plain": {"value": description, "representation": "plain"}}
+            if description
+            else None,
             "_links": {"webui": f"/wiki/spaces/{key}"},
         }
 
@@ -62,17 +62,17 @@ class SpaceMixin:
 
         return space
 
-    def get_space(self, space_id_or_key: str) -> Optional[dict[str, Any]]:
+    def get_space(self, space_id_or_key: str) -> dict[str, Any] | None:
         """Get a space from the mock store by ID or key."""
         return self._spaces.get(space_id_or_key)
 
     def update_space(
         self,
         space_id: str,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        homepage_id: Optional[str] = None,
-    ) -> Optional[dict[str, Any]]:
+        name: str | None = None,
+        description: str | None = None,
+        homepage_id: str | None = None,
+    ) -> dict[str, Any] | None:
         """Update a space in the mock store."""
         space = self._spaces.get(space_id)
         if not space:
@@ -101,8 +101,8 @@ class SpaceMixin:
 
     def list_spaces(
         self,
-        space_type: Optional[str] = None,
-        status: Optional[str] = None,
+        space_type: str | None = None,
+        status: str | None = None,
     ) -> list[dict[str, Any]]:
         """List spaces matching filters."""
         # Get unique spaces (avoid duplicates from ID/key indexing)
@@ -127,9 +127,9 @@ class SpaceMixin:
     def _handle_get(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle GET requests for spaces."""
         # GET /api/v2/spaces/{id}
         match = re.match(r"/api/v2/spaces/(\d+)$", endpoint)
@@ -145,7 +145,9 @@ class SpaceMixin:
             keys = params.get("keys") if params else None
             if keys:
                 # Filter by specific keys
-                spaces = [self.get_space(k) for k in keys.split(",") if self.get_space(k)]
+                spaces = [
+                    self.get_space(k) for k in keys.split(",") if self.get_space(k)
+                ]
                 return {"results": spaces}
 
             space_type = params.get("type") if params else None
@@ -157,9 +159,9 @@ class SpaceMixin:
     def _handle_post(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle POST requests for spaces."""
         # POST /api/v2/spaces
         if endpoint == "/api/v2/spaces" and data:
@@ -178,9 +180,9 @@ class SpaceMixin:
     def _handle_put(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle PUT requests for spaces."""
         # PUT /api/v2/spaces/{id}
         match = re.match(r"/api/v2/spaces/(\d+)$", endpoint)
@@ -205,9 +207,9 @@ class SpaceMixin:
     def _handle_delete(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle DELETE requests for spaces."""
         # Note: v2 API doesn't support space deletion, but we mock it anyway
         match = re.match(r"/api/v2/spaces/(\d+)$", endpoint)
@@ -231,6 +233,7 @@ class SpaceMixin:
         """Create a not found error."""
         try:
             from confluence_as import NotFoundError
+
             return NotFoundError(message)
         except ImportError:
             return Exception(f"404: {message}")

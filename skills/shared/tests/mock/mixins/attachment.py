@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 
 class AttachmentMixin:
@@ -33,7 +33,7 @@ class AttachmentMixin:
         page_id: str,
         filename: str,
         content: bytes = b"Mock file content",
-        attachment_id: Optional[str] = None,
+        attachment_id: str | None = None,
         media_type: str = "application/octet-stream",
     ) -> dict[str, Any]:
         """Add an attachment to a page."""
@@ -68,11 +68,11 @@ class AttachmentMixin:
 
         return attachment
 
-    def get_attachment(self, attachment_id: str) -> Optional[dict[str, Any]]:
+    def get_attachment(self, attachment_id: str) -> dict[str, Any] | None:
         """Get attachment metadata."""
         return self._attachments.get(attachment_id)
 
-    def get_attachment_content(self, attachment_id: str) -> Optional[bytes]:
+    def get_attachment_content(self, attachment_id: str) -> bytes | None:
         """Get attachment file content."""
         return self._attachment_data.get(attachment_id)
 
@@ -80,17 +80,15 @@ class AttachmentMixin:
         """Get all attachments for a page."""
         attachment_ids = self._page_attachments.get(page_id, [])
         return [
-            self._attachments[aid]
-            for aid in attachment_ids
-            if aid in self._attachments
+            self._attachments[aid] for aid in attachment_ids if aid in self._attachments
         ]
 
     def update_attachment(
         self,
         attachment_id: str,
-        content: Optional[bytes] = None,
-        filename: Optional[str] = None,
-    ) -> Optional[dict[str, Any]]:
+        content: bytes | None = None,
+        filename: str | None = None,
+    ) -> dict[str, Any] | None:
         """Update an attachment."""
         attachment = self._attachments.get(attachment_id)
         if not attachment:
@@ -103,7 +101,9 @@ class AttachmentMixin:
         if filename is not None:
             attachment["title"] = filename
             page_id = attachment["pageId"]
-            attachment["downloadLink"] = f"/wiki/download/attachments/{page_id}/{filename}"
+            attachment["downloadLink"] = (
+                f"/wiki/download/attachments/{page_id}/{filename}"
+            )
 
         attachment["version"]["number"] += 1
         attachment["version"]["createdAt"] = self.generate_timestamp()
@@ -119,7 +119,8 @@ class AttachmentMixin:
             page_id = attachment.get("pageId")
             if page_id and page_id in self._page_attachments:
                 self._page_attachments[page_id] = [
-                    aid for aid in self._page_attachments[page_id]
+                    aid
+                    for aid in self._page_attachments[page_id]
                     if aid != attachment_id
                 ]
             return True
@@ -146,9 +147,9 @@ class AttachmentMixin:
     def upload_file(
         self,
         endpoint: str,
-        file_path: Union[str, Path],
-        params: Optional[dict[str, Any]] = None,
-        additional_data: Optional[dict[str, str]] = None,
+        file_path: str | Path,
+        params: dict[str, Any] | None = None,
+        additional_data: dict[str, str] | None = None,
         operation: str = "upload file",
     ) -> dict[str, Any]:
         """Mock file upload."""
@@ -179,7 +180,9 @@ class AttachmentMixin:
             ".xml": "application/xml",
             ".zip": "application/zip",
         }
-        media_type = media_types.get(file_path.suffix.lower(), "application/octet-stream")
+        media_type = media_types.get(
+            file_path.suffix.lower(), "application/octet-stream"
+        )
 
         attachment = self.add_attachment(
             page_id=page_id,
@@ -193,7 +196,7 @@ class AttachmentMixin:
     def download_file(
         self,
         download_url: str,
-        output_path: Union[str, Path],
+        output_path: str | Path,
         operation: str = "download file",
     ) -> Path:
         """Mock file download."""
@@ -219,9 +222,9 @@ class AttachmentMixin:
     def _handle_get(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle GET requests for attachments."""
         # GET /api/v2/attachments/{id}
         match = re.match(r"/api/v2/attachments/(\d+)$", endpoint)
@@ -244,9 +247,9 @@ class AttachmentMixin:
     def _handle_delete(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle DELETE requests for attachments."""
         # DELETE /api/v2/attachments/{id}
         match = re.match(r"/api/v2/attachments/(\d+)$", endpoint)
@@ -262,6 +265,7 @@ class AttachmentMixin:
         """Create a not found error."""
         try:
             from confluence_as import NotFoundError
+
             return NotFoundError(message)
         except ImportError:
             return Exception(f"404: {message}")

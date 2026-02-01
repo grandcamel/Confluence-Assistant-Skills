@@ -47,7 +47,7 @@ class TestSetProperty:
         json_file.write_text(json.dumps({"data": "file value", "metadata": {}}))
 
         # Read the file
-        with open(json_file) as f:
+        with json_file.open() as f:
             value_data = json.load(f)
 
         assert value_data["data"] == "file value"

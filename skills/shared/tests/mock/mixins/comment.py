@@ -7,7 +7,7 @@ Provides mock behavior for comment operations.
 from __future__ import annotations
 
 import re
-from typing import Any, Optional
+from typing import Any
 
 
 class CommentMixin:
@@ -30,8 +30,8 @@ class CommentMixin:
         self,
         page_id: str,
         body: str,
-        comment_id: Optional[str] = None,
-        parent_comment_id: Optional[str] = None,
+        comment_id: str | None = None,
+        parent_comment_id: str | None = None,
         inline: bool = False,
     ) -> dict[str, Any]:
         """Add a comment to a page."""
@@ -65,7 +65,7 @@ class CommentMixin:
 
         return comment
 
-    def get_comment(self, comment_id: str) -> Optional[dict[str, Any]]:
+    def get_comment(self, comment_id: str) -> dict[str, Any] | None:
         """Get a comment by ID."""
         return self._comments.get(comment_id)
 
@@ -86,9 +86,9 @@ class CommentMixin:
     def update_comment(
         self,
         comment_id: str,
-        body: Optional[str] = None,
-        resolved: Optional[bool] = None,
-    ) -> Optional[dict[str, Any]]:
+        body: str | None = None,
+        resolved: bool | None = None,
+    ) -> dict[str, Any] | None:
         """Update a comment."""
         comment = self._comments.get(comment_id)
         if not comment:
@@ -115,11 +115,11 @@ class CommentMixin:
             return True
         return False
 
-    def resolve_comment(self, comment_id: str) -> Optional[dict[str, Any]]:
+    def resolve_comment(self, comment_id: str) -> dict[str, Any] | None:
         """Resolve an inline comment."""
         return self.update_comment(comment_id, resolved=True)
 
-    def unresolve_comment(self, comment_id: str) -> Optional[dict[str, Any]]:
+    def unresolve_comment(self, comment_id: str) -> dict[str, Any] | None:
         """Unresolve an inline comment."""
         return self.update_comment(comment_id, resolved=False)
 
@@ -130,9 +130,9 @@ class CommentMixin:
     def _handle_get(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle GET requests for comments."""
         # GET /api/v2/footer-comments/{id}
         match = re.match(r"/api/v2/footer-comments/(\d+)$", endpoint)
@@ -162,9 +162,9 @@ class CommentMixin:
     def _handle_post(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle POST requests for comments."""
         # POST /api/v2/pages/{id}/footer-comments
         match = re.match(r"/api/v2/pages/(\d+)/footer-comments", endpoint)
@@ -198,9 +198,9 @@ class CommentMixin:
     def _handle_put(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle PUT requests for comments."""
         # PUT /api/v2/footer-comments/{id}
         match = re.match(r"/api/v2/footer-comments/(\d+)$", endpoint)
@@ -217,9 +217,9 @@ class CommentMixin:
     def _handle_delete(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle DELETE requests for comments."""
         # DELETE /api/v2/footer-comments/{id}
         match = re.match(r"/api/v2/footer-comments/(\d+)$", endpoint)
@@ -243,6 +243,7 @@ class CommentMixin:
         """Create a not found error."""
         try:
             from confluence_as import NotFoundError
+
             return NotFoundError(message)
         except ImportError:
             return Exception(f"404: {message}")

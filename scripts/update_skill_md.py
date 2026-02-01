@@ -118,7 +118,7 @@ def update_skill_md(skill_path: Path) -> tuple[int, int]:
 
         # Replace python script.py with CLI command
         # Pattern: python script_name.py (followed by args or newline)
-        pattern = rf'python\s+{re.escape(script_name)}'
+        pattern = rf"python\s+{re.escape(script_name)}"
         if re.search(pattern, content):
             content = re.sub(pattern, cli_cmd, content)
             changes += 1

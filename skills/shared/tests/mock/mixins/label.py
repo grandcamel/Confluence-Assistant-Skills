@@ -7,7 +7,7 @@ Provides mock behavior for label operations.
 from __future__ import annotations
 
 import re
-from typing import Any, Optional
+from typing import Any
 
 
 class LabelMixin:
@@ -69,8 +69,9 @@ class LabelMixin:
 
         original_count = len(self._labels[content_id])
         self._labels[content_id] = [
-            l for l in self._labels[content_id]
-            if l["id"] != label_id_or_name and l["name"] != label_id_or_name
+            label
+            for label in self._labels[content_id]
+            if label["id"] != label_id_or_name and label["name"] != label_id_or_name
         ]
 
         removed = len(self._labels[content_id]) < original_count
@@ -79,7 +80,9 @@ class LabelMixin:
         if removed and hasattr(self, "_pages") and content_id in self._pages:
             page = self._pages[content_id]
             if "_labels" in page:
-                page["_labels"] = [l for l in page["_labels"] if l != label_id_or_name]
+                page["_labels"] = [
+                    label for label in page["_labels"] if label != label_id_or_name
+                ]
 
         return removed
 
@@ -100,9 +103,9 @@ class LabelMixin:
     def _handle_get(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle GET requests for labels."""
         # GET /api/v2/pages/{id}/labels
         match = re.match(r"/api/v2/pages/(\d+)/labels", endpoint)
@@ -123,9 +126,9 @@ class LabelMixin:
     def _handle_post(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle POST requests for labels."""
         # POST /api/v2/pages/{id}/labels
         match = re.match(r"/api/v2/pages/(\d+)/labels", endpoint)
@@ -146,9 +149,9 @@ class LabelMixin:
     def _handle_delete(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]],
-        data: Optional[dict[str, Any]],
-    ) -> Optional[dict[str, Any]]:
+        params: dict[str, Any] | None,
+        data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         """Handle DELETE requests for labels."""
         # DELETE /api/v2/pages/{id}/labels/{label_id}
         match = re.match(r"/api/v2/pages/(\d+)/labels/([^/]+)", endpoint)
@@ -172,6 +175,7 @@ class LabelMixin:
         """Create a not found error."""
         try:
             from confluence_as import NotFoundError
+
             return NotFoundError(message)
         except ImportError:
             return Exception(f"404: {message}")

@@ -370,7 +370,7 @@ class TestHistoryExport:
         export_file = tmp_path / "history.csv"
 
         # Export to CSV
-        with open(export_file, "w", newline="") as f:
+        with export_file.open("w", newline="") as f:
             writer = csv.DictWriter(
                 f, fieldnames=["query", "timestamp", "results_count"]
             )
@@ -381,7 +381,7 @@ class TestHistoryExport:
         # Verify
         assert export_file.exists()
 
-        with open(export_file) as f:
+        with export_file.open() as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 

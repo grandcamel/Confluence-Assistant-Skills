@@ -77,17 +77,17 @@ class TestLabelParsing:
     def test_parse_comma_separated_labels(self):
         """Test parsing comma-separated label string."""
         labels_str = "doc,approved,v2"
-        labels = [l.strip() for l in labels_str.split(",")]
+        labels = [label.strip() for label in labels_str.split(",")]
         assert labels == ["doc", "approved", "v2"]
 
     def test_parse_single_label(self):
         """Test parsing single label."""
         labels_str = "documentation"
-        labels = [l.strip() for l in labels_str.split(",")]
+        labels = [label.strip() for label in labels_str.split(",")]
         assert labels == ["documentation"]
 
     def test_parse_labels_with_spaces(self):
         """Test parsing labels with extra spaces."""
         labels_str = " doc , approved , v2 "
-        labels = [l.strip() for l in labels_str.split(",") if l.strip()]
+        labels = [label.strip() for label in labels_str.split(",") if label.strip()]
         assert labels == ["doc", "approved", "v2"]

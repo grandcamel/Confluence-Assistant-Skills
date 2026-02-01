@@ -45,24 +45,24 @@ class TestWatchSpace:
 
     def test_watch_space_not_found(self, mock_client, mock_response):
         """Test watching a non-existent space."""
-        from confluence_as import handle_confluence_error
+        from confluence_as import NotFoundError, handle_confluence_error
 
         error_response = mock_response(
             status_code=404, json_data={"message": "Space not found"}
         )
 
-        with pytest.raises(Exception):
+        with pytest.raises(NotFoundError):
             handle_confluence_error(error_response, "watch space")
 
     def test_watch_space_permission_denied(self, mock_client, mock_response):
         """Test watching a space without permission."""
-        from confluence_as import handle_confluence_error
+        from confluence_as import PermissionError, handle_confluence_error
 
         error_response = mock_response(
             status_code=403, json_data={"message": "Permission denied"}
         )
 
-        with pytest.raises(Exception):
+        with pytest.raises(PermissionError):
             handle_confluence_error(error_response, "watch space")
 
     def test_watch_space_output(self):

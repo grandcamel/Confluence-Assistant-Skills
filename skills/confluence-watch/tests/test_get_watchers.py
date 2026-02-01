@@ -53,13 +53,13 @@ class TestGetWatchers:
 
     def test_get_watchers_not_found(self, mock_client, mock_response):
         """Test getting watchers for non-existent content."""
-        from confluence_as import handle_confluence_error
+        from confluence_as import NotFoundError, handle_confluence_error
 
         error_response = mock_response(
             status_code=404, json_data={"message": "Content not found"}
         )
 
-        with pytest.raises(Exception):
+        with pytest.raises(NotFoundError):
             handle_confluence_error(error_response, "get watchers")
 
     def test_get_watchers_output_json(self):

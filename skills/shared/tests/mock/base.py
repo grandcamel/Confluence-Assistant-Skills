@@ -7,11 +7,10 @@ Mixins extend this base to add domain-specific mock functionality.
 
 from __future__ import annotations
 
-import json
 import re
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 from unittest.mock import MagicMock
 
 
@@ -58,7 +57,7 @@ class MockConfluenceClientBase:
     def get(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
         operation: str = "GET request",
     ) -> dict[str, Any]:
         """Mock GET request."""
@@ -67,52 +66,56 @@ class MockConfluenceClientBase:
     def post(
         self,
         endpoint: str,
-        data: Optional[dict[str, Any]] = None,
-        json_data: Optional[dict[str, Any]] = None,
-        params: Optional[dict[str, Any]] = None,
+        data: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
         operation: str = "POST request",
     ) -> dict[str, Any]:
         """Mock POST request."""
         payload = json_data if json_data is not None else data
-        return self._handle_request("POST", endpoint, params=params, data=payload, operation=operation)
+        return self._handle_request(
+            "POST", endpoint, params=params, data=payload, operation=operation
+        )
 
     def put(
         self,
         endpoint: str,
-        data: Optional[dict[str, Any]] = None,
-        json_data: Optional[dict[str, Any]] = None,
-        params: Optional[dict[str, Any]] = None,
+        data: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
         operation: str = "PUT request",
     ) -> dict[str, Any]:
         """Mock PUT request."""
         payload = json_data if json_data is not None else data
-        return self._handle_request("PUT", endpoint, params=params, data=payload, operation=operation)
+        return self._handle_request(
+            "PUT", endpoint, params=params, data=payload, operation=operation
+        )
 
     def delete(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
         operation: str = "DELETE request",
     ) -> dict[str, Any]:
         """Mock DELETE request."""
-        return self._handle_request("DELETE", endpoint, params=params, operation=operation)
+        return self._handle_request(
+            "DELETE", endpoint, params=params, operation=operation
+        )
 
     def paginate(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
         operation: str = "paginated request",
-        limit: Optional[int] = None,
+        limit: int | None = None,
         results_key: str = "results",
     ):
         """Mock paginated request."""
         response = self.get(endpoint, params=params, operation=operation)
         results = response.get(results_key, [])
 
-        count = 0
-        for item in results:
+        for count, item in enumerate(results, 1):
             yield item
-            count += 1
             if limit and count >= limit:
                 return
 
@@ -133,8 +136,8 @@ class MockConfluenceClientBase:
         self,
         method: str,
         endpoint: str,
-        params: Optional[dict[str, Any]] = None,
-        data: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
         operation: str = "",
     ) -> dict[str, Any]:
         """
@@ -181,21 +184,21 @@ class MockConfluenceClientBase:
         # Default empty response
         return {}
 
-    def _find_matching_error(self, endpoint: str) -> Optional[Exception]:
+    def _find_matching_error(self, endpoint: str) -> Exception | None:
         """Find a matching error for the endpoint."""
         for pattern, error in self._errors.items():
             if re.match(pattern, endpoint):
                 return error
         return None
 
-    def _find_matching_callback(self, endpoint: str) -> Optional[Callable]:
+    def _find_matching_callback(self, endpoint: str) -> Callable | None:
         """Find a matching callback for the endpoint."""
         for pattern, callback in self._callbacks.items():
             if re.match(pattern, endpoint):
                 return callback
         return None
 
-    def _find_matching_response(self, endpoint: str) -> Optional[dict[str, Any]]:
+    def _find_matching_response(self, endpoint: str) -> dict[str, Any] | None:
         """Find a matching registered response for the endpoint."""
         for pattern, responses in self._responses.items():
             if re.match(pattern, endpoint) and responses:
@@ -207,7 +210,7 @@ class MockConfluenceClientBase:
         self,
         method: str,
         endpoint: str,
-    ) -> Optional[Callable]:
+    ) -> Callable | None:
         """Find a mixin handler for the endpoint."""
         # Mixins implement _handle_<method>_<domain> methods
         # e.g., _handle_get_pages, _handle_post_pages
@@ -226,7 +229,7 @@ class MockConfluenceClientBase:
         self,
         endpoint_pattern: str,
         response: dict[str, Any],
-    ) -> "MockConfluenceClientBase":
+    ) -> MockConfluenceClientBase:
         """
         Register a response for an endpoint pattern.
 
@@ -243,8 +246,8 @@ class MockConfluenceClientBase:
     def register_callback(
         self,
         endpoint_pattern: str,
-        callback: Callable[[str, str, Optional[dict], Optional[dict]], dict],
-    ) -> "MockConfluenceClientBase":
+        callback: Callable[[str, str, dict | None, dict | None], dict],
+    ) -> MockConfluenceClientBase:
         """
         Register a dynamic callback for an endpoint pattern.
 
@@ -262,7 +265,7 @@ class MockConfluenceClientBase:
         self,
         endpoint_pattern: str,
         error: Exception,
-    ) -> "MockConfluenceClientBase":
+    ) -> MockConfluenceClientBase:
         """
         Simulate an error for an endpoint pattern.
 
@@ -276,7 +279,7 @@ class MockConfluenceClientBase:
         self._errors[endpoint_pattern] = error
         return self
 
-    def clear_error(self, endpoint_pattern: str) -> "MockConfluenceClientBase":
+    def clear_error(self, endpoint_pattern: str) -> MockConfluenceClientBase:
         """Remove error simulation for an endpoint pattern."""
         self._errors.pop(endpoint_pattern, None)
         return self
@@ -292,8 +295,8 @@ class MockConfluenceClientBase:
 
     def get_requests(
         self,
-        method: Optional[str] = None,
-        endpoint_pattern: Optional[str] = None,
+        method: str | None = None,
+        endpoint_pattern: str | None = None,
     ) -> list[dict[str, Any]]:
         """Get filtered requests."""
         result = self._requests
@@ -306,7 +309,7 @@ class MockConfluenceClientBase:
 
         return result
 
-    def clear_requests(self) -> "MockConfluenceClientBase":
+    def clear_requests(self) -> MockConfluenceClientBase:
         """Clear request history."""
         self._requests.clear()
         return self
@@ -315,7 +318,7 @@ class MockConfluenceClientBase:
         self,
         method: str,
         endpoint_pattern: str,
-        times: Optional[int] = None,
+        times: int | None = None,
     ) -> None:
         """Assert that an endpoint was called."""
         matches = self.get_requests(method=method, endpoint_pattern=endpoint_pattern)
@@ -325,7 +328,9 @@ class MockConfluenceClientBase:
                 f"Expected {times} calls to {method} {endpoint_pattern}, got {len(matches)}"
             )
         elif not matches:
-            raise AssertionError(f"Expected call to {method} {endpoint_pattern}, but none found")
+            raise AssertionError(
+                f"Expected call to {method} {endpoint_pattern}, but none found"
+            )
 
     def assert_not_called(
         self,
@@ -344,7 +349,7 @@ class MockConfluenceClientBase:
     # Utility Methods
     # =========================================================================
 
-    def reset(self) -> "MockConfluenceClientBase":
+    def reset(self) -> MockConfluenceClientBase:
         """Reset all mock state."""
         self._requests.clear()
         self._responses.clear()
@@ -356,6 +361,7 @@ class MockConfluenceClientBase:
     def generate_id() -> str:
         """Generate a random ID."""
         import uuid
+
         return str(uuid.uuid4().int)[:18]
 
     @staticmethod

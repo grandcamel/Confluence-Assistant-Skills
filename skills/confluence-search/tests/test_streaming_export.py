@@ -61,7 +61,7 @@ class TestStreamingExport:
         assert output_file.exists()
 
         # Read and check
-        with open(output_file) as f:
+        with output_file.open() as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 
@@ -275,7 +275,7 @@ class TestColumnSelection:
         export_csv(data, output_file)
 
         # Should include all columns
-        with open(output_file) as f:
+        with output_file.open() as f:
             reader = csv.DictReader(f)
             headers = reader.fieldnames
 
@@ -298,7 +298,7 @@ class TestColumnSelection:
         export_csv(data, output_file, columns=columns)
 
         # Should only include selected columns
-        with open(output_file) as f:
+        with output_file.open() as f:
             reader = csv.DictReader(f)
             headers = reader.fieldnames
 

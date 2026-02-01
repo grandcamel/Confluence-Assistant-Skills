@@ -59,17 +59,18 @@ class MockConfluenceClient(
     Combines all available mixins into a single mock client.
     Use this for tests that need comprehensive mocking.
     """
+
     pass
 
 
 __all__ = [
+    "AttachmentMixin",
+    "CommentMixin",
+    "ContentMixin",
+    "LabelMixin",
     "MockConfluenceClient",
     "MockConfluenceClientBase",
     "PageMixin",
-    "SpaceMixin",
     "SearchMixin",
-    "ContentMixin",
-    "LabelMixin",
-    "CommentMixin",
-    "AttachmentMixin",
+    "SpaceMixin",
 ]

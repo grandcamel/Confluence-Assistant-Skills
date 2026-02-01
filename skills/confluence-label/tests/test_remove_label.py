@@ -47,7 +47,7 @@ class TestLabelLookup:
         labels = sample_labels["results"]
         target_name = "approved"
 
-        found = next((l for l in labels if l["name"] == target_name), None)
+        found = next((label for label in labels if label["name"] == target_name), None)
         assert found is not None
         assert found["id"] == "label-2"
 
@@ -56,5 +56,5 @@ class TestLabelLookup:
         labels = sample_labels["results"]
         target_name = "nonexistent"
 
-        found = next((l for l in labels if l["name"] == target_name), None)
+        found = next((label for label in labels if label["name"] == target_name), None)
         assert found is None
