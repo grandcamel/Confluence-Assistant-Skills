@@ -5,6 +5,43 @@ All notable changes to the Confluence Assistant Skills project will be documente
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-08-19
+
+### Changed
+
+- **Skill docs aligned with the confluence-as CLI**: every command example
+  in the 16 domain SKILL.md files, the shared references (QUICK_REFERENCE,
+  ERROR_HANDLING, SAFEGUARDS), README, and the setup command was verified
+  against the confluence-as 1.1.1 `--help` tree, with mock-mode runs and
+  library source as the authority for behavior claims
+  - Binary name corrected everywhere: `confluence` → `confluence-as`
+  - Nonexistent commands/flags removed or remapped to real equivalents
+  - Exit-code documentation corrected to actual behavior (all API errors
+    exit 1; malformed command lines exit 2; Ctrl+C exits 130)
+  - Wrong behavior claims fixed (retry timings, v2-only property API,
+    `jira link` page marker, bulk partial-failure exit code, ops cache
+    reality, display-only hierarchy reorder)
+  - Documented the global `-o/--output` propagation added in
+    confluence-as 1.1.1
+- **Dependency floor raised to `confluence-as>=1.1.1`** in pyproject and
+  install docs, matching the CLI behavior the docs now describe
+
+### Notes
+
+- The planned `search scale-search` HTTP 400 caveat was intentionally
+  omitted: no such command exists in the public confluence-as CLI
+
+## [2.0.0] - 2026-01-20
+
+### Changed
+
+- **BREAKING**: Library dependency renamed from
+  `confluence-assistant-skills-lib` to [confluence-as](https://pypi.org/project/confluence-as/);
+  all scripts and docs now import/install `confluence-as`
+- Unit and live-integration tests migrated to the confluence-as
+  repository; this repo keeps plugin docs, routing tests, and e2e tests
+- CI workflows updated for the post-migration layout
+
 ## [1.1.0] - 2025-12-31
 
 ### Added
