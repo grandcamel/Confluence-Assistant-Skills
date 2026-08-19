@@ -81,13 +81,13 @@ Use this skill when you need to:
 
 ```bash
 # Preview before making changes
-confluence bulk label add --cql "space = DOCS AND type = page" --labels "approved" --dry-run
+confluence-as bulk label add --cql "space = DOCS AND type = page" --labels "approved" --dry-run
 
 # Execute the labeling
-confluence bulk label add --cql "space = DOCS AND type = page" --labels "approved"
+confluence-as bulk label add --cql "space = DOCS AND type = page" --labels "approved"
 
 # Bulk delete with preview
-confluence bulk delete --cql "space = ARCHIVE AND created < '2023-01-01'" --dry-run
+confluence-as bulk delete --cql "space = ARCHIVE AND created < '2023-01-01'" --dry-run
 ```
 
 ---
@@ -96,12 +96,12 @@ confluence bulk delete --cql "space = ARCHIVE AND created < '2023-01-01'" --dry-
 
 | Command | Purpose | Risk | Example |
 |---------|---------|------|---------|
-| `confluence bulk label add` | Add labels to pages | ⚠️ | `--cql "..." --labels "tag1,tag2"` |
-| `confluence bulk label remove` | Remove labels from pages | ⚠️ | `--cql "..." --labels "old-tag"` |
-| `confluence bulk update` | Update page properties | ⚠️⚠️ | `--cql "..." --title-prefix "[Archive]" --title-suffix " (Old)"` |
-| `confluence bulk move` | Move pages to new location | ⚠️⚠️ | `--cql "..." --target-space NEWSPACE` |
-| `confluence bulk delete` | **Delete pages permanently** | ⚠️⚠️⚠️ | `--cql "..." --dry-run` |
-| `confluence bulk permission` | Change page permissions | ⚠️⚠️ | `--cql "..." --add-group GROUP` / `--remove-group GROUP` / `--add-user USERID` / `--remove-user USERID` |
+| `confluence-as bulk label add` | Add labels to pages | ⚠️ | `--cql "..." --labels "tag1,tag2"` |
+| `confluence-as bulk label remove` | Remove labels from pages | ⚠️ | `--cql "..." --labels "old-tag"` |
+| `confluence-as bulk update` | Update page properties | ⚠️⚠️ | `--cql "..." --title-prefix "[Archive]" --title-suffix " (Old)"` |
+| `confluence-as bulk move` | Move pages to new location | ⚠️⚠️ | `--cql "..." --target-space NEWSPACE` |
+| `confluence-as bulk delete` | **Delete pages permanently** | ⚠️⚠️⚠️ | `--cql "..." --dry-run` |
+| `confluence-as bulk permission` | Change page permissions | ⚠️⚠️ | `--cql "..." --add-group GROUP` / `--remove-group GROUP` / `--add-user USERID` / `--remove-user USERID` |
 
 ---
 
@@ -114,8 +114,10 @@ All commands support these options:
 | `--dry-run` | Preview changes | **Always** use for ⚠️⚠️+ operations |
 | `--yes` / `-y` | Skip confirmation | Scripted automation |
 | `--max-pages N` | Limit scope (default: 100) | Testing, large operations |
-| `--batch-size N` | Control batching (label add only) | 500+ pages or rate limits (not all commands support this) |
+| `--batch-size N` | Control batching (label add only, default: 50) | 500+ pages or rate limits (not all commands support this) |
 | `--output json` | JSON output | Scripting, pipelines |
+
+The global `-o/--output` flag placed before the subcommand (e.g. `confluence-as -o json bulk update ...`) sets the default output format for all subcommands; an explicit subcommand-level `--output` wins.
 
 ---
 
@@ -125,45 +127,45 @@ All commands support these options:
 
 ```bash
 # Add labels to all pages in a space
-confluence bulk label add --cql "space = DOCS AND type = page" --labels "documentation"
+confluence-as bulk label add --cql "space = DOCS AND type = page" --labels "documentation"
 
 # Add multiple labels
-confluence bulk label add --cql "space = DOCS AND label = 'api'" --labels "reviewed,approved"
+confluence-as bulk label add --cql "space = DOCS AND label = 'api'" --labels "reviewed,approved"
 
 # Remove labels
-confluence bulk label remove --cql "space = ARCHIVE" --labels "active,current"
+confluence-as bulk label remove --cql "space = ARCHIVE" --labels "active,current"
 
 # Preview first
-confluence bulk label add --cql "space = DOCS" --labels "new-tag" --dry-run
+confluence-as bulk label add --cql "space = DOCS" --labels "new-tag" --dry-run
 ```
 
 ### Bulk Move Operations
 
 ```bash
 # Move pages to different space
-confluence bulk move --cql "space = OLD AND type = page" --target-space NEW --dry-run
+confluence-as bulk move --cql "space = OLD AND type = page" --target-space NEW --dry-run
 
 # Move under specific parent
-confluence bulk move --cql "label = 'archive-ready'" --target-parent 12345 --dry-run
+confluence-as bulk move --cql "label = 'archive-ready'" --target-parent 12345 --dry-run
 
 # Execute after preview
-confluence bulk move --cql "space = OLD" --target-space NEW --yes
+confluence-as bulk move --cql "space = OLD" --target-space NEW --yes
 ```
 
 ### Bulk Delete (DESTRUCTIVE)
 
 ```bash
 # ALWAYS preview first with dry-run
-confluence bulk delete --cql "space = CLEANUP AND type = page" --dry-run
+confluence-as bulk delete --cql "space = CLEANUP AND type = page" --dry-run
 
 # Delete old content
-confluence bulk delete --cql "space = ARCHIVE AND lastModified < '2022-01-01'" --dry-run
+confluence-as bulk delete --cql "space = ARCHIVE AND lastModified < '2022-01-01'" --dry-run
 
 # Execute deletion (after confirming dry-run output)
-confluence bulk delete --cql "space = CLEANUP" --yes
+confluence-as bulk delete --cql "space = CLEANUP" --yes
 
 # Limit scope for safety
-confluence bulk delete --cql "space = CLEANUP" --max-pages 50 --dry-run
+confluence-as bulk delete --cql "space = CLEANUP" --max-pages 50 --dry-run
 ```
 
 **Safety features:**
@@ -176,16 +178,16 @@ confluence bulk delete --cql "space = CLEANUP" --max-pages 50 --dry-run
 
 ```bash
 # Add group to page permissions
-confluence bulk permission --cql "space = INTERNAL" --add-group "engineering" --dry-run
+confluence-as bulk permission --cql "space = INTERNAL" --add-group "engineering" --dry-run
 
 # Remove group from page permissions
-confluence bulk permission --cql "space = INTERNAL" --remove-group "contractors" --dry-run
+confluence-as bulk permission --cql "space = INTERNAL" --remove-group "contractors" --dry-run
 
 # Add user to page permissions
-confluence bulk permission --cql "label = 'team-docs'" --add-user "user123" --dry-run
+confluence-as bulk permission --cql "label = 'team-docs'" --add-user "user123" --dry-run
 
 # Remove user from permissions
-confluence bulk permission --cql "label = 'sensitive'" --remove-user "contractor123" --dry-run
+confluence-as bulk permission --cql "label = 'sensitive'" --remove-user "contractor123" --dry-run
 ```
 
 **Permission options:**
@@ -211,16 +213,20 @@ confluence bulk permission --cql "label = 'sensitive'" --remove-user "contractor
 - For label add: Reduce batch size with `--batch-size 25`
 - For other commands: Run during off-peak hours, use `--max-pages` to limit scope
 
+**Note:** `--max-pages` is capped at 1000 for label add/remove and at 500 for update, move, delete, and permission. For larger jobs, narrow the CQL and run in batches.
+
 ---
 
 ## Exit Codes
 
 | Code | Meaning |
 |------|---------|
-| 0 | All operations successful |
-| 1 | Some failures or validation error |
-| 2 | All operations failed |
+| 0 | Command completed (per-page failures, if any, are reported in the summary output) |
+| 1 | Validation or API error |
+| 2 | Malformed command line (unknown flag, missing argument) |
 | 130 | Cancelled by user (Ctrl+C) |
+
+**Note:** A run where individual pages fail still exits 0 — check the success/failed counts (or the `failed`/`failures` fields in JSON output) to detect partial failures.
 
 ---
 

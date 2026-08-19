@@ -59,7 +59,7 @@ Cache management, API diagnostics, and operational utilities for Confluence Assi
 
 Use this skill when you need to:
 
-- **Monitor cache status**: Check cache size, entry counts, and hit rates
+- **Monitor cache status**: Check cache size and entry counts by category
 - **Clear cache data**: Remove stale or sensitive cached data
 - **Pre-warm cache**: Load commonly accessed data for better performance
 - **Diagnose API issues**: Test connectivity and identify problems
@@ -67,7 +67,6 @@ Use this skill when you need to:
 - **Check rate limits**: Monitor API quota usage
 
 **Trigger conditions:**
-- Cache hit rate drops below 50%
 - Confluence API responses slower than 2 seconds
 - Setting up new Confluence instance
 - Before bulk operations (warm cache first)
@@ -80,19 +79,19 @@ Use this skill when you need to:
 
 ```bash
 # Check cache status
-confluence ops cache-status
+confluence-as ops cache-status
 
 # Clear all cache
-confluence ops cache-clear --force
+confluence-as ops cache-clear --force
 
 # Warm cache with space metadata
-confluence ops cache-warm --spaces
+confluence-as ops cache-warm --spaces
 
 # Test API connectivity
-confluence ops health-check
+confluence-as ops health-check
 
 # Full API diagnostics
-confluence ops api-diagnostics
+confluence-as ops api-diagnostics
 ```
 
 ---
@@ -101,12 +100,14 @@ confluence ops api-diagnostics
 
 | Command | Purpose | Risk |
 |---------|---------|------|
-| `confluence ops cache-status` | Display cache statistics | - |
-| `confluence ops cache-clear` | Clear cache entries | ⚠️ |
-| `confluence ops cache-warm` | Pre-warm cache | - |
-| `confluence ops health-check` | Test API connectivity | - |
-| `confluence ops rate-limit-status` | Check rate limit usage | - |
-| `confluence ops api-diagnostics` | Diagnose API issues | - |
+| `confluence-as ops cache-status` | Display cache statistics | - |
+| `confluence-as ops cache-clear` | Clear cache entries | ⚠️ |
+| `confluence-as ops cache-warm` | Pre-warm cache | - |
+| `confluence-as ops health-check` | Test API connectivity | - |
+| `confluence-as ops rate-limit-status` | Check rate limit usage | - |
+| `confluence-as ops api-diagnostics` | Diagnose API issues | - |
+
+The global `-o/--output` flag placed before the subcommand (e.g. `confluence-as -o json ops cache-status`) sets the default output format for all subcommands; an explicit subcommand-level `--output` wins.
 
 ---
 
@@ -116,157 +117,155 @@ confluence ops api-diagnostics
 
 ```bash
 # Basic status
-confluence ops cache-status
+confluence-as ops cache-status
 
 # Output as JSON
-confluence ops cache-status --output json
+confluence-as ops cache-status --output json
 
 # Verbose output with entry details
-confluence ops cache-status --verbose
+confluence-as ops cache-status --verbose
 ```
 
 **Output example:**
 ```
 Cache Status
-────────────────────────────
-Total entries:    1,234
-Total size:       45.2 MB
-Hit rate:         78.5%
+============================================================
 
-By category:
-  spaces:         23 entries (1.2 MB)
-  pages:          892 entries (38.4 MB)
-  users:          156 entries (2.1 MB)
-  search:         163 entries (3.5 MB)
+Status:         Enabled
+Cache Dir:      /Users/you/.confluence-skills/cache
+Dir Exists:     Yes
+Total Entries:  1,234
+Total Size:     45.2 MB
 
-Oldest entry:     2024-01-15 10:30:00
-Newest entry:     2024-01-20 14:45:00
+By Category:
+  pages             892 entries (38.4 MB)
+  search            163 entries (3.5 MB)
+  spaces             23 entries (1.2 MB)
+  users             156 entries (2.1 MB)
+
+Oldest Entry:   2024-01-15T10:30:00
+Newest Entry:   2024-01-20T14:45:00
+✓ Cache status retrieved
 ```
 
 ### Warm the Cache
 
 ```bash
 # Cache space list
-confluence ops cache-warm --spaces
+confluence-as ops cache-warm --spaces
 
 # Cache specific space metadata
-confluence ops cache-warm --space DOCS
+confluence-as ops cache-warm --space DOCS
 
 # Cache all available metadata
-confluence ops cache-warm --all --verbose
+confluence-as ops cache-warm --all --verbose
 
 # JSON output for scripting
-confluence ops cache-warm --spaces --output json
+confluence-as ops cache-warm --spaces --output json
 ```
 
 ### Clear Cache
 
 ```bash
 # Clear all cache (with confirmation)
-confluence ops cache-clear
+confluence-as ops cache-clear
 
 # Clear all cache (skip confirmation)
-confluence ops cache-clear --force
+confluence-as ops cache-clear --force
 
 # Clear only page cache
-confluence ops cache-clear --category pages --force
+confluence-as ops cache-clear --category pages --force
 
 # Preview what would be cleared
-confluence ops cache-clear --dry-run
+confluence-as ops cache-clear --dry-run
 
 # Clear keys matching pattern
-confluence ops cache-clear --pattern "DOCS-*" --category pages --force
+confluence-as ops cache-clear --pattern "DOCS-*" --category pages --force
 
 # Clear entries older than N days
-confluence ops cache-clear --older-than 7 --force
+confluence-as ops cache-clear --older-than 7 --force
 
 # JSON output for scripting
-confluence ops cache-clear --force --output json
+confluence-as ops cache-clear --force --output json
 ```
 
 ### API Diagnostics
 
 ```bash
 # Full health check
-confluence ops health-check
+confluence-as ops health-check
 
 # Test specific endpoint
-confluence ops health-check --endpoint "/api/v2/spaces"
+confluence-as ops health-check --endpoint "/api/v2/spaces"
 
 # Verbose output with timing
-confluence ops health-check --verbose
+confluence-as ops health-check --verbose
 
 # JSON output for scripting
-confluence ops health-check --output json
+confluence-as ops health-check --output json
 ```
 
 **Output example:**
 ```
 Confluence Health Check
-────────────────────────────
-Site URL:         https://your-site.atlassian.net
-Status:           ✓ Connected
-API Version:      v2
-Response Time:    234ms
+============================================================
+
+Site URL:       https://your-site.atlassian.net
+Status:         + Connected
+API Version:    v2
+Response Time:  234ms
 
 Endpoint Tests:
-  /api/v2/spaces       ✓ 156ms
-  /api/v2/pages        ✓ 189ms
-  /rest/api/search     ✓ 312ms
+  [+] /api/v2/spaces            156ms
+  [+] /api/v2/pages             189ms
+  [+] /rest/api/search          312ms
 
-Authentication:   ✓ Valid
-User:             your-email@example.com
+Authentication: + Valid
+User:           your-email@example.com
+✓ Health check complete
 ```
 
 ### Rate Limit Status
 
 ```bash
 # Check current rate limit status
-confluence ops rate-limit-status
+confluence-as ops rate-limit-status
 
 # JSON output
-confluence ops rate-limit-status --output json
+confluence-as ops rate-limit-status --output json
 ```
 
 **Output example:**
 ```
 Rate Limit Status
-────────────────────────────
-Status:           ✓ No rate limit errors detected
+============================================================
 
-Note: Confluence Cloud does not expose rate limit headers in API responses.
-Rate limits are applied server-side and vary by endpoint and account tier.
+Status:         + OK
 
-Recommendations:
-  - Monitor for HTTP 429 responses
-  - Implement exponential backoff on retries
-  - Limit bulk operations to 5-10 concurrent requests
-  - Add small delays between rapid sequential calls
+→ Rate limit information:
+  - Confluence Cloud has rate limits of ~100-500 requests/minute
+  - Use --batch-size option in bulk operations to stay within limits
+  - 429 errors indicate rate limit exceeded - wait and retry
+✓ Rate limit status retrieved
 ```
+
+Note: rate limit headers may not be exposed in all Atlassian tiers; if a request hits a 429, the status is reported as `Rate Limited`.
 
 ---
 
 ## Cache Categories
 
-| Category | Description | Default TTL |
-|----------|-------------|-------------|
-| `spaces` | Space metadata | 1 hour |
-| `pages` | Page content and metadata | 5 minutes |
-| `users` | User information | 1 hour |
-| `search` | Search results | 2 minutes |
-| `labels` | Label data | 15 minutes |
-| `permissions` | Permission data | 5 minutes |
+Cache entries are organized into category subdirectories of the cache directory (e.g. `spaces`, `pages`, `users`). Use `cache-status` to see which categories exist and `cache-clear --category NAME` to clear a single category.
 
 ---
 
 ## Configuration
 
-Cache is stored in `~/.confluence-skills/cache/` with configurable TTL per category.
+Cache is stored in `~/.confluence-skills/cache/`.
 
 Environment variables:
 - `CONFLUENCE_CACHE_DIR` - Custom cache directory
 - `CONFLUENCE_CACHE_ENABLED` - Enable/disable caching (default: true)
-- `CONFLUENCE_CACHE_TTL` - Default TTL in seconds (default: 300)
 
 ---
 
@@ -275,10 +274,9 @@ Environment variables:
 | Code | Meaning |
 |------|---------|
 | 0 | Success |
-| 1 | General error |
-| 2 | Configuration error |
-| 3 | Cache database error |
-| 4 | Network/connectivity error |
+| 1 | Error (validation, API, cache, or connectivity failure) |
+| 2 | Malformed command line (unknown flag, missing argument) |
+| 130 | Cancelled by user (Ctrl+C) |
 
 ---
 

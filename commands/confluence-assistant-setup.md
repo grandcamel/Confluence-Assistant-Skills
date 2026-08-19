@@ -22,7 +22,7 @@ pip show confluence-as 2>/dev/null && echo "Library installed" || echo "Library 
 
 If the library is missing, install it:
 ```bash
-pip install confluence-as>=0.1.0
+pip install "confluence-as>=1.1.1"
 ```
 
 ## Step 2: Get API Token
@@ -81,7 +81,7 @@ source ~/.bashrc  # or source ~/.zshrc
 Test the connection using the CLI:
 
 ```bash
-confluence space list
+confluence-as space list
 ```
 
 Or test with a Python script:
@@ -102,7 +102,7 @@ If validation succeeds, tell the user:
 
 **Test with a space:**
 ```bash
-confluence space list
+confluence-as space list
 ```
 
 **Or just ask me naturally:**
@@ -121,7 +121,7 @@ If authentication fails:
 - **Connection error**: Check the URL is correct and reachable.
 
 If the CLI is not found:
-- Ensure the package is installed: `pip install confluence-assistant-skills`
+- Ensure the library is installed: `pip install "confluence-as>=1.1.1"` (it provides the `confluence-as` command)
 
 If import errors occur:
-- Ensure the library is installed: `pip install confluence-as>=0.1.0`
+- Ensure the library is installed: `pip install "confluence-as>=1.1.1"`

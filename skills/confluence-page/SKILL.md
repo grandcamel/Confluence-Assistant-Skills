@@ -91,51 +91,53 @@ This skill handles all CRUD operations for Confluence pages and blog posts, incl
 
 ## CLI Commands
 
-### confluence page create
+**Output format tip:** A global `-o/--output` flag placed before the subcommand (e.g. `confluence-as -o json page get 12345`) sets the default output format for all subcommands; an explicit subcommand-level `--output` wins.
+
+### confluence-as page create
 
 Create a new Confluence page.
 
 **Usage:**
 ```bash
 # Create a simple page
-confluence page create --space DOCS --title "My New Page" --body "Page content here"
+confluence-as page create --space DOCS --title "My New Page" --body "Page content here"
 
 # Create with parent page
-confluence page create --space DOCS --title "Child Page" --parent 12345 --body "Content"
+confluence-as page create --space DOCS --title "Child Page" --parent 12345 --body "Content"
 
 # Create from Markdown file
-confluence page create --space DOCS --title "From Markdown" --file content.md
+confluence-as page create --space DOCS --title "From Markdown" --file content.md
 
 # Create as draft
-confluence page create --space DOCS --title "Draft Page" --body "WIP" --status draft
+confluence-as page create --space DOCS --title "Draft Page" --body "WIP" --status draft
 ```
 
 **Arguments:**
 - `--space, -s` - Space key (required)
 - `--title, -t` - Page title (required)
-- `--body, -b` - Page body content
+- `--body, -b` - Page body content (Markdown or XHTML)
 - `--file, -f` - Read body from file (Markdown supported)
 - `--parent, -p` - Parent page ID
 - `--status` - Page status: current (default) or draft
 - `--output, -o` - Output format: text or json
 
-### confluence page get
+### confluence-as page get
 
 Retrieve a page's content and metadata.
 
 **Usage:**
 ```bash
 # Get by page ID
-confluence page get 12345
+confluence-as page get 12345
 
 # Get with full body content
-confluence page get 12345 --body
+confluence-as page get 12345 --body
 
 # Get specific body format
-confluence page get 12345 --body --format markdown
+confluence-as page get 12345 --body --format markdown
 
 # JSON output
-confluence page get 12345 --output json
+confluence-as page get 12345 --output json
 ```
 
 **Arguments:**
@@ -144,26 +146,26 @@ confluence page get 12345 --output json
 - `--format` - Body format: storage (default), view, or markdown
 - `--output, -o` - Output format: text or json
 
-### confluence page update
+### confluence-as page update
 
 Update an existing page.
 
 **Usage:**
 ```bash
 # Update title
-confluence page update 12345 --title "New Title"
+confluence-as page update 12345 --title "New Title"
 
 # Update body
-confluence page update 12345 --body "New content"
+confluence-as page update 12345 --body "New content"
 
 # Update from file
-confluence page update 12345 --file updated-content.md
+confluence-as page update 12345 --file updated-content.md
 
 # Update with version message
-confluence page update 12345 --body "Updated" --message "Fixed typos"
+confluence-as page update 12345 --body "Updated" --message "Fixed typos"
 
 # Change status
-confluence page update 12345 --status draft
+confluence-as page update 12345 --status draft
 ```
 
 **Arguments:**
@@ -175,20 +177,20 @@ confluence page update 12345 --status draft
 - `--status` - New status: current or draft
 - `--output, -o` - Output format
 
-### confluence page delete
+### confluence-as page delete
 
 Delete a page (move to trash or permanent delete).
 
 **Usage:**
 ```bash
 # Move to trash (default)
-confluence page delete 12345
+confluence-as page delete 12345
 
 # Permanent delete
-confluence page delete 12345 --permanent
+confluence-as page delete 12345 --permanent
 
 # Force without confirmation
-confluence page delete 12345 --force
+confluence-as page delete 12345 --force
 ```
 
 **Arguments:**
@@ -196,16 +198,16 @@ confluence page delete 12345 --force
 - `--permanent` - Permanently delete (cannot be recovered)
 - `--force, -f` - Skip confirmation prompt
 
-### confluence page blog create
+### confluence-as page blog create
 
 Create a new blog post.
 
 **Usage:**
 ```bash
-confluence page blog create --space BLOG --title "My Blog Post" --body "Blog content"
+confluence-as page blog create --space BLOG --title "My Blog Post" --body "Blog content"
 
 # From Markdown
-confluence page blog create --space BLOG --title "From MD" --file post.md
+confluence-as page blog create --space BLOG --title "From MD" --file post.md
 ```
 
 **Arguments:**
@@ -213,15 +215,16 @@ confluence page blog create --space BLOG --title "From MD" --file post.md
 - `--title, -t` - Blog post title (required)
 - `--body, -b` - Blog post content
 - `--file, -f` - Read body from file
+- `--status` - Blog post status: current or draft
 - `--output, -o` - Output format
 
-### confluence page blog get
+### confluence-as page blog get
 
 Retrieve a blog post.
 
 **Usage:**
 ```bash
-confluence page blog get 67890 --body
+confluence-as page blog get 67890 --body
 ```
 
 **Arguments:**
@@ -230,20 +233,20 @@ confluence page blog get 67890 --body
 - `--format` - Body format
 - `--output, -o` - Output format
 
-### confluence page copy
+### confluence-as page copy
 
 Copy a page to a new location.
 
 **Usage:**
 ```bash
 # Copy to same space
-confluence page copy 12345 --title "Page Copy"
+confluence-as page copy 12345 --title "Page Copy"
 
 # Copy to different space
-confluence page copy 12345 --title "Page Copy" --space NEWSPACE
+confluence-as page copy 12345 --title "Page Copy" --space NEWSPACE
 
 # Copy with children
-confluence page copy 12345 --title "Page Copy" --include-children
+confluence-as page copy 12345 --title "Page Copy" --include-children
 ```
 
 **Arguments:**
@@ -254,20 +257,20 @@ confluence page copy 12345 --title "Page Copy" --include-children
 - `--include-children` - Copy child pages recursively
 - `--output, -o` - Output format
 
-### confluence page move
+### confluence-as page move
 
 Move a page to a new location.
 
 **Usage:**
 ```bash
 # Move to new parent
-confluence page move 12345 --parent 67890
+confluence-as page move 12345 --parent 67890
 
 # Move to different space
-confluence page move 12345 --space NEWSPACE
+confluence-as page move 12345 --space NEWSPACE
 
 # Move to space root
-confluence page move 12345 --space NEWSPACE --root
+confluence-as page move 12345 --space NEWSPACE --root
 ```
 
 **Arguments:**
@@ -275,40 +278,41 @@ confluence page move 12345 --space NEWSPACE --root
 - `--space, -s` - Target space key
 - `--parent, -p` - Target parent page ID
 - `--root` - Move to space root (no parent)
+- `--output, -o` - Output format
 
-### confluence page versions
+### confluence-as page versions
 
 Get version history for a page.
 
 **Usage:**
 ```bash
 # List all versions
-confluence page versions 12345
+confluence-as page versions 12345
 
 # Limit results
-confluence page versions 12345 --limit 10
+confluence-as page versions 12345 --limit 10
 
 # Show version details
-confluence page versions 12345 --detailed
+confluence-as page versions 12345 --detailed
 ```
 
 **Arguments:**
 - `page_id` - Page ID (required)
-- `--limit, -l` - Maximum versions to return
+- `--limit, -l` - Maximum versions to return (default: 25)
 - `--detailed` - Show full version details
 - `--output, -o` - Output format
 
-### confluence page restore
+### confluence-as page restore
 
 Restore a page to a previous version.
 
 **Usage:**
 ```bash
 # Restore to version 5
-confluence page restore 12345 --version 5
+confluence-as page restore 12345 --version 5
 
 # With version message
-confluence page restore 12345 --version 5 --message "Restoring to known good state"
+confluence-as page restore 12345 --version 5 --message "Restoring to known good state"
 ```
 
 **Arguments:**
@@ -343,7 +347,7 @@ User: Create a page called "API Documentation" in DOCS space with content explai
 
 ### 1. Page ID vs Page Title
 - **Problem**: Trying to use page title when page ID is required
-- **Solution**: Use `confluence search cql "title = 'Page Name'"` to find the page ID first
+- **Solution**: Use `confluence-as search cql "title = 'Page Name'"` to find the page ID first
 
 ### 2. Version Conflicts
 - **Problem**: Update fails due to concurrent edits (409 Conflict)
@@ -351,15 +355,15 @@ User: Create a page called "API Documentation" in DOCS space with content explai
 
 ### 3. Missing Parent Page
 - **Problem**: Creating a child page with invalid parent ID
-- **Solution**: Verify parent exists with `confluence page get PARENT_ID`
+- **Solution**: Verify parent exists with `confluence-as page get PARENT_ID`
 
 ### 4. Content Format Mismatch
 - **Problem**: Body content not rendering correctly
-- **Solution**: Use `--file` with Markdown, or ensure proper ADF/storage format
+- **Solution**: Use `--file` with Markdown, or ensure proper storage format (XHTML)
 
-### 5. Space Key Case Sensitivity
-- **Problem**: Space key not found
-- **Solution**: Space keys are case-sensitive (use uppercase: `DOCS` not `docs`)
+### 5. Space Key Format
+- **Problem**: Space key not found or rejected
+- **Solution**: Keys must start with a letter and contain only letters, numbers, and underscores; the CLI uppercases lowercase input automatically (`docs` becomes `DOCS`)
 
 ### 6. Permanent Delete Recovery
 - **Problem**: Accidentally used `--permanent` flag
@@ -381,6 +385,8 @@ User: Create a page called "API Documentation" in DOCS space with content explai
 | **400 Bad Request** | Invalid content format or parameters | Check body format, verify arguments |
 | **413 Content Too Large** | Page body exceeds size limit | Split content across multiple pages |
 
+**Note:** Confluence reports a missing create-page permission as HTTP 404. `confluence-as page create` detects this case and reports it as a permission error instead of "not found".
+
 ### Recovery from Errors
 
 **Deleted page recovery:**
@@ -392,17 +398,17 @@ User: Create a page called "API Documentation" in DOCS space with content explai
 **Version recovery:**
 ```bash
 # Check version history
-confluence page versions 12345
+confluence-as page versions 12345
 
 # Restore previous version
-confluence page restore 12345 --version 5
+confluence-as page restore 12345 --version 5
 ```
 
 **Permission issues:**
 ```bash
 # Check page restrictions
-confluence permission page get 12345
+confluence-as permission page get 12345
 
 # Check space permissions
-confluence permission space get SPACE_KEY
+confluence-as permission space get SPACE_KEY
 ```

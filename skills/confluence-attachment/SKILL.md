@@ -53,71 +53,75 @@ Manage file attachments on Confluence pages.
 
 ## CLI Commands
 
-### confluence attachment upload
+### confluence-as attachment upload
 Upload a file to a page.
 
 **Usage:**
 ```bash
-confluence attachment upload PAGE_ID FILE_PATH
-confluence attachment upload 12345 report.pdf
-confluence attachment upload 12345 image.png --comment "Screenshot"
-confluence attachment upload 12345 data.csv --output json
+confluence-as attachment upload PAGE_ID FILE_PATH
+confluence-as attachment upload 12345 report.pdf
+confluence-as attachment upload 12345 image.png --comment "Screenshot"
+confluence-as attachment upload 12345 data.csv --output json
 ```
 
 **Options:**
 - `--comment` - Comment describing the attachment
 - `--output, -o` - Output format: `text` (default) or `json`
 
-### confluence attachment download
+### confluence-as attachment download
 Download an attachment.
 
 **Usage:**
 ```bash
-confluence attachment download ATTACHMENT_ID --output ./downloads/
-confluence attachment download att123456 --output myfile.pdf
-confluence attachment download 12345 --all --output ./downloads/  # Download all from page
+confluence-as attachment download ATTACHMENT_ID --output ./downloads/
+confluence-as attachment download att123456 --output myfile.pdf
+confluence-as attachment download 12345 --all --output ./downloads/  # Download all from page
 ```
 
-### confluence attachment list
+**Options:**
+- `--output, -o` - Output file or directory (default: current directory)
+- `--all, -a` - Download all attachments from a page (the ID argument is a page ID)
+
+### confluence-as attachment list
 List attachments on a page.
 
 **Usage:**
 ```bash
-confluence attachment list 12345
-confluence attachment list 12345 --output json
-confluence attachment list 12345 --output table
-confluence attachment list 12345 --media-type application/pdf
-confluence attachment list 12345 --limit 50
+confluence-as attachment list 12345
+confluence-as attachment list 12345 --output json
+confluence-as attachment list 12345 --output table
+confluence-as attachment list 12345 --media-type application/pdf
+confluence-as attachment list 12345 --limit 50
 ```
 
 **Options:**
 - `--output, -o` - Output format: `text`, `json`, or `table`
-- `--media-type` - Filter by media type (e.g., `application/pdf`)
-- `--limit` - Maximum number of results (default 25, max 250)
+- `--media-type, -m` - Filter by media type (e.g., `application/pdf`)
+- `--limit, -l` - Maximum number of results (default 25, max 250)
 
-### confluence attachment delete
+### confluence-as attachment delete
 Remove an attachment.
 
 **Usage:**
 ```bash
-confluence attachment delete ATTACHMENT_ID
-confluence attachment delete ATTACHMENT_ID --force
-confluence attachment delete ATTACHMENT_ID --purge --force
+confluence-as attachment delete ATTACHMENT_ID
+confluence-as attachment delete ATTACHMENT_ID --force
+confluence-as attachment delete ATTACHMENT_ID --purge --force
 ```
 
 **Options:**
 - `--force`, `-f` - Skip confirmation prompt
 - `--purge` - Permanently delete (otherwise moves to trash)
 
-### confluence attachment update
+### confluence-as attachment update
 Replace an attachment file.
 
 **Usage:**
 ```bash
-confluence attachment update ATTACHMENT_ID FILE_PATH
-confluence attachment update att123456 new_version.pdf
-confluence attachment update att123456 updated.docx --comment "Updated content"
-confluence attachment update att123456 report.pdf --output json
+confluence-as attachment update ATTACHMENT_ID FILE_PATH
+confluence-as attachment update att123456 new_version.pdf
+confluence-as attachment update att123456 updated.docx --comment "Updated content"
+confluence-as attachment update att123456 report.pdf --output json
 ```
 
 **Options:**

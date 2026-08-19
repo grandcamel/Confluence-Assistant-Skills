@@ -62,7 +62,7 @@ This skill provides analytics and statistics for Confluence content, including p
 
 ## CLI Commands
 
-### confluence analytics views
+### confluence-as analytics views
 
 Get analytics and view information for a specific page.
 
@@ -74,7 +74,7 @@ Retrieves:
 
 **Usage:**
 ```bash
-confluence analytics views PAGE_ID [--output json]
+confluence-as analytics views PAGE_ID [--output json]
 ```
 
 **Arguments:**
@@ -84,10 +84,10 @@ confluence analytics views PAGE_ID [--output json]
 **Examples:**
 ```bash
 # Get page analytics
-confluence analytics views 12345
+confluence-as analytics views 12345
 
 # Get as JSON
-confluence analytics views 12345 --output json
+confluence-as analytics views 12345 --output json
 ```
 
 **Output (text):**
@@ -115,7 +115,7 @@ Web UI: https://your-site.atlassian.net/wiki/spaces/DOCS/pages/12345
 
 ---
 
-### confluence analytics space
+### confluence-as analytics space
 
 Get aggregate analytics for an entire space.
 
@@ -127,7 +127,7 @@ Retrieves:
 
 **Usage:**
 ```bash
-confluence analytics space SPACE_KEY [--days N] [--output json]
+confluence-as analytics space SPACE_KEY [--days N] [--output json]
 ```
 
 **Arguments:**
@@ -138,13 +138,13 @@ confluence analytics space SPACE_KEY [--days N] [--output json]
 **Examples:**
 ```bash
 # Get all-time space analytics
-confluence analytics space DOCS
+confluence-as analytics space DOCS
 
 # Get last 30 days
-confluence analytics space DOCS --days 30
+confluence-as analytics space DOCS --days 30
 
 # Get as JSON
-confluence analytics space DOCS --output json
+confluence-as analytics space DOCS --output json
 ```
 
 **Output (text):**
@@ -167,7 +167,7 @@ Recent Updates:
 
 ---
 
-### confluence analytics popular
+### confluence-as analytics popular
 
 Find the most popular or most recently updated content.
 
@@ -178,7 +178,7 @@ Uses CQL queries with ordering to identify popular content based on:
 
 **Usage:**
 ```bash
-confluence analytics popular [--space SPACE_KEY] [--label LABEL] [--type TYPE] [--sort SORT] [--limit N] [--output json]
+confluence-as analytics popular [--space SPACE_KEY] [--label LABEL] [--type TYPE] [--sort SORT] [--limit N] [--output json]
 ```
 
 **Arguments:**
@@ -194,16 +194,16 @@ confluence analytics popular [--space SPACE_KEY] [--label LABEL] [--type TYPE] [
 **Examples:**
 ```bash
 # Most recently modified in space
-confluence analytics popular --space DOCS
+confluence-as analytics popular --space DOCS
 
 # Most recently created pages
-confluence analytics popular --space DOCS --type page --sort created --limit 5
+confluence-as analytics popular --space DOCS --type page --sort created --limit 5
 
 # Content with featured label
-confluence analytics popular --label featured --limit 10
+confluence-as analytics popular --label featured --limit 10
 
 # Recent blog posts
-confluence analytics popular --space DOCS --type blogpost --limit 5
+confluence-as analytics popular --space DOCS --type blogpost --limit 5
 ```
 
 **Output (text):**
@@ -225,13 +225,13 @@ ID      Title                               Type   Space  Modified
 
 ---
 
-### confluence analytics watchers
+### confluence-as analytics watchers
 
 Get the list of users watching a page (who will be notified of changes).
 
 **Usage:**
 ```bash
-confluence analytics watchers PAGE_ID [--output json]
+confluence-as analytics watchers PAGE_ID [--output json]
 ```
 
 **Arguments:**
@@ -241,10 +241,10 @@ confluence analytics watchers PAGE_ID [--output json]
 **Examples:**
 ```bash
 # Get watchers for a page
-confluence analytics watchers 12345
+confluence-as analytics watchers 12345
 
 # Get as JSON
-confluence analytics watchers 12345 --output json
+confluence-as analytics watchers 12345 --output json
 ```
 
 **Output (text):**
@@ -284,8 +284,11 @@ When you ask Claude about analytics, this skill will be triggered:
 
 This skill uses the following Confluence REST API endpoints:
 
+### v2 API
+- `GET /api/v2/pages/{id}` - Page metadata
+
 ### v1 API (Legacy)
-- `GET /rest/api/content/{id}?expand=history,version,history.contributors.publishers` - Page analytics
+- `GET /rest/api/content/{id}/history?expand=lastUpdated,contributors.publishers` - Page history and contributors
 - `GET /rest/api/search?cql={query}` - CQL search for content
 - `GET /rest/api/content/{id}/notification/child-created` - Watchers
 

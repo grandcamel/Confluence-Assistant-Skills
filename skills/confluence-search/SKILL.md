@@ -147,23 +147,25 @@ type = blogpost AND created >= startOfYear()
 
 ## CLI Commands
 
-### confluence search cql
+**Output format tip:** A global `-o/--output` flag placed before the subcommand (e.g. `confluence-as -o json search cql "..."`) sets the default output format for all subcommands; an explicit subcommand-level `--output` wins. Note that for `search export` and `search stream-export`, the subcommand-level `-o/--output` is the output **file path**, not the format - use `--format` there.
+
+### confluence-as search cql
 
 Execute CQL queries against Confluence.
 
 **Usage:**
 ```bash
 # Simple text search
-confluence search cql "text ~ 'API documentation'"
+confluence-as search cql "text ~ 'API documentation'"
 
 # Search with space filter
-confluence search cql "space = 'DOCS' AND type = page"
+confluence-as search cql "space = 'DOCS' AND type = page"
 
 # With limit
-confluence search cql "label = 'approved'" --limit 50
+confluence-as search cql "label = 'approved'" --limit 50
 
 # Show excerpts
-confluence search cql "text ~ 'config'" --show-excerpts
+confluence-as search cql "text ~ 'config'" --show-excerpts
 ```
 
 **Arguments:**
@@ -174,35 +176,35 @@ confluence search cql "text ~ 'config'" --show-excerpts
 - `--show-ancestors` - Show ancestor pages
 - `--output, -o` - Output format: text or json
 
-### confluence search validate
+### confluence-as search validate
 
 Validate CQL query syntax.
 
 **Usage:**
 ```bash
-confluence search validate "space = 'DOCS' AND type = page"
-confluence search validate "invalid query (("
+confluence-as search validate "space = 'DOCS' AND type = page"
+confluence-as search validate "invalid query (("
 ```
 
 **Arguments:**
 - `cql` - CQL query to validate (required)
 
-### confluence search suggest
+### confluence-as search suggest
 
 Get CQL field and value suggestions.
 
 **Usage:**
 ```bash
 # Get field suggestions
-confluence search suggest --fields
+confluence-as search suggest --fields
 
 # Get values for a field
-confluence search suggest --field space
-confluence search suggest --field type
+confluence-as search suggest --field space
+confluence-as search suggest --field type
 
 # Get operators and functions
-confluence search suggest --operators
-confluence search suggest --functions
+confluence-as search suggest --operators
+confluence-as search suggest --functions
 ```
 
 **Arguments:**
@@ -212,15 +214,15 @@ confluence search suggest --functions
 - `--functions` - List all CQL functions
 - `--output, -o` - Output format: text or json
 
-### confluence search interactive
+### confluence-as search interactive
 
 Interactive CQL query builder.
 
 **Usage:**
 ```bash
-confluence search interactive
-confluence search interactive --space DOCS
-confluence search interactive --type page --execute
+confluence-as search interactive
+confluence-as search interactive --space DOCS
+confluence-as search interactive --type page --execute
 ```
 
 **Arguments:**
@@ -229,20 +231,20 @@ confluence search interactive --type page --execute
 - `--limit, -l` - Maximum results (default: 25)
 - `--execute` - Execute query after building
 
-### confluence search export
+### confluence-as search export
 
 Export search results to file.
 
 **Usage:**
 ```bash
 # Export to CSV
-confluence search export "space = 'DOCS'" --format csv --output results.csv
+confluence-as search export "space = 'DOCS'" --format csv --output results.csv
 
 # Export to JSON
-confluence search export "label = 'api'" --format json --output results.json
+confluence-as search export "label = 'api'" --format json --output results.json
 
 # Select columns
-confluence search export "type = page" --columns id,title,space,created
+confluence-as search export "type = page" --columns id,title,space,created --output pages.csv
 ```
 
 **Arguments:**
@@ -252,20 +254,20 @@ confluence search export "type = page" --columns id,title,space,created
 - `--columns` - Columns to include (comma-separated)
 - `--limit, -l` - Maximum results
 
-### confluence search stream-export
+### confluence-as search stream-export
 
 Export large result sets with checkpoints.
 
 **Usage:**
 ```bash
 # Full export with progress
-confluence search stream-export "space = 'DOCS'" --output docs.csv
+confluence-as search stream-export "space = 'DOCS'" --output docs.csv
 
 # Resume from checkpoint
-confluence search stream-export "space = 'DOCS'" --output docs.csv --resume
+confluence-as search stream-export "space = 'DOCS'" --output docs.csv --resume
 
 # Custom batch size
-confluence search stream-export "type = page" --output pages.csv --batch-size 50
+confluence-as search stream-export "type = page" --output pages.csv --batch-size 50
 ```
 
 **Arguments:**
@@ -276,31 +278,31 @@ confluence search stream-export "type = page" --output pages.csv --batch-size 50
 - `--batch-size` - Records per batch (default: 100)
 - `--resume` - Resume from last checkpoint
 
-### confluence search history
+### confluence-as search history
 
 Manage local query history.
 
 **Usage:**
 ```bash
 # List recent queries
-confluence search history list
-confluence search history list --limit 10
+confluence-as search history list
+confluence-as search history list --limit 10
 
 # Search history
-confluence search history search "space = DOCS"
+confluence-as search history search "space = DOCS"
 
 # Show specific query by index
-confluence search history show 5
+confluence-as search history show 5
 
 # Clear history
-confluence search history clear
+confluence-as search history clear
 
 # Export history to file
-confluence search history export history.csv
-confluence search history export history.json --format json
+confluence-as search history export history.csv
+confluence-as search history export history.json --format json
 
 # Cleanup old entries
-confluence search history cleanup --days 30
+confluence-as search history cleanup --days 30
 ```
 
 **Subcommands:**
@@ -311,15 +313,15 @@ confluence search history cleanup --days 30
 - `export FILE` - Export history to file (--format: csv or json)
 - `cleanup` - Remove old entries (--days default: 90)
 
-### confluence search content
+### confluence-as search content
 
 Simple text search (no CQL knowledge required).
 
 **Usage:**
 ```bash
-confluence search content "meeting notes"
-confluence search content "meeting notes" --space DOCS
-confluence search content "API documentation" --type page
+confluence-as search content "meeting notes"
+confluence-as search content "meeting notes" --space DOCS
+confluence-as search content "API documentation" --type page
 ```
 
 **Arguments:**
@@ -345,7 +347,7 @@ confluence search content "API documentation" --type page
 
 ### 1. CQL Syntax Errors
 - **Problem**: Query fails with syntax error
-- **Solution**: Use `confluence search validate "query"` to check syntax first
+- **Solution**: Use `confluence-as search validate "query"` to check syntax first
 
 ### 2. Quoting Issues
 - **Problem**: Values with spaces not matching
@@ -373,7 +375,7 @@ confluence search content "API documentation" --type page
 
 | Error | Cause | Resolution |
 |-------|-------|------------|
-| **400 Bad Request** | Invalid CQL syntax | Use `confluence search validate` to check query |
+| **400 Bad Request** | Invalid CQL syntax | Use `confluence-as search validate` to check query |
 | **403 Forbidden** | No permission to search space | Request space access |
 | **408 Timeout** | Query too complex or large result set | Simplify query, use pagination |
 
@@ -381,18 +383,18 @@ confluence search content "API documentation" --type page
 
 **Validate query before running:**
 ```bash
-confluence search validate "space = 'DOCS' AND type = page"
+confluence-as search validate "space = 'DOCS' AND type = page"
 ```
 
 **Build query interactively:**
 ```bash
-confluence search interactive --space DOCS
+confluence-as search interactive --space DOCS
 ```
 
 **Check available fields:**
 ```bash
-confluence search suggest --fields
-confluence search suggest --field space
+confluence-as search suggest --fields
+confluence-as search suggest --field space
 ```
 
 **Common CQL fixes:**
