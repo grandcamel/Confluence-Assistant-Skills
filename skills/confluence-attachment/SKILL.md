@@ -47,7 +47,8 @@ Manage file attachments on Confluence pages.
 | List/download | - | Read-only |
 | Upload | - | Can be deleted |
 | Update | ⚠️ | Replaces existing file |
-| Delete | ⚠️⚠️ | **No recovery** |
+| Delete | ⚠️ | Moves to trash (recoverable) |
+| Delete `--purge` | ⚠️⚠️ | **Permanent** - only works on an already-trashed attachment |
 
 ---
 
@@ -100,18 +101,21 @@ confluence-as attachment list 12345 --limit 50
 - `--limit, -l` - Maximum number of results (default 25, max 250)
 
 ### confluence-as attachment delete
-Remove an attachment.
+Remove an attachment. By default the attachment is moved to **trash** (recoverable). `--purge` permanently deletes an attachment that is **already in trash** — it does not work as a one-step permanent delete on a live attachment.
 
 **Usage:**
 ```bash
-confluence-as attachment delete ATTACHMENT_ID
-confluence-as attachment delete ATTACHMENT_ID --force
-confluence-as attachment delete ATTACHMENT_ID --purge --force
+confluence-as attachment delete ATTACHMENT_ID           # move to trash (recoverable)
+confluence-as attachment delete ATTACHMENT_ID --force   # skip confirmation prompt
+
+# Permanent deletion is a two-step process:
+confluence-as attachment delete ATTACHMENT_ID           # 1. move to trash
+confluence-as attachment delete ATTACHMENT_ID --purge   # 2. purge the trashed attachment
 ```
 
 **Options:**
 - `--force`, `-f` - Skip confirmation prompt
-- `--purge` - Permanently delete (otherwise moves to trash)
+- `--purge` - Permanently delete an attachment that is already in trash (delete first, then delete again with `--purge`)
 
 ### confluence-as attachment update
 Replace an attachment file.

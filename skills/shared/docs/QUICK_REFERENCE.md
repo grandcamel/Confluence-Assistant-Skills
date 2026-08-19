@@ -21,6 +21,10 @@ One-page reference for all skills and common operations.
 | `confluence-watch` | Notifications | `watch page`, `watch unwatch-page`, `watch list` |
 | `confluence-hierarchy` | Content tree | `hierarchy tree`, `hierarchy children`, `hierarchy ancestors` |
 | `confluence-jira` | JIRA integration | `jira embed`, `jira link` |
+| `confluence-admin` | Users, groups, administration | `admin user search`, `admin group list`, `admin space permissions` |
+| `confluence-bulk` | Bulk page operations | `bulk update`, `bulk move`, `bulk delete`, `bulk label add` |
+| `confluence-ops` | Diagnostics & cache | `ops health-check`, `ops cache-status`, `ops cache-clear` |
+| `confluence-assistant` | Central hub | Routes requests to the specialized skills |
 
 ---
 
@@ -141,6 +145,7 @@ text ~ "API documentation" AND lastModified > "2025-01-01"
 | Comments | `/api/v2/footer-comments/{id}` |
 | Attachments | `/api/v2/attachments/{id}` |
 | Labels | `/api/v2/pages/{id}/labels` |
+| Properties | `/api/v2/pages/{id}/properties/{property_id}` |
 
 ### v1 API (Legacy)
 | Resource | Endpoint |
@@ -148,7 +153,6 @@ text ~ "API documentation" AND lastModified > "2025-01-01"
 | Content | `/rest/api/content/{id}` |
 | Space | `/rest/api/space/{key}` |
 | Search | `/rest/api/search?cql={query}` |
-| Properties | `/rest/api/content/{id}/property/{key}` |
 
 ---
 

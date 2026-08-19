@@ -23,10 +23,11 @@ Cache management, API diagnostics, and operational utilities for Confluence Assi
 ## ⚠️ PRIMARY USE CASE
 
 **This skill manages operational aspects of Confluence integration.** Use for:
-- Monitoring and managing cache
+- Inspecting and clearing the cache directory
 - Diagnosing API connectivity issues
-- Performance optimization
 - Troubleshooting rate limits
+
+> **Cache reality check:** current `confluence-as` releases never **write** response data to the cache directory (`~/.confluence-skills/cache`). The `cache-*` commands manage/inspect that directory, but it stays empty unless something else populates it: `cache-warm` issues API requests and discards the responses (`cache-status` still shows 0 entries afterwards), and each CLI invocation builds a fresh HTTP session, so warming does not speed anything up. `CONFLUENCE_CACHE_ENABLED` only changes the Enabled/Disabled label in `cache-status` output.
 
 ---
 
@@ -50,8 +51,8 @@ Cache management, API diagnostics, and operational utilities for Confluence Assi
 |-----------|------|-------|
 | Cache status | - | Read-only |
 | API diagnostics | - | Read-only |
-| Cache warm | - | Adds cache entries |
-| Cache clear | ⚠️ | Removes cache, may slow next requests |
+| Cache warm | - | Issues read-only API requests; does not add cache entries |
+| Cache clear | ⚠️ | Deletes files from the cache directory |
 
 ---
 
@@ -59,32 +60,29 @@ Cache management, API diagnostics, and operational utilities for Confluence Assi
 
 Use this skill when you need to:
 
-- **Monitor cache status**: Check cache size and entry counts by category
-- **Clear cache data**: Remove stale or sensitive cached data
-- **Pre-warm cache**: Load commonly accessed data for better performance
+- **Inspect the cache directory**: Check its size and entry counts by category
+- **Clear cache data**: Remove stale or sensitive files from the cache directory
+- **Exercise read endpoints**: `cache-warm` fetches space metadata (useful as a connectivity smoke test; responses are not stored)
 - **Diagnose API issues**: Test connectivity and identify problems
-- **Troubleshoot slowness**: Diagnose cache-related performance issues
 - **Check rate limits**: Monitor API quota usage
 
 **Trigger conditions:**
-- Confluence API responses slower than 2 seconds
 - Setting up new Confluence instance
-- Before bulk operations (warm cache first)
-- After space changes (invalidate cache)
 - Troubleshooting 429 rate limit errors
+- Cleaning up the cache directory (e.g. removing sensitive data left by older releases or other tools)
 
 ---
 
 ## Quick Start
 
 ```bash
-# Check cache status
+# Inspect the cache directory
 confluence-as ops cache-status
 
-# Clear all cache
+# Delete all files in the cache directory
 confluence-as ops cache-clear --force
 
-# Warm cache with space metadata
+# Fetch space metadata (responses are not stored - see cache reality check)
 confluence-as ops cache-warm --spaces
 
 # Test API connectivity
@@ -100,9 +98,9 @@ confluence-as ops api-diagnostics
 
 | Command | Purpose | Risk |
 |---------|---------|------|
-| `confluence-as ops cache-status` | Display cache statistics | - |
-| `confluence-as ops cache-clear` | Clear cache entries | ⚠️ |
-| `confluence-as ops cache-warm` | Pre-warm cache | - |
+| `confluence-as ops cache-status` | Display cache directory statistics | - |
+| `confluence-as ops cache-clear` | Delete files from the cache directory | ⚠️ |
+| `confluence-as ops cache-warm` | Fetch metadata (responses are not stored) | - |
 | `confluence-as ops health-check` | Test API connectivity | - |
 | `confluence-as ops rate-limit-status` | Check rate limit usage | - |
 | `confluence-as ops api-diagnostics` | Diagnose API issues | - |
@@ -126,7 +124,7 @@ confluence-as ops cache-status --output json
 confluence-as ops cache-status --verbose
 ```
 
-**Output example:**
+**Output example** (current releases never write to the cache directory, so entry counts are normally 0):
 ```
 Cache Status
 ============================================================
@@ -134,30 +132,25 @@ Cache Status
 Status:         Enabled
 Cache Dir:      /Users/you/.confluence-skills/cache
 Dir Exists:     Yes
-Total Entries:  1,234
-Total Size:     45.2 MB
-
-By Category:
-  pages             892 entries (38.4 MB)
-  search            163 entries (3.5 MB)
-  spaces             23 entries (1.2 MB)
-  users             156 entries (2.1 MB)
-
-Oldest Entry:   2024-01-15T10:30:00
-Newest Entry:   2024-01-20T14:45:00
+Total Entries:  0
+Total Size:     0.0 B
 ✓ Cache status retrieved
 ```
 
+The `Status` line reflects only the `CONFLUENCE_CACHE_ENABLED` environment variable; it is a display label, not a functional toggle. If the directory contains files (placed there by older releases or other tools), a `By Category` breakdown and oldest/newest entry timestamps are also shown.
+
 ### Warm the Cache
 
+`cache-warm` issues read-only API requests for the selected metadata and reports what it fetched. The responses are **discarded, not cached** - `cache-status` shows 0 entries afterwards, and because each CLI invocation builds a fresh HTTP session, warming does not speed up later commands. Treat it as a connectivity/permissions smoke test for the spaces endpoints.
+
 ```bash
-# Cache space list
+# Fetch space list
 confluence-as ops cache-warm --spaces
 
-# Cache specific space metadata
+# Fetch specific space metadata
 confluence-as ops cache-warm --space DOCS
 
-# Cache all available metadata
+# Fetch all available metadata
 confluence-as ops cache-warm --all --verbose
 
 # JSON output for scripting
@@ -179,8 +172,8 @@ confluence-as ops cache-clear --category pages --force
 # Preview what would be cleared
 confluence-as ops cache-clear --dry-run
 
-# Clear keys matching pattern
-confluence-as ops cache-clear --pattern "DOCS-*" --category pages --force
+# Clear keys whose filename contains a substring (NOT a glob - "DOCS-*" would match nothing)
+confluence-as ops cache-clear --pattern "DOCS" --category pages --force
 
 # Clear entries older than N days
 confluence-as ops cache-clear --older-than 7 --force
@@ -255,17 +248,17 @@ Note: rate limit headers may not be exposed in all Atlassian tiers; if a request
 
 ## Cache Categories
 
-Cache entries are organized into category subdirectories of the cache directory (e.g. `spaces`, `pages`, `users`). Use `cache-status` to see which categories exist and `cache-clear --category NAME` to clear a single category.
+When the cache directory contains files, they are organized into category subdirectories (e.g. `spaces`, `pages`, `users`). Use `cache-status` to see which categories exist and `cache-clear --category NAME` to clear a single category. Since current releases never populate the directory, expect no categories on a fresh install.
 
 ---
 
 ## Configuration
 
-Cache is stored in `~/.confluence-skills/cache/`.
+The cache directory managed by these commands is `~/.confluence-skills/cache/`. Current releases never write response data to it (see the cache reality check above).
 
 Environment variables:
 - `CONFLUENCE_CACHE_DIR` - Custom cache directory
-- `CONFLUENCE_CACHE_ENABLED` - Enable/disable caching (default: true)
+- `CONFLUENCE_CACHE_ENABLED` - Only changes the Enabled/Disabled label shown by `cache-status` (default: true); it does not enable or disable any caching behavior
 
 ---
 
@@ -284,16 +277,15 @@ Environment variables:
 
 | Issue | Solution |
 |-------|----------|
-| Slow API responses | Run `cache-warm --all` to pre-populate cache |
-| Stale data | Run `cache-clear --force` then `cache-warm` |
+| Slow API responses | Check `health-check --verbose` timings; response caching is not available in current releases |
 | 429 Rate limit | Wait for reset, reduce request frequency |
 | Connection timeout | Check `health-check`, verify credentials |
-| Cache corruption | Run `cache-clear --force` |
+| Stale or unwanted files in cache directory | Run `cache-clear --force` |
 
 ---
 
 ## Related Skills
 
-- **confluence-bulk**: Bulk operations (benefit from warmed cache)
-- **confluence-search**: Search queries (results are cached)
+- **confluence-bulk**: Bulk operations
+- **confluence-search**: Search queries
 - **confluence-admin**: Administrative operations

@@ -24,7 +24,7 @@ triggers:
 - Adding footer comments (end of page)
 - Adding inline comments (within content)
 - Replying to existing comments
-- Resolving/unresolving inline comments
+- Resolving/unresolving footer comments (inline comments are not supported by `resolve`)
 
 ---
 
@@ -34,7 +34,7 @@ triggers:
 |----------------|-------------|
 | Add/edit comments | - |
 | Reply to comments | - |
-| Resolve inline comments | - |
+| Resolve footer comments | - |
 | Edit page content | `confluence-page` |
 | Search comments | `confluence-search` |
 
@@ -81,7 +81,7 @@ confluence-as comment add PAGE_ID --file comment.txt
 
 ### confluence-as comment list
 
-Retrieve all footer comments on a Confluence page.
+Retrieve footer comments on a Confluence page. Returns at most `--limit` comments (default: 25, max: 250) and silently truncates at that limit - pass a higher `--limit` on pages with many comments.
 
 **Usage:**
 ```bash
@@ -95,7 +95,7 @@ confluence-as comment list PAGE_ID --output json
 - `page_id` - Page ID to get comments from
 
 **Options:**
-- `--limit`, `-l` - Maximum number of comments to retrieve
+- `--limit`, `-l` - Maximum number of comments to retrieve (default: 25, max: 250); results beyond the limit are silently dropped
 - `--sort`, `-s` - Sort order: created or -created (default: -created for newest first)
 - `--output`, `-o` - Output format (text or json)
 
@@ -154,7 +154,9 @@ confluence-as comment add-inline PAGE_ID "selected text" "Comment about this tex
 
 ### confluence-as comment resolve
 
-Mark a comment as resolved or reopen it.
+Mark a **footer** comment as resolved or reopen it.
+
+**Footer comments only:** this command calls the `/api/v2/footer-comments/{id}` endpoints exclusively, so passing an inline comment ID fails with 404 Not Found. Resolving inline comments is not supported by the CLI; use the Confluence UI instead.
 
 **Usage:**
 ```bash
@@ -163,7 +165,7 @@ confluence-as comment resolve COMMENT_ID --unresolve
 ```
 
 **Arguments:**
-- `comment_id` - Comment ID to resolve/unresolve
+- `comment_id` - Footer comment ID to resolve/unresolve (inline comment IDs return 404)
 
 **Options:**
 - `--resolve`, `-r` - Mark comment as resolved
@@ -214,11 +216,11 @@ This skill uses the Confluence v2 REST API:
   - `POST /api/v2/footer-comments` - Add comment (pageId in request body)
   - `GET /api/v2/pages/{id}/footer-comments` - Get comments on a page
   - `GET /api/v2/footer-comments/{id}` - Get specific comment
-  - `PUT /api/v2/footer-comments/{id}` - Update comment
+  - `PUT /api/v2/footer-comments/{id}` - Update comment body or resolution status (used by `update` and `resolve`)
   - `DELETE /api/v2/footer-comments/{id}` - Delete comment
 
 - **Inline Comments:**
-  - `POST /api/v2/inline-comments` - Add inline comment (pageId in request body)
+  - `POST /api/v2/inline-comments` - Add inline comment (pageId in request body); this is the only inline-comment endpoint the CLI uses - resolving inline comments is not supported
 
 ## Error Handling
 
@@ -233,5 +235,5 @@ All commands include proper error handling for:
 - Comments support HTML storage format for rich text
 - Inline comments require exact text matches in page content
 - Comment IDs are numeric strings (same validation as page IDs)
-- Resolution status is tracked separately from comment body
+- Resolution status is tracked separately from comment body (resolve/unresolve applies to footer comments only)
 - Deletion requires confirmation unless --force is used

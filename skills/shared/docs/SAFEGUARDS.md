@@ -35,7 +35,7 @@ Operations are classified by their potential impact:
 | **confluence-comment** | Add comment | - | Delete comment |
 | | Delete comment | :warning: | **NOT RECOVERABLE** |
 | **confluence-attachment** | Upload file | - | Delete attachment |
-| | Delete attachment | :warning::warning: | Re-upload file |
+| | Delete attachment | :warning::warning: | Restore from trash (re-upload only if purged) |
 | **confluence-label** | Add label | - | Remove label |
 | | Remove label | - | Re-add label |
 | **confluence-property** | Set property | - | Update or delete property |
@@ -188,7 +188,7 @@ When encountering 403 errors:
 ### confluence-attachment
 
 **Destructive Operations:**
-- `confluence-as attachment delete` - Permanent, no trash
+- `confluence-as attachment delete` - Moves to trash by default (recoverable); `--purge` permanently deletes an already-trashed attachment (two-step: delete, then delete `--purge`)
 
 **Safe Practices:**
 - Download attachment before deleting
@@ -325,6 +325,8 @@ permissions:
       risk: caution
     - pattern: "confluence-as label remove *"
       risk: caution
+    - pattern: "confluence-as bulk label *"
+      risk: caution
     - pattern: "confluence-as property set *"
       risk: caution
     - pattern: "confluence-as property delete *"
@@ -341,8 +343,26 @@ permissions:
       risk: warning
     - pattern: "confluence-as permission page remove *"
       risk: warning
+    - pattern: "confluence-as bulk update *"
+      risk: warning
+    - pattern: "confluence-as bulk move *"
+      risk: warning
+    # bulk permission edits read RESTRICTIONS: --add-group/--add-user on a page
+    # with no existing restrictions locks out every user not on the list
+    - pattern: "confluence-as bulk permission *"
+      risk: warning
 
-    # Danger - IRREVERSIBLE operations (space delete)
+    # Danger - IRREVERSIBLE or mass-destructive operations
     - pattern: "confluence-as space delete *"
+      risk: danger
+    # page delete --permanent bypasses trash and cannot be recovered. The flag can
+    # appear anywhere on the command line; the pattern below only matches the
+    # flag-last form — treat ANY `page delete` invocation containing --permanent
+    # as danger, overriding the generic `page delete` warning pattern above.
+    - pattern: "confluence-as page delete * --permanent*"
+      risk: danger
+    # bulk delete sends pages to trash (recoverable ~30 days), but restoration is
+    # manual per page — the risk matrix above classifies it CRITICAL
+    - pattern: "confluence-as bulk delete *"
       risk: danger
 -->

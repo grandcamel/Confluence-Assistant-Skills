@@ -116,7 +116,9 @@ confluence-as template get tmpl-123 --output json
 - `--output`, `-o`: Output format (text or json)
 
 ### confluence-as template create-from
-Create a new Confluence page based on an existing template or blueprint.
+Create a new Confluence page based on an existing template.
+
+> **Known limitation:** `--blueprint` currently creates the page with an **empty body**. Blueprint content is not applied - the CLI never sends the blueprint ID to any API; it only records it in the command output. To get content into the page, pass `--content` or `--file`, or use `--template` instead.
 
 **Usage:**
 ```bash
@@ -126,7 +128,7 @@ confluence-as template create-from --template tmpl-123 --space DOCS --title "New
 # Create page with parent
 confluence-as template create-from --template tmpl-123 --space DOCS --title "Page" --parent-id 12345
 
-# Create from blueprint
+# Create from blueprint (page body will be EMPTY - see limitation note above)
 confluence-as template create-from --blueprint bp-456 --space DOCS --title "Project Plan"
 
 # Add labels
@@ -141,7 +143,7 @@ confluence-as template create-from --template tmpl-123 --space DOCS --title "Pag
 
 **Arguments:**
 - `--template`: Template ID to use
-- `--blueprint`: Blueprint ID to use (alternative to --template)
+- `--blueprint`: Blueprint ID to use (alternative to --template). Currently produces an empty page body unless `--content`/`--file` is given - blueprint content is not applied
 - `--space`: Space key for the new page (required)
 - `--title`: Title for the new page (required)
 - `--parent-id`: Parent page ID
@@ -155,11 +157,11 @@ Create a new page template in Confluence.
 
 **Usage:**
 ```bash
-# Create basic template
-confluence-as template create --name "Meeting Notes" --space DOCS
+# Create basic template (--content or --file is required)
+confluence-as template create --name "Meeting Notes" --space DOCS --content "<h1>Meeting Notes</h1>"
 
 # With description
-confluence-as template create --name "Status Report" --space DOCS --description "Weekly status report"
+confluence-as template create --name "Status Report" --space DOCS --description "Weekly status report" --content "<h1>Status Report</h1>"
 
 # From HTML file
 confluence-as template create --name "Template" --space DOCS --file template.html
@@ -168,13 +170,13 @@ confluence-as template create --name "Template" --space DOCS --file template.htm
 confluence-as template create --name "Template" --space DOCS --file template.md
 
 # With labels
-confluence-as template create --name "Template" --space DOCS --labels "template,meeting"
+confluence-as template create --name "Template" --space DOCS --file template.md --labels "template,meeting"
 
 # Blogpost template
-confluence-as template create --name "Blog Template" --space DOCS --type blogpost
+confluence-as template create --name "Blog Template" --space DOCS --content "<p>Blog post body</p>" --type blogpost
 
 # Based on blueprint
-confluence-as template create --name "Custom" --space DOCS --blueprint-id com.atlassian...
+confluence-as template create --name "Custom" --space DOCS --content "<p>Body</p>" --blueprint-id com.atlassian...
 ```
 
 **Arguments:**
@@ -268,8 +270,8 @@ confluence-as template create-from --template tmpl-123 --space DOCS --title "My 
 ### Creating Custom Templates
 
 ```bash
-# Create a simple template
-confluence-as template create --name "Weekly Report" --space DOCS --description "Template for weekly status reports"
+# Create a simple template (--content or --file is required)
+confluence-as template create --name "Weekly Report" --space DOCS --description "Template for weekly status reports" --content "<h1>Weekly Report</h1>"
 
 # Create from a Markdown file
 confluence-as template create --name "Project Plan" --space DOCS --file project-template.md --labels "template,planning"
@@ -294,7 +296,7 @@ confluence-as template update tmpl-123 --name "New Template Name" --description 
 
 2. **Markdown Support**: All scripts support Markdown input files, which are automatically converted to Confluence's storage format (XHTML).
 
-3. **Blueprints vs Templates**: Blueprints are system-provided templates. You can create pages from blueprints but typically cannot modify them. Use `--blueprint` flag to work with blueprints.
+3. **Blueprints vs Templates**: Blueprints are system-provided templates and typically cannot be modified. Note that `create-from --blueprint` currently produces an empty page (blueprint content is not applied); pass `--content` or `--file` to supply the body.
 
 4. **Labels**: Use labels to organize and categorize templates for easier discovery.
 

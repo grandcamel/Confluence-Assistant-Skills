@@ -58,7 +58,7 @@ All skills use the [`confluence-as`](https://pypi.org/project/confluence-as/) pa
 
 **Installation:**
 ```bash
-pip install confluence-as
+pip install "confluence-as>=1.1.1"
 ```
 
 **Key Components:**
@@ -75,46 +75,46 @@ pip install confluence-as
 
 ### Installation
 
-The project provides a unified `confluence` CLI for all operations:
+The [`confluence-as`](https://pypi.org/project/confluence-as/) package provides the unified `confluence-as` CLI for all operations (this repo ships no console script of its own):
 
 ```bash
-# Install in development mode
-pip install -e .
+# Install from public PyPI
+pip install "confluence-as>=1.1.1"
 
 # Verify installation
-confluence --version
+confluence-as --version
 ```
 
 ### Usage
 
 ```bash
 # Get help
-confluence --help
-confluence page --help
-confluence page get --help
+confluence-as --help
+confluence-as page --help
+confluence-as page get --help
 
 # Page operations
-confluence page get 12345
-confluence page get 12345 --body --format markdown
-confluence page create DOCS "My Page" --body "Content here"
-confluence page update 12345 --title "New Title"
-confluence page delete 12345 --confirm
+confluence-as page get 12345
+confluence-as page get 12345 --body --format markdown
+confluence-as page create --space DOCS --title "My Page" --body "Content here"
+confluence-as page update 12345 --title "New Title"
+confluence-as page delete 12345 --force
 
 # Space operations
-confluence space list
-confluence space list --output json
-confluence space get DOCS
+confluence-as space list
+confluence-as space list --output json
+confluence-as space get DOCS
 
 # Search operations
-confluence search cql "space = DOCS AND type = page"
-confluence search cql "label = 'approved'" --limit 50 --show-labels
-confluence search export "space = DOCS" --format csv --output-file results.csv
+confluence-as search cql "space = DOCS AND type = page"
+confluence-as search cql "label = 'approved'" --limit 50 --show-labels
+confluence-as search export "space = DOCS" --format csv --output results.csv
 
 # Other commands
-confluence comment add 12345 "Great page!"
-confluence label add 12345 api-docs approved
-confluence attachment list 12345
-confluence hierarchy tree 12345 --depth 3
+confluence-as comment add 12345 "Great page!"
+confluence-as label add 12345 api-docs approved
+confluence-as attachment list 12345
+confluence-as hierarchy tree 12345 --max-depth 3
 ```
 
 ### Global Options
@@ -128,16 +128,18 @@ All commands support these global options:
 | `--quiet, -q` | Suppress non-essential output |
 | `--help` | Show command help |
 
+A global `-o/--output` given before the subcommand propagates as the default; an explicit subcommand flag wins. Exception: on `search export`, `-o/--output` is the output *file path* (required), and the export format is chosen with `-f/--format [csv|json]`.
+
 ### Shell Completion
 
 Enable tab completion for bash:
 ```bash
-eval "$(_CONFLUENCE_COMPLETE=bash_source confluence)"
+eval "$(_CONFLUENCE_AS_COMPLETE=bash_source confluence-as)"
 ```
 
 For zsh:
 ```bash
-eval "$(_CONFLUENCE_COMPLETE=zsh_source confluence)"
+eval "$(_CONFLUENCE_AS_COMPLETE=zsh_source confluence-as)"
 ```
 
 ### Import Pattern
@@ -297,7 +299,7 @@ See the [confluence-as repository](https://github.com/grandcamel/confluence-as) 
 Brief description of what this script does.
 
 Examples:
-    confluence space get SPACE-KEY --option value
+    confluence-as space get SPACE-KEY --option value
 """
 from __future__ import annotations
 
@@ -421,7 +423,7 @@ Description of operation.
 
 **Usage:**
 \`\`\`bash
-confluence {group} {command} ARG --option VALUE
+confluence-as {group} {command} ARG --option VALUE
 \`\`\`
 
 **Options:**
@@ -686,11 +688,11 @@ claude plugin list | grep confluence
 
 ### PyPI Package (CLI)
 
-The CLI is published to PyPI as `confluence-assistant-skills`:
+The CLI is published to PyPI as `confluence-as`:
 
 ```bash
-pip install confluence-assistant-skills
-confluence --version
+pip install "confluence-as>=1.1.1"
+confluence-as --version
 ```
 
 Trusted Publishers on PyPI are configured per-package, not per-repository.
@@ -968,8 +970,8 @@ pytest --run-destructive -v
 **Error:** `PermissionError: 403 Forbidden`
 
 **Solutions:**
-1. Check space permissions: `confluence permission space get SPACE-KEY`
-2. Verify page restrictions: `confluence permission page get PAGE-ID`
+1. Check space permissions: `confluence-as permission space get SPACE-KEY`
+2. Verify page restrictions: `confluence-as permission page get PAGE-ID`
 3. Ensure user has required capabilities (view/edit/admin)
 4. Request access from space administrator
 
@@ -1063,7 +1065,7 @@ pytest --run-destructive -v
 **Error:** `400 Bad Request - Invalid CQL`
 
 **Solutions:**
-1. Validate query first: `confluence search validate "your query"`
+1. Validate query first: `confluence-as search validate "your query"`
 2. Check field names are correct (case-sensitive)
 3. Quote values with spaces: `space = "My Space"`
 4. Use correct operators for field types

@@ -47,7 +47,7 @@ triggers:
 |-----------|------|-------|
 | Get ancestors/children | - | Read-only |
 | View tree | - | Read-only |
-| Reorder pages | ⚠️ | Changes sort order |
+| Reorder pages | - | Preview only - calculates and displays proposed order, applies no changes |
 
 ---
 
@@ -63,9 +63,9 @@ Get all ancestor pages for a given page (parent, grandparent, etc.).
 
 **Usage:**
 ```bash
-confluence-as hierarchy ancestors <page_id>
-confluence-as hierarchy ancestors <page_id> --breadcrumb
-confluence-as hierarchy ancestors <page_id> --output json
+confluence-as hierarchy ancestors PAGE_ID
+confluence-as hierarchy ancestors PAGE_ID --breadcrumb
+confluence-as hierarchy ancestors PAGE_ID --output json
 ```
 
 **Options:**
@@ -82,9 +82,9 @@ Get direct child pages of a parent page (one level down only).
 
 **Usage:**
 ```bash
-confluence-as hierarchy children <page_id>
-confluence-as hierarchy children <page_id> --limit 50
-confluence-as hierarchy children <page_id> --sort title
+confluence-as hierarchy children PAGE_ID
+confluence-as hierarchy children PAGE_ID --limit 50
+confluence-as hierarchy children PAGE_ID --sort title
 ```
 
 **Options:**
@@ -102,10 +102,10 @@ Get all descendant pages recursively (children, grandchildren, etc.).
 
 **Usage:**
 ```bash
-confluence-as hierarchy descendants <page_id>
-confluence-as hierarchy descendants <page_id> --max-depth 2
-confluence-as hierarchy descendants <page_id> --limit 200
-confluence-as hierarchy descendants <page_id> --output json
+confluence-as hierarchy descendants PAGE_ID
+confluence-as hierarchy descendants PAGE_ID --max-depth 2
+confluence-as hierarchy descendants PAGE_ID --limit 200
+confluence-as hierarchy descendants PAGE_ID --output json
 ```
 
 **Options:**
@@ -123,9 +123,9 @@ Get full hierarchical tree structure with nested children.
 
 **Usage:**
 ```bash
-confluence-as hierarchy tree <page_id>
-confluence-as hierarchy tree <page_id> --max-depth 3
-confluence-as hierarchy tree <page_id> --stats
+confluence-as hierarchy tree PAGE_ID
+confluence-as hierarchy tree PAGE_ID --max-depth 3
+confluence-as hierarchy tree PAGE_ID --stats
 ```
 
 **Options:**
@@ -143,22 +143,22 @@ Calculate and display proposed child page order. This command helps plan reorder
 
 **Usage:**
 ```bash
-confluence-as hierarchy reorder <parent_id>
-confluence-as hierarchy reorder <parent_id> "id1,id2,id3"
-confluence-as hierarchy reorder <parent_id> --reverse
+confluence-as hierarchy reorder PARENT_ID
+confluence-as hierarchy reorder PARENT_ID "id1,id2,id3"
+confluence-as hierarchy reorder PARENT_ID --reverse
 ```
 
 **Arguments:**
 - `order` - (Optional) Comma-separated child page IDs in desired order (must be quoted)
 
 **Options:**
-- `--reverse` - Reverse current order
+- `--reverse` - Sort children reverse-alphabetically by title (children are sorted alphabetically first, then reversed; only applies when no explicit order argument is given)
 - `--output, -o` - Output format: text (default) or json
 
 **Examples:**
 - Sort alphabetically: `confluence-as hierarchy reorder 12345`
 - Specify custom order: `confluence-as hierarchy reorder 12345 "200,201,202"`
-- Reverse order: `confluence-as hierarchy reorder 12345 --reverse`
+- Reverse-alphabetical order: `confluence-as hierarchy reorder 12345 --reverse`
 
 **IMPORTANT:** This command only CALCULATES and DISPLAYS the proposed new order - it does NOT apply changes to Confluence. To actually reorder pages, you must use the Confluence UI (drag and drop in the page tree).
 

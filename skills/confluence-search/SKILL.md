@@ -121,8 +121,8 @@ ancestor = 12345
 # Combined with ordering
 space = "DOCS" AND label = "api" ORDER BY lastModified DESC
 
-# Content with attachments
-type = attachment AND container.space = "DOCS"
+# Attachments in a space
+type = attachment AND space = "DOCS"
 
 # Blog posts by date
 type = blogpost AND created >= startOfYear()
@@ -327,7 +327,7 @@ confluence-as search content "API documentation" --type page
 **Arguments:**
 - `query` - Search text (required)
 - `--space` - Limit to space
-- `--type` - Content type: page, blogpost, or all
+- `--type` - Content type: page or blogpost. Omit the flag to search all types. (The CLI also accepts `all`, but that injects the literal `type = all` into the CQL, which the server rejects - do not use it.)
 - `--limit, -l` - Maximum results
 - `--output, -o` - Output format
 
