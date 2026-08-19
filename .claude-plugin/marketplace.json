@@ -18,7 +18,16 @@
       "source": "./",
       "category": "productivity",
       "homepage": "https://github.com/grandcamel/Confluence-Assistant-Skills",
-      "keywords": ["confluence", "atlassian", "cql", "wiki", "documentation", "pages", "spaces", "collaboration"]
+      "keywords": [
+        "confluence",
+        "atlassian",
+        "cql",
+        "wiki",
+        "documentation",
+        "pages",
+        "spaces",
+        "collaboration"
+      ]
     }
   ]
 }
