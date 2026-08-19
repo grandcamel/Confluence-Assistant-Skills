@@ -115,8 +115,8 @@ confluence-as page create --space DOCS --title "Draft Page" --body "WIP" --statu
 **Arguments:**
 - `--space, -s` - Space key (required)
 - `--title, -t` - Page title (required)
-- `--body, -b` - Page body content (Markdown or XHTML)
-- `--file, -f` - Read body from file (Markdown supported)
+- `--body, -b` - Page body content as storage-format XHTML (or plain text). Markdown passed via `--body` is NOT converted and renders as literal text; use `--file` with a `.md` file for Markdown.
+- `--file, -f` - Read body from file (files with a `.md`/`.markdown` extension are converted from Markdown)
 - `--parent, -p` - Parent page ID
 - `--status` - Page status: current (default) or draft
 - `--output, -o` - Output format: text or json
@@ -171,8 +171,8 @@ confluence-as page update 12345 --status draft
 **Arguments:**
 - `page_id` - Page ID (required)
 - `--title, -t` - New title
-- `--body, -b` - New body content
-- `--file, -f` - Read body from file
+- `--body, -b` - New body content (storage-format XHTML or plain text; Markdown is not converted - use `--file` with a `.md` file)
+- `--file, -f` - Read body from file (`.md`/`.markdown` files are converted from Markdown)
 - `--message, -m` - Version message
 - `--status` - New status: current or draft
 - `--output, -o` - Output format
@@ -213,8 +213,8 @@ confluence-as page blog create --space BLOG --title "From MD" --file post.md
 **Arguments:**
 - `--space, -s` - Space key (required)
 - `--title, -t` - Blog post title (required)
-- `--body, -b` - Blog post content
-- `--file, -f` - Read body from file
+- `--body, -b` - Blog post content (storage-format XHTML or plain text; Markdown is not converted - use `--file` with a `.md` file)
+- `--file, -f` - Read body from file (`.md`/`.markdown` files are converted from Markdown)
 - `--status` - Blog post status: current or draft
 - `--output, -o` - Output format
 

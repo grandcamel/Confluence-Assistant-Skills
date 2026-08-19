@@ -9,8 +9,8 @@
 <table>
 <tr>
 <td align="center"><strong>17</strong><br><sub>Skills</sub></td>
-<td align="center"><strong>88</strong><br><sub>Scripts</sub></td>
-<td align="center"><strong>940</strong><br><sub>Tests</sub></td>
+<td align="center"><strong>108</strong><br><sub>CLI Commands</sub></td>
+<td align="center"><strong>10</strong><br><sub>E2E Tests</sub></td>
 <td align="center"><strong>CQL</strong><br><sub>Query Support</sub></td>
 </tr>
 </table>
@@ -125,7 +125,7 @@ claude plugin install confluence-assistant-skills@confluence-assistant-skills-ma
 **Option C: Manual**
 ```bash
 git clone https://github.com/grandcamel/Confluence-Assistant-Skills.git
-pip install -r requirements.txt
+pip install "confluence-as>=1.1.1"
 ```
 
 </td>
@@ -192,19 +192,13 @@ confluence-as label add 12345 approved
 If you're using this as part of the **Assistant Skills** ecosystem, run the setup wizard after installing:
 
 ```bash
-/assistant-skills-setup
+/confluence-assistant-setup
 ```
 
 This configures:
-- Shared Python venv at `~/.assistant-skills-venv/`
-- Required dependencies from `requirements.txt`
+- The `confluence-as` CLI from PyPI (`pip install "confluence-as>=1.1.1"`)
 - Environment variables (prompts you to set: `CONFLUENCE_SITE_URL`, `CONFLUENCE_EMAIL`, `CONFLUENCE_API_TOKEN`)
-- `claude-as` shell function for running Claude with dependencies
-
-After setup, use `claude-as` instead of `claude`:
-```bash
-claude-as  # Runs Claude with Assistant Skills venv activated
-```
+- Connection validation against your Confluence site
 
 ### Environment Variables
 
@@ -230,13 +224,13 @@ flowchart LR
         C["Update permissions for..."]
     end
 
-    subgraph Skills["🔧 14 Skills"]
+    subgraph Skills["🔧 17 Skills"]
         D[Pages]
         E[Search]
         F[Permissions]
         G[Labels]
         H[Comments]
-        I[+ 9 more]
+        I[+ 12 more]
     end
 
     subgraph Output["✅ Results"]
@@ -277,6 +271,9 @@ flowchart LR
 | **confluence-watch** | Content watching | `watch page`, `watch unwatch-page` |
 | **confluence-hierarchy** | Page tree navigation | `hierarchy ancestors`, `hierarchy children`, `hierarchy descendants` |
 | **confluence-jira** | JIRA integration | `jira embed`, `jira linked` |
+| **confluence-admin** | Users, groups, space administration | `admin user search`, `admin group list`, `admin space permissions` |
+| **confluence-bulk** | Bulk operations on multiple pages | `bulk update`, `bulk move`, `bulk delete`, `bulk label add` |
+| **confluence-ops** | Diagnostics & cache management | `ops health-check`, `ops cache-status`, `ops cache-clear` |
 | **confluence-assistant** | Central hub | Routes to specialized skills |
 
 <br>
@@ -419,7 +416,7 @@ confluence-as permission space get DOCS --output json
 pytest.ini                    # Test paths, markers, import mode
 conftest.py                   # Shared fixtures and pytest hooks
 
-.claude/skills/
+skills/
 ├── confluence-assistant/     # Hub skill - routes requests
 ├── confluence-page/          # Page CRUD operations
 ├── confluence-space/         # Space management
@@ -434,9 +431,12 @@ conftest.py                   # Shared fixtures and pytest hooks
 ├── confluence-watch/         # Watching
 ├── confluence-hierarchy/     # Page tree
 ├── confluence-jira/          # JIRA integration
+├── confluence-admin/         # Administration
+├── confluence-bulk/          # Bulk operations
+├── confluence-ops/           # Diagnostics & cache
 └── shared/
     ├── config/               # Configuration schema
-    └── tests/                # Shared test fixtures
+    └── docs/                 # Shared reference docs
 
 # Shared library (PyPI package)
 confluence-as
@@ -481,24 +481,22 @@ export CONFLUENCE_API_TOKEN="your-api-token"
 
 | Metric | Value |
 |--------|-------|
-| Unit Tests | Comprehensive coverage |
-| E2E Tests | Claude Code integration |
+| E2E Tests | Claude Code plugin integration (`tests/e2e/`) |
+| Unit & Live Tests | Maintained in the [confluence-as](https://github.com/grandcamel/confluence-as) library |
 | Code Style | PEP 8 compliant |
 
-*Live integration tests are maintained in the [confluence-as](https://github.com/grandcamel/confluence-as) library.*
+*This repo ships skills (documentation) — the CLI code and its unit/live integration tests live in the [confluence-as](https://github.com/grandcamel/confluence-as) library.*
 
 ```bash
-# Run all tests
-pytest -v
-
-# Run with coverage
-pytest --cov=confluence_as --cov-report=html
-
-# Run E2E tests (requires ANTHROPIC_API_KEY)
+# Run E2E tests (requires the Claude Code CLI plus
+# ANTHROPIC_API_KEY or an existing ~/.claude login)
 ./scripts/run-e2e-tests.sh           # Docker
 ./scripts/run-e2e-tests.sh --local   # Local
 
-# Live integration tests have been migrated to confluence-as library
+# Or invoke pytest directly
+pytest tests/e2e/ -v
+
+# Unit and live integration tests live in the confluence-as library
 # See: https://github.com/grandcamel/confluence-as
 ```
 

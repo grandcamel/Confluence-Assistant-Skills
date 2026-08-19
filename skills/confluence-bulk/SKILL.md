@@ -15,7 +15,7 @@ triggers:
 
 # Confluence Bulk Skill
 
-Bulk operations for Confluence content management at scale - updates, moves, deletions, labels, and permissions.
+Bulk operations for Confluence content management at scale - updates, moves, deletions, labels, and read restrictions.
 
 ---
 
@@ -25,7 +25,7 @@ Bulk operations for Confluence content management at scale - updates, moves, del
 - Updating multiple pages simultaneously
 - Bulk labeling/unlabeling content
 - Moving many pages between spaces
-- Bulk permission changes
+- Bulk read-restriction changes (page view access)
 - Mass deletion with dry-run preview
 
 ---
@@ -52,8 +52,8 @@ Bulk operations for Confluence content management at scale - updates, moves, del
 | Bulk label remove | ⚠️ | Can be undone |
 | Bulk update | ⚠️⚠️ | Modifies content |
 | Bulk move | ⚠️⚠️ | Changes hierarchy |
-| Bulk permission change | ⚠️⚠️ | Access control |
-| Bulk delete | ⚠️⚠️⚠️ | **DESTRUCTIVE** - Use dry-run first |
+| Bulk permission (read restrictions) | ⚠️⚠️ | Can lock out users not on the restriction list |
+| Bulk delete | ⚠️⚠️⚠️ | **DESTRUCTIVE** - pages go to trash (restorable ~30 days, manually per page); use dry-run first |
 
 **Always use `--dry-run` for destructive operations!**
 
@@ -66,7 +66,7 @@ Use this skill when you need to:
 - Add or remove **labels from many pages** at once
 - **Move pages** between spaces or under different parents
 - **Delete multiple pages** with preview capability
-- Change **permissions on many pages** simultaneously
+- Manage **read restrictions on many pages** simultaneously
 - Execute operations with **dry-run preview** before making changes
 - Handle **partial failures** gracefully with progress tracking
 
@@ -100,21 +100,21 @@ confluence-as bulk delete --cql "space = ARCHIVE AND created < '2023-01-01'" --d
 | `confluence-as bulk label remove` | Remove labels from pages | ⚠️ | `--cql "..." --labels "old-tag"` |
 | `confluence-as bulk update` | Update page properties | ⚠️⚠️ | `--cql "..." --title-prefix "[Archive]" --title-suffix " (Old)"` |
 | `confluence-as bulk move` | Move pages to new location | ⚠️⚠️ | `--cql "..." --target-space NEWSPACE` |
-| `confluence-as bulk delete` | **Delete pages permanently** | ⚠️⚠️⚠️ | `--cql "..." --dry-run` |
-| `confluence-as bulk permission` | Change page permissions | ⚠️⚠️ | `--cql "..." --add-group GROUP` / `--remove-group GROUP` / `--add-user USERID` / `--remove-user USERID` |
+| `confluence-as bulk delete` | **Delete pages (moves them to trash)** | ⚠️⚠️⚠️ | `--cql "..." --dry-run` |
+| `confluence-as bulk permission` | Manage page read restrictions | ⚠️⚠️ | `--cql "..." --add-group GROUP` / `--remove-group GROUP` / `--add-user USERID` / `--remove-user USERID` |
 
 ---
 
 ## Common Options
 
-All commands support these options:
+All commands support these options, except `--batch-size`, which only `bulk label add` accepts:
 
 | Option | Purpose | When to Use |
 |--------|---------|-------------|
 | `--dry-run` | Preview changes | **Always** use for ⚠️⚠️+ operations |
 | `--yes` / `-y` | Skip confirmation | Scripted automation |
 | `--max-pages N` | Limit scope (default: 100) | Testing, large operations |
-| `--batch-size N` | Control batching (label add only, default: 50) | 500+ pages or rate limits (not all commands support this) |
+| `--batch-size N` | Control batching (**`bulk label add` only**, default: 50) | 500+ pages or rate limits |
 | `--output json` | JSON output | Scripting, pipelines |
 
 The global `-o/--output` flag placed before the subcommand (e.g. `confluence-as -o json bulk update ...`) sets the default output format for all subcommands; an explicit subcommand-level `--output` wins.
@@ -174,27 +174,33 @@ confluence-as bulk delete --cql "space = CLEANUP" --max-pages 50 --dry-run
 - Default `--max-pages 100` prevents accidental mass deletion
 - Per-page error tracking with summary of failures
 
-### Bulk Permission Changes
+**Recovery:** Deleted pages go to the space trash and can be restored for ~30 days. Restoration is manual and per-page in the Confluence UI, so recovering a large bulk deletion is still painful — always dry-run first.
+
+### Bulk Read-Restriction Changes
+
+`bulk permission` manages page **read restrictions** (who may view a page), not general page permissions.
+
+> **⚠️ Lockout warning:** `--add-group` / `--add-user` on a page with **no existing read restrictions** creates a restriction list — every user NOT on that list immediately loses view access to the page. Always `--dry-run` first and confirm the matched pages are actually meant to be restricted.
 
 ```bash
-# Add group to page permissions
+# Restrict pages to a group (adds a read restriction)
 confluence-as bulk permission --cql "space = INTERNAL" --add-group "engineering" --dry-run
 
-# Remove group from page permissions
+# Remove a group from the read-restriction list
 confluence-as bulk permission --cql "space = INTERNAL" --remove-group "contractors" --dry-run
 
-# Add user to page permissions
+# Restrict pages to a user (adds a read restriction)
 confluence-as bulk permission --cql "label = 'team-docs'" --add-user "user123" --dry-run
 
-# Remove user from permissions
+# Remove a user from the read-restriction list
 confluence-as bulk permission --cql "label = 'sensitive'" --remove-user "contractor123" --dry-run
 ```
 
-**Permission options:**
-- `--add-group GROUP` - Add a group to page permissions
-- `--remove-group GROUP` - Remove a group from page permissions
-- `--add-user USERID` - Add a user to page permissions
-- `--remove-user USERID` - Remove a user from page permissions
+**Restriction options:**
+- `--add-group GROUP` - Add a group to the page's read-restriction list
+- `--remove-group GROUP` - Remove a group from the read-restriction list
+- `--add-user USERID` - Add a user (account ID) to the read-restriction list
+- `--remove-user USERID` - Remove a user from the read-restriction list
 
 ---
 
@@ -236,7 +242,7 @@ confluence-as bulk permission --cql "label = 'sensitive'" --remove-user "contrac
 |-------|----------|
 | `No pages found` | Verify CQL query returns results |
 | `Permission denied` | Check space/page permissions |
-| `Rate limit (429)` | Reduce `--batch-size` or run during off-peak |
+| `Rate limit (429)` | For `bulk label add`: reduce `--batch-size`. Other commands: run off-peak, lower `--max-pages` |
 | `Invalid CQL` | Test CQL in Confluence search first |
 | `Page locked` | Page may be being edited; retry later |
 

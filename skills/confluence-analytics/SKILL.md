@@ -92,26 +92,24 @@ confluence-as analytics views 12345 --output json
 
 **Output (text):**
 ```
-Page: API Documentation
-ID: 12345
-Type: page
-Space: DOCS
+Page Statistics: API Documentation (12345)
+============================================================
 
-History Information
-Last Modified: 2024-01-15
-Modified By: John Doe
+History Information:
+  Created: 2024-01-01
+  Last Updated: 2024-01-15
+  Updated By: John Doe
 
-Created: 2024-01-01
-
-Contributors (5):
+Contributors: 5
   - Jane Smith
   - John Doe
   - Alice Johnson
   - Bob Wilson
   - Carol Davis
-
-Web UI: https://your-site.atlassian.net/wiki/spaces/DOCS/pages/12345
+✓ Retrieved page statistics
 ```
+
+If page history data is unavailable, the command falls back to basic page info with a note that detailed view analytics may require Confluence Premium.
 
 ---
 
@@ -149,21 +147,24 @@ confluence-as analytics space DOCS --output json
 
 **Output (text):**
 ```
-Space: DOCS
-Period: Last 30 days
+Space Analytics: Documentation (DOCS)
+Date Range: Last 30 days
+============================================================
 
-Content Summary
-Total Items: 156
-Pages: 142+
-Blog Posts: 14+
-Contributors: 8
+Content Summary:
+  Pages: 142+
+  Blog Posts: 14+
+  Total: 156+
+  Contributors: 8
 
-Recent Updates:
-  - API Documentation (page) - 2024-01-15
-  - Release Notes v2.1 (page) - 2024-01-14
-  - Q1 Planning (blogpost) - 2024-01-13
-  ...
+Recent Activity:
+  - [page] API Documentation
+  - [page] Release Notes v2.1
+  - [blogpost] Q1 Planning
+✓ Retrieved analytics for space DOCS
 ```
+
+The `Date Range` line appears only when `--days` is given.
 
 ---
 
@@ -235,7 +236,7 @@ confluence-as analytics watchers PAGE_ID [--output json]
 ```
 
 **Arguments:**
-- `PAGE_ID` - The page or blog post ID (required)
+- `PAGE_ID` - The page ID (required). Blog post IDs are not supported: the command resolves the ID via the pages API, so a blog post ID fails with a not-found error.
 - `--output` - Output format: text or json (default: text)
 
 **Examples:**
@@ -294,7 +295,7 @@ This skill uses the following Confluence REST API endpoints:
 
 ### CQL Queries
 - `space={key} AND type=page` - All pages in space
-- `space={key} AND created >= "{date}"` - Recent content
+- `space={key} AND lastmodified >= {date}` - Recently modified content (built by the `--days` filter)
 - `type=page ORDER BY lastModified DESC` - Recently modified
 - `type=page ORDER BY created DESC` - Recently created
 - `label={name}` - Content with label

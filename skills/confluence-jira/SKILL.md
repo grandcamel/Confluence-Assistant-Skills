@@ -44,13 +44,13 @@ Cross-product JIRA integration for Confluence.
 |-----------|------|-------|
 | Embed issues | ⚠️ | Modifies page content |
 | Add JIRA macro | ⚠️ | Modifies page content |
-| Link to JIRA | - | Creates link only |
+| Link to JIRA | ⚠️ | Modifies page content (adds a link marker, creating a new page version) |
 
 ---
 
 ## Overview
 
-Cross-product JIRA integration for embedding JIRA issues in Confluence pages, creating bidirectional links, and managing JIRA macros.
+Cross-product JIRA integration for embedding JIRA issues in Confluence pages, recording links to JIRA issues on Confluence pages (one-way: the JIRA issue itself is not modified), and managing JIRA macros.
 
 ## CLI Commands
 
@@ -82,7 +82,7 @@ confluence-as jira embed 12345 --issues PROJ-123 --output json
 
 **Options:**
 - `--jql`: JQL query to filter issues (either --jql or --issues must be provided)
-- `--issues`: Comma-separated list of issue keys
+- `--issues`: Comma-separated list of issue keys. If both `--jql` and `--issues` are provided, `--jql` takes precedence and `--issues` is silently ignored.
 - `--mode`: How to add the macro: `append` (default) or `replace`
 - `--server-id`: JIRA server ID (optional)
 - `--columns`: Columns to display (comma-separated)

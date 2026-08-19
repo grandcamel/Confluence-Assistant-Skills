@@ -6,29 +6,33 @@ Cross-product integration between Confluence and JIRA, enabling seamless linking
 
 - Embed JIRA issues in Confluence pages using macros
 - Extract and list JIRA issues referenced in pages
-- Create bidirectional links between Confluence and JIRA
+- Link Confluence pages to JIRA issues
 - Create JIRA issues from Confluence page content
 - Sync and refresh JIRA macro content
 
-## Scripts
+## Commands
 
-### 1. embed_jira_issues.py
+All operations use the `confluence-as jira` command group from the
+[`confluence-as`](https://pypi.org/project/confluence-as/) CLI
+(`pip install "confluence-as>=1.1.1"`).
+
+### 1. jira embed
 
 Embed JIRA issues in a Confluence page using JIRA macros.
 
 **Usage:**
 ```bash
 # Embed issues via JQL query
-python embed_jira_issues.py 12345 --jql "project = PROJ AND status = Open"
+confluence-as jira embed 12345 --jql "project = PROJ AND status = Open"
 
 # Embed specific issues
-python embed_jira_issues.py 12345 --issues PROJ-123,PROJ-456
+confluence-as jira embed 12345 --issues PROJ-123,PROJ-456
 
 # Replace page content with macro
-python embed_jira_issues.py 12345 --jql "project = PROJ" --mode replace
+confluence-as jira embed 12345 --jql "project = PROJ" --mode replace
 
 # With custom columns
-python embed_jira_issues.py 12345 --jql "status = Open" --columns key,summary,status,assignee
+confluence-as jira embed 12345 --jql "status = Open" --columns key,summary,status,assignee
 ```
 
 **Options:**
@@ -39,84 +43,86 @@ python embed_jira_issues.py 12345 --jql "status = Open" --columns key,summary,st
 - `--columns`: Columns to display in macro
 - `--max-results`: Maximum issues to display (default: 20)
 
-### 2. get_linked_issues.py
+### 2. jira linked
 
 Extract and list JIRA issues linked to a Confluence page.
 
 **Usage:**
 ```bash
 # Get all JIRA issues mentioned in a page
-python get_linked_issues.py 12345
+confluence-as jira linked 12345
 
 # JSON output
-python get_linked_issues.py 12345 --output json
+confluence-as jira linked 12345 --output json
 ```
 
 **What it extracts:**
-- JIRA issue keys from macros
-- Issue keys mentioned in text (PROJ-123 format)
 - JQL queries from JIRA issues macros
+- Issue keys mentioned in content (PROJ-123 format)
+- `JIRA-LINK` markers added by `jira link`
 
-### 3. link_to_jira.py
+### 3. jira link
 
-Create a remote link between a Confluence page and JIRA issue.
+Link a Confluence page to a JIRA issue.
 
 **Usage:**
 ```bash
 # Create link
-python link_to_jira.py 12345 PROJ-123 --jira-url https://jira.example.com
+confluence-as jira link 12345 PROJ-123 --jira-url https://jira.example.com
 
 # With relationship type
-python link_to_jira.py 12345 PROJ-123 --jira-url https://jira.example.com --relationship "documents"
+confluence-as jira link 12345 PROJ-123 --jira-url https://jira.example.com --relationship "documents"
 
 # Skip if already exists
-python link_to_jira.py 12345 PROJ-123 --jira-url https://jira.example.com --skip-if-exists
+confluence-as jira link 12345 PROJ-123 --jira-url https://jira.example.com --skip-if-exists
 ```
 
-**Relationship types:**
-- `relates to` (default)
-- `documents`
-- `mentions`
-- `references`
-- `implements`
+**Relationship types** (free text, default `relates to`; reported in the
+command output, e.g. `documents`, `mentions`, `references`, `implements`).
 
-### 4. create_jira_from_page.py
+**Behavior:** the link is recorded by appending an HTML comment marker to the
+Confluence page body (see [Page-Side Link Markers](#page-side-link-markers)).
+It updates the page (requires page write permission) and makes no JIRA-side
+change.
+
+### 4. jira create-from-page
 
 Create a JIRA issue from Confluence page content.
 
 **Usage:**
 ```bash
 # Create a task from page
-python create_jira_from_page.py 12345 --project PROJ --type Task
+confluence-as jira create-from-page 12345 --project PROJ --type Task
 
 # Create a bug with priority
-python create_jira_from_page.py 12345 --project PROJ --type Bug --priority High
+confluence-as jira create-from-page 12345 --project PROJ --type Bug --priority High
 
 # Assign to user
-python create_jira_from_page.py 12345 --project PROJ --type Story --assignee username
+confluence-as jira create-from-page 12345 --project PROJ --type Story --assignee username
 ```
 
-**Required environment variables:**
+**Required environment variables** (or pass `--jira-url`, `--jira-email`,
+`--jira-token` options):
 ```bash
 export JIRA_URL="https://jira.example.com"
 export JIRA_EMAIL="your-email@example.com"
 export JIRA_API_TOKEN="your-jira-token"
 ```
 
-### 5. sync_jira_macro.py
+### 5. jira sync-macro
 
 Refresh or update JIRA macro content in a Confluence page.
 
 **Usage:**
 ```bash
 # Trigger page update to refresh macros
-python sync_jira_macro.py 12345
+confluence-as jira sync-macro 12345
 
 # Update JQL in all macros
-python sync_jira_macro.py 12345 --update-jql "project = PROJ AND status = Open"
+confluence-as jira sync-macro 12345 --update-jql "project = PROJ AND status = Open"
 
 # Update specific macro
-python sync_jira_macro.py 12345 --update-jql "status = Done" --macro-index 0
+confluence-as jira sync-macro 12345 --update-jql "status = Done" --macro-index 0
 ```
 
 ## Architecture
@@ -140,23 +146,36 @@ This skill uses Confluence's native JIRA macros in XHTML storage format:
 </ac:structured-macro>
 ```
 
-### Remote Links
+### Page-Side Link Markers
 
-Remote links create bidirectional relationships that appear in both Confluence and JIRA:
-- Uses Confluence REST API `/rest/api/content/{pageId}/remotelink`
-- Creates application links visible in both systems
-- Supports custom relationship types
+The `jira link` command records the relationship by appending an HTML comment
+marker to the Confluence page's storage body:
+
+```xml
+<!-- JIRA-LINK: PROJ-123 -->
+```
+
+- The page is updated with a new version (requires page write permission)
+- No JIRA-side change is made; nothing appears in JIRA
+- `jira linked` detects these markers alongside JIRA macros and issue keys in text
+- `--skip-if-exists` checks the page's metadata properties before adding a marker
 
 ## Testing
 
-### Unit Tests
+### Unit and Live Tests
+
+Tests for the JIRA integration commands live in the
+[`confluence-as`](https://github.com/grandcamel/confluence-as) library:
 
 ```bash
-# Run all tests
-pytest .claude/skills/confluence-jira/tests/ -v
+cd /path/to/confluence-as
 
-# Run specific test file
-pytest .claude/skills/confluence-jira/tests/test_embed_jira_issues.py -v
+# CLI unit tests
+pytest tests/test_cli.py -v
+
+# Live JIRA integration tests (require Confluence credentials)
+pytest tests/live/test_jira_live.py tests/live/test_jira_macros_live.py \
+    tests/live/test_jira_links_live.py tests/live/test_jira_roadmap_live.py --live -v
 ```
 
 ### Test Coverage
@@ -164,7 +183,7 @@ pytest .claude/skills/confluence-jira/tests/test_embed_jira_issues.py -v
 - Macro creation and validation
 - JQL query building and validation
 - Issue key extraction and regex patterns
-- Remote link API interactions
+- Link marker creation and detection
 - Content update modes (append/replace)
 
 ## Common Use Cases
@@ -173,40 +192,40 @@ pytest .claude/skills/confluence-jira/tests/test_embed_jira_issues.py -v
 
 ```bash
 # Embed all open issues for a project
-python embed_jira_issues.py 12345 --jql "project = PROJ AND status != Done"
+confluence-as jira embed 12345 --jql "project = PROJ AND status != Done"
 ```
 
 ### 2. Document-Issue Relationships
 
 ```bash
-# Create bidirectional link
-python link_to_jira.py 12345 PROJ-123 --jira-url https://jira.example.com --relationship "documents"
+# Record a page-side link to an issue
+confluence-as jira link 12345 PROJ-123 --jira-url https://jira.example.com --relationship "documents"
 ```
 
 ### 3. Issue Audit
 
 ```bash
 # Find all JIRA references in a page
-python get_linked_issues.py 12345 --output json
+confluence-as jira linked 12345 --output json
 ```
 
 ### 4. Issue from Requirements
 
 ```bash
 # Create task from requirements page
-python create_jira_from_page.py 12345 --project PROJ --type Task --priority Medium
+confluence-as jira create-from-page 12345 --project PROJ --type Task --priority Medium
 ```
 
 ### 5. Update Issue Filters
 
 ```bash
 # Update JQL to show completed items
-python sync_jira_macro.py 12345 --update-jql "project = PROJ AND status = Done"
+confluence-as jira sync-macro 12345 --update-jql "project = PROJ AND status = Done"
 ```
 
 ## Error Handling
 
-All scripts use the shared error handling framework:
+All commands use the shared error handling framework:
 
 - **ValidationError**: Invalid inputs (issue keys, JQL, etc.)
 - **AuthenticationError**: Invalid credentials
@@ -220,9 +239,9 @@ Errors are reported with clear messages and suggestions.
 
 1. **Use JQL for Dynamic Content**: Prefer JQL queries over static issue lists for automatic updates
 2. **Set Reasonable Limits**: Use `--max-results` to prevent macro performance issues
-3. **Check Existing Links**: Use `--skip-if-exists` to avoid duplicate remote links
+3. **Check Existing Links**: Use `--skip-if-exists` to avoid duplicate link markers
 4. **Validate JQL First**: Test JQL queries in JIRA before embedding
-5. **Macro Refresh**: Confluence auto-refreshes macros, but use sync script if needed
+5. **Macro Refresh**: Confluence auto-refreshes macros, but use `confluence-as jira sync-macro` if needed
 
 ## Integration with Other Skills
 
@@ -232,16 +251,16 @@ Errors are reported with clear messages and suggestions.
 
 ## API Compatibility
 
-- Uses Confluence v1 API for XHTML storage format (required for macros)
-- Compatible with JIRA REST API v2 (for issue creation)
-- Remote links API is v1 only
+- Uses the Confluence v2 pages API with the XHTML storage representation (required for macros)
+- Issue creation calls the JIRA REST API v3 (`/rest/api/3/issue`)
+- The `--skip-if-exists` link check reads v1 content metadata (`/rest/api/content/{id}`)
 
 ## Limitations
 
 - JIRA macro rendering requires Confluence-JIRA application link to be configured
 - Issue creation requires separate JIRA API credentials
 - Some JIRA fields may require project-specific configuration
-- Remote links appear differently in Confluence Cloud vs Server
+- `jira link` records the link in the Confluence page only; no remote link is created on the JIRA side
 
 ## Future Enhancements
 
