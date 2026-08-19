@@ -28,7 +28,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "confluence-as>=0.1.0",
+    "confluence-as>=1.1.1",
 ]
 
 [tool.setuptools]
