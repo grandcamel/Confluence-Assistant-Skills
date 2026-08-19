@@ -80,20 +80,22 @@ This skill handles all space management operations, including:
 
 ## CLI Commands
 
-### confluence space create
+**Output format tip:** A global `-o/--output` flag placed before the subcommand (e.g. `confluence-as -o json space list`) sets the default output format for all subcommands; an explicit subcommand-level `--output` wins.
+
+### confluence-as space create
 
 Create a new Confluence space.
 
 **Usage:**
 ```bash
 # Create a basic space
-confluence space create --key DOCS --name "Documentation"
+confluence-as space create --key DOCS --name "Documentation"
 
 # Create with description
-confluence space create --key KB --name "Knowledge Base" --description "Company knowledge base"
+confluence-as space create --key KB --name "Knowledge Base" --description "Company knowledge base"
 
 # Create personal space
-confluence space create --key ~username --name "Personal Space" --type personal
+confluence-as space create --key JSMITH --name "Personal Space" --type personal
 ```
 
 **Arguments:**
@@ -103,37 +105,37 @@ confluence space create --key ~username --name "Personal Space" --type personal
 - `--type` - Space type: global (default) or personal
 - `--output, -o` - Output format: text or json
 
-### confluence space get
+### confluence-as space get
 
 Retrieve space details.
 
 **Usage:**
 ```bash
-confluence space get DOCS
-confluence space get DOCS --output json
+confluence-as space get DOCS
+confluence-as space get DOCS --output json
 ```
 
 **Arguments:**
 - `space_key` - Space key (required)
 - `--output, -o` - Output format
 
-### confluence space list
+### confluence-as space list
 
 List all accessible spaces.
 
 **Usage:**
 ```bash
 # List all spaces
-confluence space list
+confluence-as space list
 
 # Filter by type
-confluence space list --type global
+confluence-as space list --type global
 
 # Search by name
-confluence space list --query "docs"
+confluence-as space list --query "docs"
 
 # Limit results
-confluence space list --limit 10
+confluence-as space list --limit 10
 ```
 
 **Arguments:**
@@ -143,15 +145,15 @@ confluence space list --limit 10
 - `--limit, -l` - Maximum results
 - `--output, -o` - Output format
 
-### confluence space update
+### confluence-as space update
 
 Update space properties.
 
 **Usage:**
 ```bash
-confluence space update DOCS --name "New Name"
-confluence space update DOCS --description "Updated description"
-confluence space update DOCS --homepage 12345
+confluence-as space update DOCS --name "New Name"
+confluence-as space update DOCS --description "Updated description"
+confluence-as space update DOCS --homepage 12345
 ```
 
 **Arguments:**
@@ -161,51 +163,51 @@ confluence space update DOCS --homepage 12345
 - `--homepage` - Homepage page ID
 - `--output, -o` - Output format
 
-### confluence space delete
+### confluence-as space delete
 
 Delete a space.
 
 **Usage:**
 ```bash
-confluence space delete DOCS
-confluence space delete DOCS --force
+confluence-as space delete DOCS
+confluence-as space delete DOCS --force
 ```
 
 **Arguments:**
 - `space_key` - Space key (required)
 - `--force, -f` - Skip confirmation
 
-### confluence space content
+### confluence-as space content
 
 List pages in a space.
 
 **Usage:**
 ```bash
 # List all pages
-confluence space content DOCS
+confluence-as space content DOCS
 
-# Filter by depth (only "root" is supported)
-confluence space content DOCS --depth root
+# Filter to root-level pages only
+confluence-as space content DOCS --depth root
 
 # Include archived
-confluence space content DOCS --include-archived
+confluence-as space content DOCS --include-archived
 ```
 
 **Arguments:**
 - `space_key` - Space key (required)
-- `--depth` - Content depth filter (only `root` is currently supported)
+- `--depth` - Tree depth: root, children, or all (only `root` currently applies filtering; children/all return all content)
 - `--status` - Filter by status (current, archived, draft)
 - `--include-archived` - Include archived content
 - `--limit, -l` - Maximum results
 - `--output, -o` - Output format
 
-### confluence space settings
+### confluence-as space settings
 
 Get space settings and theme.
 
 **Usage:**
 ```bash
-confluence space settings DOCS
+confluence-as space settings DOCS
 ```
 
 **Arguments:**
@@ -236,19 +238,19 @@ User: Create a documentation space for the API team
 
 ### 1. Space Key Restrictions
 - **Problem**: Space creation fails with invalid key
-- **Solution**: Keys must be 2-255 chars, alphanumeric only, uppercase recommended
+- **Solution**: Keys must be 2-255 chars, start with a letter, and contain only letters, numbers, and underscores; lowercase input is uppercased automatically
 
 ### 2. Duplicate Space Key
 - **Problem**: Space key already exists
-- **Solution**: Use unique keys, check existing spaces first with `confluence space list`
+- **Solution**: Use unique keys, check existing spaces first with `confluence-as space list`
 
 ### 3. Deleting Non-Empty Spaces
 - **Problem**: Accidentally deleting a space with important content
 - **Solution**: **Space deletion is PERMANENT** - export content first, double-check space key
 
 ### 4. Personal Space Naming
-- **Problem**: Personal space creation fails
-- **Solution**: Personal space keys must start with `~` followed by username
+- **Problem**: Personal space creation fails with a key like `~username`
+- **Solution**: The CLI rejects `~` prefixes - use a normal alphanumeric key (starting with a letter) together with `--type personal`
 
 ### 5. Homepage Not Found
 - **Problem**: Setting homepage fails with 404
@@ -260,10 +262,10 @@ User: Create a documentation space for the API team
 
 | Error | Cause | Resolution |
 |-------|-------|------------|
-| **404 Not Found** | Space doesn't exist | Verify space key with `confluence space list` |
+| **404 Not Found** | Space doesn't exist | Verify space key with `confluence-as space list` |
 | **403 Forbidden** | No permission to access/modify space | Request space admin access |
 | **409 Conflict** | Space key already exists | Use a different, unique key |
-| **400 Bad Request** | Invalid space key format | Use alphanumeric characters only |
+| **400 Bad Request** | Invalid space key format | Start with a letter; letters, numbers, and underscores only |
 
 ### Recovery from Errors
 
@@ -280,7 +282,7 @@ Prevention:
 **Space permission issues:**
 ```bash
 # Check current space permissions
-confluence permission space get SPACE_KEY
+confluence-as permission space get SPACE_KEY
 
 # Request admin access from space administrator
 ```

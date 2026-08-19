@@ -16,10 +16,10 @@ One-page reference for all skills and common operations.
 | `confluence-label` | Content labeling | `label add`, `label remove`, `label list` |
 | `confluence-template` | Templates | `template list`, `template create` |
 | `confluence-property` | Content metadata | `property set`, `property get`, `property delete` |
-| `confluence-permission` | Access control | `permission list`, `permission add`, `permission remove` |
+| `confluence-permission` | Access control | `permission space get`, `permission space add`, `permission page get` |
 | `confluence-analytics` | Views & stats | `analytics views`, `analytics watchers` |
-| `confluence-watch` | Notifications | `watch add`, `watch remove`, `watch list` |
-| `confluence-hierarchy` | Content tree | `hierarchy tree`, `hierarchy children`, `hierarchy parent` |
+| `confluence-watch` | Notifications | `watch page`, `watch unwatch-page`, `watch list` |
+| `confluence-hierarchy` | Content tree | `hierarchy tree`, `hierarchy children`, `hierarchy ancestors` |
 | `confluence-jira` | JIRA integration | `jira embed`, `jira link` |
 
 ---
@@ -29,50 +29,59 @@ One-page reference for all skills and common operations.
 ### Page Operations
 ```bash
 # Get page content
-confluence page get 12345
-confluence page get 12345 --body --format markdown
+confluence-as page get 12345
+confluence-as page get 12345 --body --format markdown
 
 # Create page
-confluence page create SPACE "Page Title" --body "Content"
+confluence-as page create --space SPACE --title "Page Title" --body "Content"
 
 # Update page
-confluence page update 12345 --title "New Title"
-confluence page update 12345 --body-file content.md
+confluence-as page update 12345 --title "New Title"
+confluence-as page update 12345 --file content.md
 
-# Delete page
-confluence page delete 12345 --confirm
+# Delete page (prompts for confirmation; --force skips the prompt)
+confluence-as page delete 12345
 
 # Copy/Move
-confluence page copy 12345 --to-space NEWSPACE
-confluence page move 12345 --to-parent 67890
+confluence-as page copy 12345 --space NEWSPACE
+confluence-as page move 12345 --parent 67890
 ```
 
 ### Space Operations
 ```bash
 # List spaces
-confluence space list
-confluence space list --type global --output json
+confluence-as space list
+confluence-as space list --type global --output json
 
 # Get space details
-confluence space get SPACE-KEY
+confluence-as space get SPACE-KEY
 
 # Create space
-confluence space create KEY "Space Name" --description "Description"
+confluence-as space create --key KEY --name "Space Name" --description "Description"
 ```
 
 ### Search Operations
 ```bash
 # Basic CQL search
-confluence search cql "space = DOCS AND type = page"
+confluence-as search cql "space = DOCS AND type = page"
 
 # Search by label
-confluence search cql "label = 'approved'"
+confluence-as search cql "label = 'approved'"
 
 # Export results
-confluence search export "space = DOCS" --format csv --output-file results.csv
+confluence-as search export "space = DOCS" --format csv --output results.csv
 
 # Search with filters
-confluence search cql "text ~ 'API' AND lastModified > '2025-01-01'" --limit 50
+confluence-as search cql "text ~ 'API' AND lastModified > '2025-01-01'" --limit 50
+```
+
+### Output Format
+```bash
+# Global -o/--output before the subcommand sets the default for all subcommands
+confluence-as -o json space list
+
+# An explicit subcommand flag wins over the global default
+confluence-as -o json page get 12345 --output text
 ```
 
 ---

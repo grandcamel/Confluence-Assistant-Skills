@@ -101,16 +101,16 @@ Reach for this skill when you need to:
 
 ```bash
 # List all groups
-confluence admin group list
+confluence-as admin group list
 
 # Search for users
-confluence admin user search "john"
+confluence-as admin user search "john"
 
 # View space settings
-confluence admin space settings DOCS
+confluence-as admin space settings DOCS
 
 # List templates in a space
-confluence admin template list --space DOCS
+confluence-as admin template list --space DOCS
 ```
 
 ---
@@ -123,15 +123,15 @@ All commands support `--help` for full documentation.
 
 ```bash
 # Search users
-confluence admin user search "name or email"
-confluence admin user search "john" --include-groups
-confluence admin user search "john" --limit 50
+confluence-as admin user search "name or email"
+confluence-as admin user search "john" --include-groups
+confluence-as admin user search "john" --limit 50
 
 # Get user details
-confluence admin user get ACCOUNT_ID
+confluence-as admin user get ACCOUNT_ID
 
 # List user's groups
-confluence admin user groups ACCOUNT_ID
+confluence-as admin user groups ACCOUNT_ID
 ```
 
 **Options for `user search`:**
@@ -143,27 +143,27 @@ confluence admin user groups ACCOUNT_ID
 
 ```bash
 # List all groups
-confluence admin group list
-confluence admin group list --limit 100
+confluence-as admin group list
+confluence-as admin group list --limit 100
 
 # Get group details
-confluence admin group get "group-name"
+confluence-as admin group get "group-name"
 
 # List group members
-confluence admin group members "group-name"
-confluence admin group members "group-name" --limit 100
+confluence-as admin group members "group-name"
+confluence-as admin group members "group-name" --limit 100
 
 # Create group
-confluence admin group create "new-group-name"
+confluence-as admin group create "new-group-name"
 
 # Delete group
-confluence admin group delete "group-name" --confirm
+confluence-as admin group delete "group-name" --confirm
 
 # Add user to group
-confluence admin group add-user "group-name" --user "user@email.com"
+confluence-as admin group add-user "group-name" --user "user@email.com"
 
 # Remove user from group
-confluence admin group remove-user "group-name" --user "user@email.com" --confirm
+confluence-as admin group remove-user "group-name" --user "user@email.com" --confirm
 ```
 
 **Options for `group list`:**
@@ -178,25 +178,28 @@ confluence admin group remove-user "group-name" --user "user@email.com" --confir
 
 ```bash
 # View space settings
-confluence admin space settings SPACEKEY
+confluence-as admin space settings SPACEKEY
 
 # Update space description
-confluence admin space update SPACEKEY --description "New description"
+confluence-as admin space update SPACEKEY --description "New description"
+
+# Update space name
+confluence-as admin space update SPACEKEY --name "New name"
 
 # View space permissions
-confluence admin space permissions SPACEKEY
+confluence-as admin space permissions SPACEKEY
 ```
 
 ### Templates
 
 ```bash
 # List templates
-confluence admin template list
-confluence admin template list --space DOCS
-confluence admin template list --limit 100
+confluence-as admin template list
+confluence-as admin template list --space DOCS
+confluence-as admin template list --limit 100
 
 # Get template details
-confluence admin template get TEMPLATE_ID
+confluence-as admin template get TEMPLATE_ID
 ```
 
 **Options for `template list`:**
@@ -208,11 +211,13 @@ confluence admin template get TEMPLATE_ID
 
 ```bash
 # Check what permissions you have on a space
-confluence admin permissions check --space DOCS
+confluence-as admin permissions check --space DOCS
 
 # Show only permissions you're missing
-confluence admin permissions check --space DOCS --only-missing
+confluence-as admin permissions check --space DOCS --only-missing
 ```
+
+Results are derived from the space's permission grants combined with your identity and group memberships. Each operation reports Yes, No, or Unknown (Unknown when grants cannot be read or a grant's principal type cannot be resolved).
 
 ---
 
@@ -221,9 +226,15 @@ confluence admin permissions check --space DOCS --only-missing
 ### JSON Output for Scripting
 
 ```bash
-confluence admin group list --output json
-confluence admin user search "john" --output json
-confluence admin template list --output json
+confluence-as admin group list --output json
+confluence-as admin user search "john" --output json
+confluence-as admin template list --output json
+```
+
+The global `-o/--output` flag placed before the subcommand sets the default output format for all subcommands (an explicit subcommand flag wins):
+
+```bash
+confluence-as -o json admin group list
 ```
 
 ---
@@ -257,26 +268,26 @@ confluence admin template list --output json
 
 ```bash
 # Check what permissions you have on a space
-confluence admin permissions check --space DOCS
+confluence-as admin permissions check --space DOCS
 
 # Show only permissions you're missing
-confluence admin permissions check --space DOCS --only-missing
+confluence-as admin permissions check --space DOCS --only-missing
 
 # See who has access via groups
-confluence admin space permissions DOCS
+confluence-as admin space permissions DOCS
 
 # Check your group memberships
-confluence admin user groups YOUR_ACCOUNT_ID
+confluence-as admin user groups YOUR_ACCOUNT_ID
 ```
 
 ### Verify User Access
 
 ```bash
 # Find user by email
-confluence admin user search "user@email.com"
+confluence-as admin user search "user@email.com"
 
 # Check their groups
-confluence admin user groups ACCOUNT_ID
+confluence-as admin user groups ACCOUNT_ID
 ```
 
 ---
@@ -286,10 +297,12 @@ confluence admin user groups ACCOUNT_ID
 | Code | Meaning |
 |------|---------|
 | 0 | Success |
-| 1 | General error |
-| 2 | Permission denied |
-| 3 | Resource not found |
-| 4 | Validation error |
+| 1 | Any API or validation error (auth, permission, not found, rate limit, conflict, server) |
+| 2 | Malformed command line (unknown flag, missing argument) |
+| 130 | Cancelled (Ctrl+C) |
+
+All API failures exit 1; the error message on stderr states the specific
+cause (authentication, permission, not found, etc.).
 
 ---
 
@@ -311,11 +324,11 @@ confluence admin user groups ACCOUNT_ID
 ### Group Management Workflow
 
 1. Create role-based groups (viewers, editors, admins)
-2. Add users to appropriate groups: `confluence admin group add-user ...`
-3. Verify membership: `confluence admin group members ...`
+2. Add users to appropriate groups: `confluence-as admin group add-user ...`
+3. Verify membership: `confluence-as admin group members ...`
 
 ### Permission Diagnostics Workflow
 
-1. Check your permissions: `confluence admin permissions check --space DOCS`
-2. Review space permissions: `confluence admin space permissions DOCS`
-3. Verify group membership: `confluence admin user groups ACCOUNT_ID`
+1. Check your permissions: `confluence-as admin permissions check --space DOCS`
+2. Review space permissions: `confluence-as admin space permissions DOCS`
+3. Verify group membership: `confluence-as admin user groups ACCOUNT_ID`

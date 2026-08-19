@@ -77,28 +77,28 @@ Note: Due to API limitations, this skill uses a hybrid approach:
 
 ## CLI Commands
 
-### confluence permission space get
+### confluence-as permission space get
 Retrieve the list of permissions assigned to a space.
 
 **Usage:**
 ```bash
-confluence permission space get SPACE_KEY
-confluence permission space get DOCS --output json
+confluence-as permission space get SPACE_KEY
+confluence-as permission space get DOCS --output json
 ```
 
 **Output:** Lists all users and groups with their assigned operations (read, write, administer, etc.)
 
-**Note:** Use `--output json` to see permission IDs, which are required for removing specific permissions with `confluence permission space remove --permission-id`.
+**Note:** Use `--output json` to see permission IDs, which are required for removing specific permissions with `confluence-as permission space remove --permission-id`.
 
-### confluence permission space add
+### confluence-as permission space add
 Grant a permission to a user or group for a space.
 
 **Usage:**
 ```bash
-confluence permission space add SPACE_KEY --user ACCOUNT_ID --operation read
-confluence permission space add DOCS --group confluence-users --operation create
-confluence permission space add TEST --user 557058:12345678-abcd-1234-efgh-123456789abc --operation administer
-confluence permission space add DOCS --group editors --operation create --target page
+confluence-as permission space add SPACE_KEY --user ACCOUNT_ID --operation read
+confluence-as permission space add DOCS --group confluence-users --operation create
+confluence-as permission space add TEST --user 557058:12345678-abcd-1234-efgh-123456789abc --operation administer
+confluence-as permission space add DOCS --group editors --operation create --target page
 ```
 
 **Options:**
@@ -123,18 +123,18 @@ confluence permission space add DOCS --group editors --operation create --target
 - `comment` - Comment permission
 - `attachment` - Attachment permission
 
-### confluence permission space remove
+### confluence-as permission space remove
 Revoke a permission from a user or group for a space.
 
 **Usage:**
 ```bash
 # Method 1: Remove by permission ID (preferred)
-confluence permission space remove SPACE_KEY --permission-id 12345
-confluence permission space remove DOCS -p 67890
+confluence-as permission space remove SPACE_KEY --permission-id 12345
+confluence-as permission space remove DOCS -p 67890
 
 # Method 2: Remove by user/group + operation (finds and removes matching permissions)
-confluence permission space remove SPACE_KEY --user ACCOUNT_ID --operation read
-confluence permission space remove DOCS --group confluence-users --operation create
+confluence-as permission space remove SPACE_KEY --user ACCOUNT_ID --operation read
+confluence-as permission space remove DOCS --group confluence-users --operation create
 ```
 
 **Options:**
@@ -143,27 +143,27 @@ confluence permission space remove DOCS --group confluence-users --operation cre
 - `--group` - Group name (requires `--operation`)
 - `--operation` - Operation to match (REQUIRED when using `--user` or `--group`)
 
-**Note:** Use `confluence permission space get` to find permission IDs.
+**Note:** Use `confluence-as permission space get` to find permission IDs.
 
-### confluence permission page get
+### confluence-as permission page get
 List restrictions on a page (who can read/edit).
 
 **Usage:**
 ```bash
-confluence permission page get PAGE_ID
-confluence permission page get 123456 --output json
+confluence-as permission page get PAGE_ID
+confluence-as permission page get 123456 --output json
 ```
 
 **Output:** Shows read and update restrictions with users and groups
 
-### confluence permission page add
+### confluence-as permission page add
 Add a restriction to limit page access.
 
 **Usage:**
 ```bash
-confluence permission page add PAGE_ID --operation read --user ACCOUNT_ID
-confluence permission page add 123456 --operation update --group confluence-users
-confluence permission page add 123456 --operation read --user 557058:12345678-abcd-1234-efgh-123456789abc
+confluence-as permission page add PAGE_ID --operation read --user ACCOUNT_ID
+confluence-as permission page add 123456 --operation update --group confluence-users
+confluence-as permission page add 123456 --operation read --user 557058:12345678-abcd-1234-efgh-123456789abc
 ```
 
 **Options:**
@@ -175,14 +175,14 @@ confluence permission page add 123456 --operation read --user 557058:12345678-ab
 - `read` - Who can view the page
 - `update` - Who can edit the page
 
-### confluence permission page remove
+### confluence-as permission page remove
 Remove a restriction from a page.
 
 **Usage:**
 ```bash
-confluence permission page remove PAGE_ID --operation read --user ACCOUNT_ID
-confluence permission page remove 123456 --operation update --group confluence-users
-confluence permission page remove 123456 --operation read --all
+confluence-as permission page remove PAGE_ID --operation read --user ACCOUNT_ID
+confluence-as permission page remove 123456 --operation update --group confluence-users
+confluence-as permission page remove 123456 --operation read --all
 ```
 
 **Options:**
@@ -198,35 +198,35 @@ Use `--all` to remove all restrictions of a type (makes page accessible to all s
 ### Restrict a confidential page
 ```bash
 # Get current restrictions
-confluence permission page get 123456
+confluence-as permission page get 123456
 
 # Add read restriction to specific users (use account IDs)
-confluence permission page add 123456 --operation read --user 557058:john-account-id
-confluence permission page add 123456 --operation read --user 557058:jane-account-id
+confluence-as permission page add 123456 --operation read --user 557058:john-account-id
+confluence-as permission page add 123456 --operation read --user 557058:jane-account-id
 
 # Add edit restriction to admins group
-confluence permission page add 123456 --operation update --group confluence-administrators
+confluence-as permission page add 123456 --operation update --group confluence-administrators
 ```
 
 ### Grant space access to a team
 ```bash
 # Add read permission for the team
-confluence permission space add TEAMSPACE --group engineering-team --operation read
+confluence-as permission space add TEAMSPACE --group engineering-team --operation read
 
 # Add create permission for contributors (to create pages)
-confluence permission space add TEAMSPACE --group engineering-leads --operation create --target page
+confluence-as permission space add TEAMSPACE --group engineering-leads --operation create --target page
 
 # Verify permissions
-confluence permission space get TEAMSPACE
+confluence-as permission space get TEAMSPACE
 ```
 
 ### Remove all restrictions from a page
 ```bash
 # Remove all read restrictions (make viewable to all space members)
-confluence permission page remove 123456 --operation read --all
+confluence-as permission page remove 123456 --operation read --all
 
 # Remove all update restrictions (make editable to all space members)
-confluence permission page remove 123456 --operation update --all
+confluence-as permission page remove 123456 --operation update --all
 ```
 
 ## Important Notes
@@ -291,15 +291,15 @@ confluence permission page remove 123456 --operation update --all
 **Locked out of page:**
 ```bash
 # Space admin can remove restrictions via UI or API
-confluence permission page remove PAGE_ID --operation read --all
-confluence permission page remove PAGE_ID --operation update --all
+confluence-as permission page remove PAGE_ID --operation read --all
+confluence-as permission page remove PAGE_ID --operation update --all
 ```
 
 **Accidentally removed space access:**
 ```bash
 # Confluence admin can restore via Confluence Admin > Space Permissions
 # Or re-add the permission:
-confluence permission space add SPACE_KEY --group GROUP_NAME --operation read
+confluence-as permission space add SPACE_KEY --group GROUP_NAME --operation read
 ```
 
 **Audit trail:**

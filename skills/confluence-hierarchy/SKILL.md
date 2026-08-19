@@ -57,15 +57,15 @@ This skill provides operations for navigating and managing page hierarchies in C
 
 ## CLI Commands
 
-### confluence hierarchy ancestors
+### confluence-as hierarchy ancestors
 
 Get all ancestor pages for a given page (parent, grandparent, etc.).
 
 **Usage:**
 ```bash
-confluence hierarchy ancestors <page_id>
-confluence hierarchy ancestors <page_id> --breadcrumb
-confluence hierarchy ancestors <page_id> --output json
+confluence-as hierarchy ancestors <page_id>
+confluence-as hierarchy ancestors <page_id> --breadcrumb
+confluence-as hierarchy ancestors <page_id> --output json
 ```
 
 **Options:**
@@ -73,18 +73,18 @@ confluence hierarchy ancestors <page_id> --output json
 - `--output` - Output format: text (default) or json
 
 **Examples:**
-- Get ancestors: `confluence hierarchy ancestors 12345`
-- Show breadcrumb: `confluence hierarchy ancestors 12345 --breadcrumb`
+- Get ancestors: `confluence-as hierarchy ancestors 12345`
+- Show breadcrumb: `confluence-as hierarchy ancestors 12345 --breadcrumb`
 
-### confluence hierarchy children
+### confluence-as hierarchy children
 
 Get direct child pages of a parent page (one level down only).
 
 **Usage:**
 ```bash
-confluence hierarchy children <page_id>
-confluence hierarchy children <page_id> --limit 50
-confluence hierarchy children <page_id> --sort title
+confluence-as hierarchy children <page_id>
+confluence-as hierarchy children <page_id> --limit 50
+confluence-as hierarchy children <page_id> --sort title
 ```
 
 **Options:**
@@ -93,19 +93,19 @@ confluence hierarchy children <page_id> --sort title
 - `--output` - Output format: text (default) or json
 
 **Examples:**
-- Get children: `confluence hierarchy children 12345`
-- Sort by title: `confluence hierarchy children 12345 --sort title`
+- Get children: `confluence-as hierarchy children 12345`
+- Sort by title: `confluence-as hierarchy children 12345 --sort title`
 
-### confluence hierarchy descendants
+### confluence-as hierarchy descendants
 
 Get all descendant pages recursively (children, grandchildren, etc.).
 
 **Usage:**
 ```bash
-confluence hierarchy descendants <page_id>
-confluence hierarchy descendants <page_id> --max-depth 2
-confluence hierarchy descendants <page_id> --limit 200
-confluence hierarchy descendants <page_id> --output json
+confluence-as hierarchy descendants <page_id>
+confluence-as hierarchy descendants <page_id> --max-depth 2
+confluence-as hierarchy descendants <page_id> --limit 200
+confluence-as hierarchy descendants <page_id> --output json
 ```
 
 **Options:**
@@ -114,18 +114,18 @@ confluence hierarchy descendants <page_id> --output json
 - `--output` - Output format: text (default) or json
 
 **Examples:**
-- Get all descendants: `confluence hierarchy descendants 12345`
-- Limit depth: `confluence hierarchy descendants 12345 --max-depth 2`
+- Get all descendants: `confluence-as hierarchy descendants 12345`
+- Limit depth: `confluence-as hierarchy descendants 12345 --max-depth 2`
 
-### confluence hierarchy tree
+### confluence-as hierarchy tree
 
 Get full hierarchical tree structure with nested children.
 
 **Usage:**
 ```bash
-confluence hierarchy tree <page_id>
-confluence hierarchy tree <page_id> --max-depth 3
-confluence hierarchy tree <page_id> --stats
+confluence-as hierarchy tree <page_id>
+confluence-as hierarchy tree <page_id> --max-depth 3
+confluence-as hierarchy tree <page_id> --stats
 ```
 
 **Options:**
@@ -134,18 +134,18 @@ confluence hierarchy tree <page_id> --stats
 - `--output` - Output format: text (default) or json
 
 **Examples:**
-- Get page tree: `confluence hierarchy tree 12345`
-- With statistics: `confluence hierarchy tree 12345 --stats`
+- Get page tree: `confluence-as hierarchy tree 12345`
+- With statistics: `confluence-as hierarchy tree 12345 --stats`
 
-### confluence hierarchy reorder
+### confluence-as hierarchy reorder
 
 Calculate and display proposed child page order. This command helps plan reordering operations.
 
 **Usage:**
 ```bash
-confluence hierarchy reorder <parent_id>
-confluence hierarchy reorder <parent_id> "id1,id2,id3"
-confluence hierarchy reorder <parent_id> --reverse
+confluence-as hierarchy reorder <parent_id>
+confluence-as hierarchy reorder <parent_id> "id1,id2,id3"
+confluence-as hierarchy reorder <parent_id> --reverse
 ```
 
 **Arguments:**
@@ -153,11 +153,12 @@ confluence hierarchy reorder <parent_id> --reverse
 
 **Options:**
 - `--reverse` - Reverse current order
+- `--output, -o` - Output format: text (default) or json
 
 **Examples:**
-- Sort alphabetically: `confluence hierarchy reorder 12345`
-- Specify custom order: `confluence hierarchy reorder 12345 "200,201,202"`
-- Reverse order: `confluence hierarchy reorder 12345 --reverse`
+- Sort alphabetically: `confluence-as hierarchy reorder 12345`
+- Specify custom order: `confluence-as hierarchy reorder 12345 "200,201,202"`
+- Reverse order: `confluence-as hierarchy reorder 12345 --reverse`
 
 **IMPORTANT:** This command only CALCULATES and DISPLAYS the proposed new order - it does NOT apply changes to Confluence. To actually reorder pages, you must use the Confluence UI (drag and drop in the page tree).
 
@@ -178,6 +179,7 @@ These phrases will trigger this skill:
 
 - `GET /api/v2/pages/{id}/ancestors` - Get page ancestors
 - `GET /api/v2/pages/{id}/children` - Get direct children
+- `GET /api/v2/pages/{id}/descendants` - Get all descendants
 - `GET /api/v2/pages/{id}` - Get page information
 
 ## Common Patterns
@@ -185,35 +187,34 @@ These phrases will trigger this skill:
 ### Building Breadcrumbs
 
 ```bash
-confluence hierarchy ancestors 12345 --breadcrumb
+confluence-as hierarchy ancestors 12345 --breadcrumb
 # Output: Space Root > Section > Subsection > Current Page
 ```
 
 ### Visualizing Page Structure
 
 ```bash
-confluence hierarchy tree 12345 --stats
+confluence-as hierarchy tree 12345 --stats
 # Shows hierarchical tree with statistics
 ```
 
 ### Finding All Pages Below
 
 ```bash
-confluence hierarchy descendants 12345 --output json > descendants.json
+confluence-as hierarchy descendants 12345 --output json > descendants.json
 # Export all descendants to JSON
 ```
 
 ### Limiting Traversal Depth
 
 ```bash
-confluence hierarchy descendants 12345 --max-depth 2
+confluence-as hierarchy descendants 12345 --max-depth 2
 # Only get children and grandchildren
 ```
 
 ## Notes
 
-- All commands prevent infinite loops by tracking visited pages
 - Depth is tracked starting from 1 for direct children
 - Tree operations can be resource-intensive for large hierarchies
 - Use `--max-depth` to limit traversal when needed
-- Reordering may require API updates to fully function
+- The reorder command only previews the proposed order; apply changes via the Confluence UI

@@ -11,11 +11,13 @@ The `ConfluenceClient` automatically retries failed requests for transient error
 | Attempt | Delay | Retries On |
 |---------|-------|------------|
 | 1 | 0s | - |
-| 2 | 1s | 429, 500, 502, 503, 504 |
-| 3 | 2s | 429, 500, 502, 503, 504 |
-| 4 | 4s | 429, 500, 502, 503, 504 |
+| 2 | 0s | 429, 500, 502, 503, 504 |
+| 3 | ~4s | 429, 500, 502, 503, 504 |
+| 4 | ~8s | 429, 500, 502, 503, 504 |
 
-**Timeline**: Initial request + 3 retries over ~7 seconds total.
+**Timeline**: Initial request + 3 retries with exponential backoff (factor 2.0,
+plus up to 0.3s jitter). A `Retry-After` header from the server overrides the
+computed delay.
 
 ---
 
@@ -155,8 +157,8 @@ if __name__ == "__main__":
 **Decorator behavior**:
 - Catches `ConfluenceError` subclasses
 - Prints user-friendly error message
-- Sets appropriate exit code
-- Logs stack trace in verbose mode
+- Exits 1 for all API errors (130 on Ctrl+C); malformed command lines exit 2 via argument parsing
+- Prints a stack trace for unexpected (non-API) errors
 
 ---
 
@@ -177,7 +179,7 @@ if __name__ == "__main__":
 
 3. Test with a simple request:
    ```bash
-   confluence space list --output json
+   confluence-as space list --output json
    ```
 
 ### Permission Errors (403)
@@ -185,7 +187,7 @@ if __name__ == "__main__":
 1. Identify required permission level
 2. Check current permissions:
    ```bash
-   confluence permission list SPACE-KEY
+   confluence-as permission space get SPACE-KEY
    ```
 3. Request access from space administrator
 4. Verify group membership if using group permissions

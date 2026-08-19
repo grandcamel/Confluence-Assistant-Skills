@@ -56,28 +56,28 @@ Templates in Confluence allow you to standardize page creation. Blueprints are p
 
 ## CLI Commands
 
-### confluence template list
+### confluence-as template list
 List available page templates and blueprints in your Confluence instance.
 
 **Usage:**
 ```bash
 # List all templates
-confluence template list
+confluence-as template list
 
 # Filter by space
-confluence template list --space DOCS
+confluence-as template list --space DOCS
 
 # Filter by type (page or blogpost)
-confluence template list --type page
+confluence-as template list --type page
 
 # List blueprints instead of templates
-confluence template list --blueprints
+confluence-as template list --blueprints
 
 # JSON output
-confluence template list --output json
+confluence-as template list --output json
 
 # Limit results
-confluence template list --limit 50
+confluence-as template list --limit 50
 ```
 
 **Arguments:**
@@ -87,25 +87,25 @@ confluence template list --limit 50
 - `--output`, `-o`: Output format (text or json)
 - `--limit`, `-l`: Maximum number of results (default: 100, max: 250)
 
-### confluence template get
+### confluence-as template get
 Retrieve detailed information about a specific template or blueprint.
 
 **Usage:**
 ```bash
 # Get template details
-confluence template get tmpl-123
+confluence-as template get tmpl-123
 
 # Include body content
-confluence template get tmpl-123 --body
+confluence-as template get tmpl-123 --body
 
 # Convert body to Markdown
-confluence template get tmpl-123 --body --format markdown
+confluence-as template get tmpl-123 --body --format markdown
 
 # Get blueprint details
-confluence template get bp-456 --blueprint
+confluence-as template get bp-456 --blueprint
 
 # JSON output
-confluence template get tmpl-123 --output json
+confluence-as template get tmpl-123 --output json
 ```
 
 **Arguments:**
@@ -115,28 +115,28 @@ confluence template get tmpl-123 --output json
 - `--blueprint`: Get blueprint instead of template
 - `--output`, `-o`: Output format (text or json)
 
-### confluence template create-from
+### confluence-as template create-from
 Create a new Confluence page based on an existing template or blueprint.
 
 **Usage:**
 ```bash
 # Create page from template
-confluence template create-from --template tmpl-123 --space DOCS --title "New Page"
+confluence-as template create-from --template tmpl-123 --space DOCS --title "New Page"
 
 # Create page with parent
-confluence template create-from --template tmpl-123 --space DOCS --title "Page" --parent-id 12345
+confluence-as template create-from --template tmpl-123 --space DOCS --title "Page" --parent-id 12345
 
 # Create from blueprint
-confluence template create-from --blueprint bp-456 --space DOCS --title "Project Plan"
+confluence-as template create-from --blueprint bp-456 --space DOCS --title "Project Plan"
 
 # Add labels
-confluence template create-from --template tmpl-123 --space DOCS --title "Page" --labels "tag1,tag2"
+confluence-as template create-from --template tmpl-123 --space DOCS --title "Page" --labels "tag1,tag2"
 
 # Override template content
-confluence template create-from --template tmpl-123 --space DOCS --title "Page" --content "<p>Custom content</p>"
+confluence-as template create-from --template tmpl-123 --space DOCS --title "Page" --content "<p>Custom content</p>"
 
 # Use content from file
-confluence template create-from --template tmpl-123 --space DOCS --title "Page" --file content.md
+confluence-as template create-from --template tmpl-123 --space DOCS --title "Page" --file content.md
 ```
 
 **Arguments:**
@@ -150,31 +150,31 @@ confluence template create-from --template tmpl-123 --space DOCS --title "Page" 
 - `--file`: File with content (Markdown or HTML)
 - `--output`, `-o`: Output format (text or json)
 
-### confluence template create
+### confluence-as template create
 Create a new page template in Confluence.
 
 **Usage:**
 ```bash
 # Create basic template
-confluence template create --name "Meeting Notes" --space DOCS
+confluence-as template create --name "Meeting Notes" --space DOCS
 
 # With description
-confluence template create --name "Status Report" --space DOCS --description "Weekly status report"
+confluence-as template create --name "Status Report" --space DOCS --description "Weekly status report"
 
 # From HTML file
-confluence template create --name "Template" --space DOCS --file template.html
+confluence-as template create --name "Template" --space DOCS --file template.html
 
 # From Markdown file
-confluence template create --name "Template" --space DOCS --file template.md
+confluence-as template create --name "Template" --space DOCS --file template.md
 
 # With labels
-confluence template create --name "Template" --space DOCS --labels "template,meeting"
+confluence-as template create --name "Template" --space DOCS --labels "template,meeting"
 
 # Blogpost template
-confluence template create --name "Blog Template" --space DOCS --type blogpost
+confluence-as template create --name "Blog Template" --space DOCS --type blogpost
 
 # Based on blueprint
-confluence template create --name "Custom" --space DOCS --blueprint-id com.atlassian...
+confluence-as template create --name "Custom" --space DOCS --blueprint-id com.atlassian...
 ```
 
 **Arguments:**
@@ -190,34 +190,34 @@ confluence template create --name "Custom" --space DOCS --blueprint-id com.atlas
 
 Note: Either `--content` or `--file` must be provided to specify the template body.
 
-### confluence template update
+### confluence-as template update
 Update an existing page template.
 
 **Usage:**
 ```bash
 # Update name
-confluence template update tmpl-123 --name "Updated Template"
+confluence-as template update tmpl-123 --name "Updated Template"
 
 # Update description
-confluence template update tmpl-123 --description "New description"
+confluence-as template update tmpl-123 --description "New description"
 
 # Update content from HTML file
-confluence template update tmpl-123 --file updated.html
+confluence-as template update tmpl-123 --file updated.html
 
 # Update from Markdown file
-confluence template update tmpl-123 --file updated.md
+confluence-as template update tmpl-123 --file updated.md
 
 # Update inline content
-confluence template update tmpl-123 --content "<h1>Updated</h1>"
+confluence-as template update tmpl-123 --content "<h1>Updated</h1>"
 
 # Add labels
-confluence template update tmpl-123 --add-labels "tag1,tag2"
+confluence-as template update tmpl-123 --add-labels "tag1,tag2"
 
 # Remove labels
-confluence template update tmpl-123 --remove-labels "old-tag"
+confluence-as template update tmpl-123 --remove-labels "old-tag"
 
 # Multiple updates
-confluence template update tmpl-123 --name "New Name" --description "New desc" --add-labels "new"
+confluence-as template update tmpl-123 --name "New Name" --description "New desc" --add-labels "new"
 ```
 
 **Arguments:**
@@ -230,7 +230,7 @@ confluence template update tmpl-123 --name "New Name" --description "New desc" -
 - `--remove-labels`: Comma-separated labels to remove
 - `--output`, `-o`: Output format (text or json)
 
-Note: At least one field must be specified to update.
+Note: `--content` and `--file` are mutually exclusive.
 
 ## API Endpoints Used
 
@@ -238,8 +238,9 @@ This skill uses the Confluence REST API:
 
 **v1 API (template management):**
 - `GET /rest/api/template/page` - List page templates
-- `GET /rest/api/template/blueprint` - List blueprints
+- `GET /rest/api/content/blueprint/instance` - List blueprints
 - `GET /rest/api/template/{templateId}` - Get template details
+- `GET /rest/api/content/blueprint/instance/{templateId}` - Get blueprint details
 - `POST /rest/api/template` - Create template
 - `PUT /rest/api/template/{templateId}` - Update template
 
@@ -252,44 +253,44 @@ This skill uses the Confluence REST API:
 
 ```bash
 # List all available templates
-confluence template list
+confluence-as template list
 
 # Find templates in a specific space
-confluence template list --space DOCS
+confluence-as template list --space DOCS
 
 # Get template details
-confluence template get tmpl-123 --body --format markdown
+confluence-as template get tmpl-123 --body --format markdown
 
 # Create a page from that template
-confluence template create-from --template tmpl-123 --space DOCS --title "My Meeting Notes"
+confluence-as template create-from --template tmpl-123 --space DOCS --title "My Meeting Notes"
 ```
 
 ### Creating Custom Templates
 
 ```bash
 # Create a simple template
-confluence template create --name "Weekly Report" --space DOCS --description "Template for weekly status reports"
+confluence-as template create --name "Weekly Report" --space DOCS --description "Template for weekly status reports"
 
 # Create from a Markdown file
-confluence template create --name "Project Plan" --space DOCS --file project-template.md --labels "template,planning"
+confluence-as template create --name "Project Plan" --space DOCS --file project-template.md --labels "template,planning"
 ```
 
 ### Maintaining Templates
 
 ```bash
 # Update template content from file
-confluence template update tmpl-123 --file updated-template.md
+confluence-as template update tmpl-123 --file updated-template.md
 
 # Add tags to categorize
-confluence template update tmpl-123 --add-labels "engineering,documentation"
+confluence-as template update tmpl-123 --add-labels "engineering,documentation"
 
 # Update name and description
-confluence template update tmpl-123 --name "New Template Name" --description "Updated description"
+confluence-as template update tmpl-123 --name "New Template Name" --description "Updated description"
 ```
 
 ## Tips
 
-1. **Template IDs**: Template IDs are typically in the format `tmpl-123` or similar. Use `confluence template list` to find IDs.
+1. **Template IDs**: Template IDs are typically in the format `tmpl-123` or similar. Use `confluence-as template list` to find IDs.
 
 2. **Markdown Support**: All scripts support Markdown input files, which are automatically converted to Confluence's storage format (XHTML).
 
@@ -303,7 +304,7 @@ confluence template update tmpl-123 --name "New Template Name" --description "Up
 
 ## Troubleshooting
 
-**Template not found**: Verify the template ID with `confluence template list`. Template IDs are space-specific in some cases.
+**Template not found**: Verify the template ID with `confluence-as template list`. Template IDs are space-specific in some cases.
 
 **Permission denied**: Ensure you have permission to create/modify templates in the specified space. Template management typically requires space admin permissions.
 

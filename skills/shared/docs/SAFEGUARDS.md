@@ -83,7 +83,7 @@ Confluence pages go to the **Trash** and can be restored for 30 days:
 **Via API:**
 ```bash
 # List trashed content
-confluence search cql "type=page AND status=trashed"
+confluence-as search cql "type=page AND status=trashed"
 
 # Note: Restoration requires manual action in UI
 ```
@@ -103,7 +103,7 @@ If users lose access:
 
 1. **Space Admin** can restore permissions via Space Settings
 2. **Site Admin** can access via Confluence Administration
-3. Use `confluence permission list` to audit current state
+3. Use `confluence-as permission space get` to audit current state
 
 ### Corrupted Content
 
@@ -111,8 +111,8 @@ If page content is corrupted:
 
 1. **Version History** - Restore from previous version
    ```bash
-   confluence page versions 12345
-   confluence page restore 12345 --version 5
+   confluence-as page versions 12345
+   confluence-as page restore 12345 --version 5
    ```
 
 2. **Export/Import** - If version history is also corrupted
@@ -136,12 +136,12 @@ When encountering 403 errors:
 
 1. **Check space permissions**:
    ```bash
-   confluence permission list SPACE-KEY
+   confluence-as permission space get SPACE-KEY
    ```
 
 2. **Check page restrictions**:
    ```bash
-   confluence permission page 12345
+   confluence-as permission page get 12345
    ```
 
 3. **Verify user access**:
@@ -156,29 +156,29 @@ When encountering 403 errors:
 ### confluence-page
 
 **Destructive Operations:**
-- `delete_page.py` - Moves to trash, recoverable for 30 days
-- `update_page.py` - Creates version history entry
+- `confluence-as page delete` - Moves to trash, recoverable for 30 days (unless `--permanent` is used)
+- `confluence-as page update` - Creates version history entry
 
 **Safe Practices:**
 - Always get page content before updating
-- Use `--format json` to preserve structure
-- Consider using `--dry-run` for scripts that support it
+- Use `--output json` to preserve structure
+- Consider using `--dry-run` with `bulk` commands to preview changes
 
 ### confluence-space
 
 **Destructive Operations:**
-- `delete_space.py` - :warning::warning::warning: PERMANENT, no recovery
+- `confluence-as space delete` - :warning::warning::warning: PERMANENT, no recovery
 
 **Safe Practices:**
 - Export space before deletion
-- Require `--confirm` flag for deletion
+- Let the confirmation prompt run; never pass `--force` casually
 - Double-check space key matches intended target
 
 ### confluence-permission
 
 **Destructive Operations:**
-- `remove_permission.py` - Can lock out users
-- `restrict_page.py` - Can hide content from users
+- `confluence-as permission space remove` / `confluence-as permission page remove` - Can lock out users
+- `confluence-as permission page add` - Restrictions can hide content from users
 
 **Safe Practices:**
 - Document current permissions before changes
@@ -188,11 +188,11 @@ When encountering 403 errors:
 ### confluence-attachment
 
 **Destructive Operations:**
-- `delete_attachment.py` - Permanent, no trash
+- `confluence-as attachment delete` - Permanent, no trash
 
 **Safe Practices:**
 - Download attachment before deleting
-- Use `confluence attachment list` to verify target
+- Use `confluence-as attachment list` to verify target
 - Consider versioning instead of deletion
 
 ---
@@ -262,99 +262,87 @@ If you encounter critical issues:
 
 <!-- PERMISSIONS
 permissions:
-  cli: confluence
+  cli: confluence-as
   operations:
     # Safe - Read-only operations (page/space/search reads)
-    - pattern: "confluence page get *"
+    - pattern: "confluence-as page get *"
       risk: safe
-    - pattern: "confluence page view *"
+    - pattern: "confluence-as page versions *"
       risk: safe
-    - pattern: "confluence page list *"
+    - pattern: "confluence-as hierarchy children *"
       risk: safe
-    - pattern: "confluence page versions *"
+    - pattern: "confluence-as hierarchy ancestors *"
       risk: safe
-    - pattern: "confluence page children *"
+    - pattern: "confluence-as space get *"
       risk: safe
-    - pattern: "confluence page ancestors *"
+    - pattern: "confluence-as space list *"
       risk: safe
-    - pattern: "confluence space get *"
+    - pattern: "confluence-as search cql *"
       risk: safe
-    - pattern: "confluence space list *"
+    - pattern: "confluence-as permission space get *"
       risk: safe
-    - pattern: "confluence space view *"
+    - pattern: "confluence-as permission page get *"
       risk: safe
-    - pattern: "confluence search cql *"
+    - pattern: "confluence-as comment list *"
       risk: safe
-    - pattern: "confluence search query *"
+    - pattern: "confluence-as attachment list *"
       risk: safe
-    - pattern: "confluence permission list *"
+    - pattern: "confluence-as attachment download *"
       risk: safe
-    - pattern: "confluence permission page *"
+    - pattern: "confluence-as label list *"
       risk: safe
-    - pattern: "confluence comment list *"
+    - pattern: "confluence-as property get *"
       risk: safe
-    - pattern: "confluence comment get *"
-      risk: safe
-    - pattern: "confluence attachment list *"
-      risk: safe
-    - pattern: "confluence attachment download *"
-      risk: safe
-    - pattern: "confluence label list *"
-      risk: safe
-    - pattern: "confluence property get *"
-      risk: safe
-    - pattern: "confluence property list *"
+    - pattern: "confluence-as property list *"
       risk: safe
 
     # Caution - Modifiable but easily reversible (create/update/labels)
-    - pattern: "confluence page create *"
+    - pattern: "confluence-as page create *"
       risk: caution
-    - pattern: "confluence page update *"
+    - pattern: "confluence-as page update *"
       risk: caution
-    - pattern: "confluence page copy *"
+    - pattern: "confluence-as page copy *"
       risk: caution
-    - pattern: "confluence page move *"
+    - pattern: "confluence-as page move *"
       risk: caution
-    - pattern: "confluence page restore *"
+    - pattern: "confluence-as page restore *"
       risk: caution
-    - pattern: "confluence space create *"
+    - pattern: "confluence-as space create *"
       risk: caution
-    - pattern: "confluence space update *"
+    - pattern: "confluence-as space update *"
       risk: caution
-    - pattern: "confluence permission add *"
+    - pattern: "confluence-as permission space add *"
       risk: caution
-    - pattern: "confluence permission restrict *"
+    - pattern: "confluence-as permission page add *"
       risk: caution
-    - pattern: "confluence comment add *"
+    - pattern: "confluence-as comment add *"
       risk: caution
-    - pattern: "confluence comment update *"
+    - pattern: "confluence-as comment update *"
       risk: caution
-    - pattern: "confluence attachment upload *"
+    - pattern: "confluence-as attachment upload *"
       risk: caution
-    - pattern: "confluence label add *"
+    - pattern: "confluence-as label add *"
       risk: caution
-    - pattern: "confluence label remove *"
+    - pattern: "confluence-as label remove *"
       risk: caution
-    - pattern: "confluence property set *"
+    - pattern: "confluence-as property set *"
       risk: caution
-    - pattern: "confluence property delete *"
+    - pattern: "confluence-as property delete *"
       risk: caution
 
     # Warning - Destructive but potentially recoverable (page/comment deletes)
-    - pattern: "confluence page delete *"
+    - pattern: "confluence-as page delete *"
       risk: warning
-    - pattern: "confluence comment delete *"
+    - pattern: "confluence-as comment delete *"
       risk: warning
-    - pattern: "confluence attachment delete *"
+    - pattern: "confluence-as attachment delete *"
       risk: warning
-    - pattern: "confluence permission remove *"
+    - pattern: "confluence-as permission space remove *"
+      risk: warning
+    - pattern: "confluence-as permission page remove *"
       risk: warning
 
-    # Danger - IRREVERSIBLE operations (space delete/purge)
-    - pattern: "confluence space delete *"
-      risk: danger
-    - pattern: "confluence space purge *"
-      risk: danger
-    - pattern: "confluence page purge *"
+    # Danger - IRREVERSIBLE operations (space delete)
+    - pattern: "confluence-as space delete *"
       risk: danger
 -->

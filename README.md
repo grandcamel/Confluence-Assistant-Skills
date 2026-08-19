@@ -151,11 +151,11 @@ export CONFLUENCE_API_TOKEN="your-api-token"
 ### 3️⃣ Install CLI
 
 ```bash
-pip install -e .
+pip install "confluence-as>=1.1.1"
 
 # Verify installation
-confluence --version
-confluence space list --limit 1
+confluence-as --version
+confluence-as space list --limit 1
 ```
 
 </td>
@@ -167,9 +167,9 @@ confluence space list --limit 1
 
 ```bash
 # CLI commands
-confluence page get 12345
-confluence search cql "space = DOCS"
-confluence label add 12345 approved
+confluence-as page get 12345
+confluence-as search cql "space = DOCS"
+confluence-as label add 12345 approved
 
 # Or ask Claude naturally:
 "Create a page titled 'Meeting Notes' in the DOCS space"
@@ -264,19 +264,19 @@ flowchart LR
 
 | Skill | Purpose | Example Commands |
 |-------|---------|------------------|
-| **confluence-page** | Create, read, update, delete pages | `create_page`, `get_page`, `update_page`, `copy_page`, `move_page` |
-| **confluence-space** | Manage spaces | `list_spaces`, `create_space`, `get_space`, `delete_space` |
-| **confluence-search** | CQL queries & export | `cql_search`, `search_content`, `export_results`, `cql_validate` |
-| **confluence-comment** | Page comments | `add_comment`, `get_comments`, `update_comment`, `delete_comment` |
-| **confluence-attachment** | File attachments | `upload_attachment`, `download_attachment`, `list_attachments` |
-| **confluence-label** | Content labeling | `add_label`, `remove_label`, `get_labels` |
-| **confluence-template** | Page templates | `list_templates`, `get_template`, `create_from_template` |
-| **confluence-property** | Content properties | `get_properties`, `set_property`, `delete_property` |
-| **confluence-permission** | Access control | `get_space_permissions`, `add_space_permission` |
-| **confluence-analytics** | View statistics | `get_page_views` |
-| **confluence-watch** | Content watching | `watch_page`, `unwatch_page` |
-| **confluence-hierarchy** | Page tree navigation | `get_ancestors`, `get_children`, `get_descendants` |
-| **confluence-jira** | JIRA integration | `embed_jira_issues`, `get_linked_issues` |
+| **confluence-page** | Create, read, update, delete pages | `page create`, `page get`, `page update`, `page copy`, `page move` |
+| **confluence-space** | Manage spaces | `space list`, `space create`, `space get`, `space delete` |
+| **confluence-search** | CQL queries & export | `search cql`, `search content`, `search export`, `search validate` |
+| **confluence-comment** | Page comments | `comment add`, `comment list`, `comment update`, `comment delete` |
+| **confluence-attachment** | File attachments | `attachment upload`, `attachment download`, `attachment list` |
+| **confluence-label** | Content labeling | `label add`, `label remove`, `label list` |
+| **confluence-template** | Page templates | `template list`, `template get`, `template create-from` |
+| **confluence-property** | Content properties | `property get`, `property set`, `property delete` |
+| **confluence-permission** | Access control | `permission space get`, `permission space add` |
+| **confluence-analytics** | View statistics | `analytics views` |
+| **confluence-watch** | Content watching | `watch page`, `watch unwatch-page` |
+| **confluence-hierarchy** | Page tree navigation | `hierarchy ancestors`, `hierarchy children`, `hierarchy descendants` |
+| **confluence-jira** | JIRA integration | `jira embed`, `jira linked` |
 | **confluence-assistant** | Central hub | Routes to specialized skills |
 
 <br>
@@ -316,13 +316,14 @@ lastModified >= startOfWeek()
 
 ```bash
 # Export to CSV
-confluence search export "label = 'release-notes'" \
+confluence-as search export "label = 'release-notes'" \
   --format csv \
-  --output-file releases.csv
+  --output releases.csv
 
 # Export to JSON
-confluence search export "space = 'DOCS'" \
-  --format json
+confluence-as search export "space = 'DOCS'" \
+  --format json \
+  --output docs.json
 ```
 
 </td>
@@ -349,7 +350,7 @@ confluence search export "space = 'DOCS'" \
 
 ```bash
 # Find all pages needing review
-confluence search cql "label = 'needs-review' AND lastModified < startOfMonth(-3)"
+confluence-as search cql "label = 'needs-review' AND lastModified < startOfMonth(-3)"
 ```
 
 </details>
@@ -366,7 +367,7 @@ confluence search cql "label = 'needs-review' AND lastModified < startOfMonth(-3
 
 ```bash
 # Create release notes page
-confluence page create RELEASES "v2.5.0" --file CHANGELOG.md
+confluence-as page create --space RELEASES --title "v2.5.0" --file CHANGELOG.md
 ```
 
 </details>
@@ -383,7 +384,7 @@ confluence page create RELEASES "v2.5.0" --file CHANGELOG.md
 
 ```bash
 # Get page view statistics
-confluence analytics views 12345 --output json
+confluence-as analytics views 12345 --output json
 ```
 
 </details>
@@ -400,7 +401,7 @@ confluence analytics views 12345 --output json
 
 ```bash
 # List all space permissions
-confluence permission space DOCS --output json
+confluence-as permission space get DOCS --output json
 ```
 
 </details>
@@ -532,7 +533,7 @@ pytest --cov=confluence_as --cov-report=html
 
 ```bash
 # Validate your query
-confluence search validate "your query"
+confluence-as search validate "your query"
 ```
 
 Check quotes are balanced and field names are valid.

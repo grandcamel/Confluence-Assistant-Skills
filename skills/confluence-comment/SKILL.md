@@ -57,14 +57,16 @@ This skill provides comprehensive comment management for Confluence pages, suppo
 
 ## CLI Commands
 
-### confluence comment add
+**Output format tip:** A global `-o/--output` flag placed before the subcommand (e.g. `confluence-as -o json comment list 12345`) sets the default output format for all subcommands; an explicit subcommand-level `--output` wins.
+
+### confluence-as comment add
 
 Add a footer comment to a Confluence page.
 
 **Usage:**
 ```bash
-confluence comment add PAGE_ID "Comment text"
-confluence comment add PAGE_ID --file comment.txt
+confluence-as comment add PAGE_ID "Comment text"
+confluence-as comment add PAGE_ID --file comment.txt
 ```
 
 **Arguments:**
@@ -77,16 +79,16 @@ confluence comment add PAGE_ID --file comment.txt
 
 **Note:** Either `body` argument or `--file` option is required, but not both.
 
-### confluence comment list
+### confluence-as comment list
 
 Retrieve all footer comments on a Confluence page.
 
 **Usage:**
 ```bash
-confluence comment list PAGE_ID
-confluence comment list PAGE_ID --limit 10
-confluence comment list PAGE_ID --sort created
-confluence comment list PAGE_ID --output json
+confluence-as comment list PAGE_ID
+confluence-as comment list PAGE_ID --limit 10
+confluence-as comment list PAGE_ID --sort created
+confluence-as comment list PAGE_ID --output json
 ```
 
 **Arguments:**
@@ -94,17 +96,17 @@ confluence comment list PAGE_ID --output json
 
 **Options:**
 - `--limit`, `-l` - Maximum number of comments to retrieve
-- `--sort`, `-s` - Sort order (created or -created for newest first)
+- `--sort`, `-s` - Sort order: created or -created (default: -created for newest first)
 - `--output`, `-o` - Output format (text or json)
 
-### confluence comment update
+### confluence-as comment update
 
 Update an existing comment's body.
 
 **Usage:**
 ```bash
-confluence comment update COMMENT_ID "Updated text"
-confluence comment update COMMENT_ID --file updated.txt
+confluence-as comment update COMMENT_ID "Updated text"
+confluence-as comment update COMMENT_ID --file updated.txt
 ```
 
 **Arguments:**
@@ -115,14 +117,14 @@ confluence comment update COMMENT_ID --file updated.txt
 - `--file`, `-f` - Read updated body from file
 - `--output`, `-o` - Output format (text or json)
 
-### confluence comment delete
+### confluence-as comment delete
 
 Delete a comment from a Confluence page.
 
 **Usage:**
 ```bash
-confluence comment delete COMMENT_ID
-confluence comment delete COMMENT_ID --force
+confluence-as comment delete COMMENT_ID
+confluence-as comment delete COMMENT_ID --force
 ```
 
 **Arguments:**
@@ -131,13 +133,13 @@ confluence comment delete COMMENT_ID --force
 **Options:**
 - `--force`, `-f` - Skip confirmation prompt
 
-### confluence comment add-inline
+### confluence-as comment add-inline
 
 Add an inline comment to specific text in a Confluence page.
 
 **Usage:**
 ```bash
-confluence comment add-inline PAGE_ID "selected text" "Comment about this text"
+confluence-as comment add-inline PAGE_ID "selected text" "Comment about this text"
 ```
 
 **Arguments:**
@@ -150,14 +152,14 @@ confluence comment add-inline PAGE_ID "selected text" "Comment about this text"
 
 **Note:** The text selection must match existing text in the page content.
 
-### confluence comment resolve
+### confluence-as comment resolve
 
 Mark a comment as resolved or reopen it.
 
 **Usage:**
 ```bash
-confluence comment resolve COMMENT_ID --resolve
-confluence comment resolve COMMENT_ID --unresolve
+confluence-as comment resolve COMMENT_ID --resolve
+confluence-as comment resolve COMMENT_ID --unresolve
 ```
 
 **Arguments:**
@@ -168,7 +170,7 @@ confluence comment resolve COMMENT_ID --unresolve
 - `--unresolve`, `-u` - Mark comment as unresolved/open
 - `--output`, `-o` - Output format (text or json)
 
-**Note:** Exactly one of --resolve or --unresolve must be specified.
+**Note:** One of --resolve or --unresolve is required; if both are given, the last one wins.
 
 ## Examples
 

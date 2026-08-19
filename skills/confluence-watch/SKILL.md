@@ -60,12 +60,12 @@ This skill provides comprehensive watching and notification management:
 
 ## CLI Commands
 
-### confluence watch page
+### confluence-as watch page
 Start watching a Confluence page to receive notifications for updates.
 
 **Usage:**
 ```bash
-confluence watch page PAGE_ID [--output FORMAT]
+confluence-as watch page PAGE_ID [--output FORMAT]
 ```
 
 **Arguments:**
@@ -75,18 +75,18 @@ confluence watch page PAGE_ID [--output FORMAT]
 **Examples:**
 ```bash
 # Watch a page
-confluence watch page 123456
+confluence-as watch page 123456
 
 # Get JSON output
-confluence watch page 123456 --output json
+confluence-as watch page 123456 --output json
 ```
 
-### confluence watch unwatch-page
+### confluence-as watch unwatch-page
 Stop watching a Confluence page.
 
 **Usage:**
 ```bash
-confluence watch unwatch-page PAGE_ID [--output FORMAT]
+confluence-as watch unwatch-page PAGE_ID [--output FORMAT]
 ```
 
 **Arguments:**
@@ -96,18 +96,18 @@ confluence watch unwatch-page PAGE_ID [--output FORMAT]
 **Examples:**
 ```bash
 # Unwatch a page
-confluence watch unwatch-page 123456
+confluence-as watch unwatch-page 123456
 
 # Unwatch with JSON output
-confluence watch unwatch-page 123456 --output json
+confluence-as watch unwatch-page 123456 --output json
 ```
 
-### confluence watch space
+### confluence-as watch space
 Start or stop watching an entire Confluence space to receive notifications for new content.
 
 **Usage:**
 ```bash
-confluence watch space SPACE_KEY [--unwatch] [--output FORMAT]
+confluence-as watch space SPACE_KEY [--unwatch] [--output FORMAT]
 ```
 
 **Arguments:**
@@ -118,27 +118,27 @@ confluence watch space SPACE_KEY [--unwatch] [--output FORMAT]
 **Examples:**
 ```bash
 # Watch a space
-confluence watch space DOCS
+confluence-as watch space DOCS
 
 # Watch space with lowercase key (auto-converted to uppercase)
-confluence watch space kb
+confluence-as watch space kb
 
 # Unwatch a space
-confluence watch space DOCS --unwatch
+confluence-as watch space DOCS --unwatch
 
 # Unwatch using short flag
-confluence watch space TEST -u
+confluence-as watch space TEST -u
 
 # Get JSON output
-confluence watch space TEST --output json
+confluence-as watch space TEST --output json
 ```
 
-### confluence watch list
+### confluence-as watch list
 Get the list of users who are watching a page.
 
 **Usage:**
 ```bash
-confluence watch list PAGE_ID [--output FORMAT]
+confluence-as watch list PAGE_ID [--output FORMAT]
 ```
 
 **Arguments:**
@@ -148,22 +148,23 @@ confluence watch list PAGE_ID [--output FORMAT]
 **Examples:**
 ```bash
 # Get watchers for a page
-confluence watch list 123456
+confluence-as watch list 123456
 
 # Get watchers as JSON
-confluence watch list 123456 --output json
+confluence-as watch list 123456 --output json
 ```
 
 **Output (text format):**
 ```
-Watchers for "My Project Page":
+Watchers of: My Project Page (123456)
+============================================================
 
-Name                  Type
---------------------  ----------
-John Doe              user
-Jane Smith            user
+Name        Type
+----------  ------
+John Doe    user
+Jane Smith  user
 
-Total: 2 watcher(s)
+✓ Found 2 watcher(s)
 ```
 
 **Output (JSON format):**
@@ -171,8 +172,7 @@ Total: 2 watcher(s)
 {
   "page": {
     "id": "123456",
-    "title": "My Project Page",
-    "type": "page"
+    "title": "My Project Page"
   },
   "watchers": [
     {
@@ -190,12 +190,12 @@ Total: 2 watcher(s)
 }
 ```
 
-### confluence watch status
+### confluence-as watch status
 Check if the current authenticated user is watching a specific page.
 
 **Usage:**
 ```bash
-confluence watch status PAGE_ID [--output FORMAT]
+confluence-as watch status PAGE_ID [--output FORMAT]
 ```
 
 **Arguments:**
@@ -205,10 +205,10 @@ confluence watch status PAGE_ID [--output FORMAT]
 **Examples:**
 ```bash
 # Check if watching a page
-confluence watch status 123456
+confluence-as watch status 123456
 
 # Get JSON output
-confluence watch status 123456 --output json
+confluence-as watch status 123456 --output json
 ```
 
 **Output (text format - watching):**
@@ -216,7 +216,8 @@ confluence watch status 123456 --output json
 Watch Status: My Project Page
   Page ID: 123456
   Status: Watching
-  You will receive notifications for updates to this page.
+  You will receive notifications for this page.
+✓ Retrieved watch status
 ```
 
 **Output (text format - not watching):**
@@ -224,7 +225,8 @@ Watch Status: My Project Page
 Watch Status: My Project Page
   Page ID: 123456
   Status: Not watching
-  Use `confluence watch page 123456` to start watching.
+  Use 'confluence-as watch page' to start watching.
+✓ Retrieved watch status
 ```
 
 **Output (JSON format):**
@@ -240,8 +242,9 @@ Watch Status: My Project Page
 
 ## API Endpoints Used
 
-This skill uses the Confluence v1 REST API:
+This skill uses the Confluence v1 REST API for watch operations (page titles are looked up via the v2 API):
 
+- `GET /api/v2/pages/{id}` - Get page info (title)
 - `POST /rest/api/user/watch/content/{id}` - Watch a page
 - `DELETE /rest/api/user/watch/content/{id}` - Unwatch a page
 - `POST /rest/api/user/watch/space/{key}` - Watch a space
@@ -257,29 +260,29 @@ This skill uses the Confluence v1 REST API:
 ### Watch Pages for a Project
 ```bash
 # Watch all key pages for a project
-confluence watch page 123456  # Requirements page
-confluence watch page 789012  # Design doc
-confluence watch page 345678  # Release notes
+confluence-as watch page 123456  # Requirements page
+confluence-as watch page 789012  # Design doc
+confluence-as watch page 345678  # Release notes
 ```
 
 ### Audit Watchers
 ```bash
 # Check who's watching important pages
-confluence watch list 123456 --output json > watchers.json
+confluence-as watch list 123456 --output json > watchers.json
 ```
 
 ### Verify Watch Status
 ```bash
 # Check if you're watching before unwatching
-confluence watch status 123456
-confluence watch unwatch-page 123456
+confluence-as watch status 123456
+confluence-as watch unwatch-page 123456
 ```
 
 ### Bulk Space Watching
 ```bash
 # Watch multiple spaces
 for space in DOCS KB DEV; do
-    confluence watch space $space
+    confluence-as watch space $space
 done
 ```
 

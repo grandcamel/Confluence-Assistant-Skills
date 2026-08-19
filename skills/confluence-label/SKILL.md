@@ -54,13 +54,13 @@ All operations are **low risk** and easily reversible:
 
 ## CLI Commands
 
-### confluence label add
+### confluence-as label add
 Add one or more labels to content.
 
 **Usage:**
 ```bash
-confluence label add PAGE_ID LABEL [LABEL ...]
-confluence label add 12345 documentation --output json
+confluence-as label add PAGE_ID LABEL [LABEL ...]
+confluence-as label add 12345 documentation --output json
 ```
 
 **Options:**
@@ -68,17 +68,17 @@ confluence label add 12345 documentation --output json
 
 **Examples:**
 ```bash
-confluence label add 12345 documentation
-confluence label add 12345 doc approved v2
+confluence-as label add 12345 documentation
+confluence-as label add 12345 doc approved v2
 ```
 
-### confluence label remove
+### confluence-as label remove
 Remove a label from content.
 
 **Usage:**
 ```bash
-confluence label remove PAGE_ID LABEL
-confluence label remove 12345 draft --output json
+confluence-as label remove PAGE_ID LABEL
+confluence-as label remove 12345 draft --output json
 ```
 
 **Options:**
@@ -86,29 +86,29 @@ confluence label remove 12345 draft --output json
 
 **Examples:**
 ```bash
-confluence label remove 12345 draft
+confluence-as label remove 12345 draft
 ```
 
-### confluence label list
+### confluence-as label list
 List labels on content.
 
 **Usage:**
 ```bash
-confluence label list 12345
-confluence label list 12345 --output json
+confluence-as label list 12345
+confluence-as label list 12345 --output json
 ```
 
 **Options:**
 - `--output, -o` - Output format: text or json
 
-### confluence label search
+### confluence-as label search
 Find content by label.
 
 **Usage:**
 ```bash
-confluence label search documentation
-confluence label search approved --space DOCS
-confluence label search api-docs --type page --limit 50
+confluence-as label search documentation
+confluence-as label search approved --space DOCS
+confluence-as label search api-docs --type page --limit 50
 ```
 
 **Options:**
@@ -117,14 +117,14 @@ confluence label search api-docs --type page --limit 50
 - `--limit, -l` - Maximum results (default: 25)
 - `--output, -o` - Output format: text or json
 
-### confluence label popular
+### confluence-as label popular
 List most used labels.
 
 **Usage:**
 ```bash
-confluence label popular --space DOCS
-confluence label popular --limit 20
-confluence label popular --output json
+confluence-as label popular --space DOCS
+confluence-as label popular --limit 20
+confluence-as label popular --output json
 ```
 
 **Options:**
