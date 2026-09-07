@@ -506,6 +506,35 @@ pytest tests/e2e/ -v
 
 <br>
 
+## Before each plugin release
+
+Before merging the release-please release PR, run the shared Knowledge Floor
+job on a host with authenticated headless `claude` and `codex` CLIs. Also run it
+when a model change in the organization's
+`docs/agents/standing/fleet-posture.json` changes the floor models or judge;
+update the shared job's `commands.json` and choose a fresh output directory.
+The driver and full 153-fact inventory live in a sibling
+`JIRA-Assistant-Skills/tests/floor_eval/` checkout:
+
+```bash
+python3 ../JIRA-Assistant-Skills/tests/floor_eval/run_eval.py \
+  --output ../JIRA-Assistant-Skills/tests/floor_eval/runs/pre-release
+# Focused Confluence run, after a full baseline exists:
+python3 ../JIRA-Assistant-Skills/tests/floor_eval/run_eval.py \
+  --repo confluence \
+  --output ../JIRA-Assistant-Skills/tests/floor_eval/runs/confluence-release
+```
+
+Add `--resume` to the same command after an interruption; use separate output
+directories for changed inputs or a new release. Archive `classification.json`,
+`flipped-to-floor.md`, `stale-facts.md`, `run_summary.json`, manifest and raw
+receipts from the output directory. Incomplete facts must finish; fake or
+filtered smoke runs cannot establish the full cut list. Review model
+disagreements and citation notes, and live-reverify stale-fact candidates
+before applying the cut list. This is **host-run, never in GitHub Actions**:
+runners do not have the required CLIs or model credentials. No Atlassian site
+credentials are used by the evaluator. See [the job pointer](tests/floor_eval/README.md).
+
 ## 🛠️ Troubleshooting
 
 <details>
