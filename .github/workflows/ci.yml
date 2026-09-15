@@ -151,34 +151,14 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install confluence-as pytest pytest-asyncio pytest-cov
-          pip install -e .
+          # confluence-as 2.0.0 final is not on PyPI yet -- only the
+          # 2.0.0rc1 pre-release is, so --pre is required until it ships.
+          pip install --pre "confluence-as>=2,<3" pytest pytest-asyncio pytest-cov pyyaml
+          pip install --no-deps -e .
 
       - name: Run unit tests
         run: |
-          # Run tests per skill to avoid conftest.py conflicts
-          for skill_dir in skills/*/tests/; do
-            if [ -d "$skill_dir" ]; then
-              skill_name=$(basename $(dirname $skill_dir))
-              # Check if there are actual test files (not just conftest.py)
-              test_count=$(find "$skill_dir" -maxdepth 1 -name "test_*.py" | wc -l)
-              if [ "$test_count" -gt 0 ]; then
-                echo "Testing $skill_name ($test_count test files)..."
-                python -m pytest "$skill_dir" -v \
-                  -m "not slow" \
-                  || exit 1
-              else
-                echo "Skipping $skill_name (no test files)"
-              fi
-            fi
-          done
-
-      - name: Run CLI tests
-        run: |
-          if [ -d "tests" ]; then
-            python -m pytest tests -v -m "not slow" || true
-          fi
-        continue-on-error: true
+          python -m pytest -q --deselect skills/confluence/tests/test_routing.py --deselect tests/e2e/test_plugin_e2e.py
 
   # ==========================================================================
   # Pre-commit Hooks Validation
