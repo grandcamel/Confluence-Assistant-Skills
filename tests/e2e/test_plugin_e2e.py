@@ -1,209 +1,107 @@
 """
-E2E test classes for confluence-assistant-skills
+Help-only sufficiency arm.
 
-Run with: pytest tests/e2e/ -v --e2e-verbose
-Save responses: pytest tests/e2e/ -v --e2e-save-responses
+Is the Entry-Point Hint (skills/confluence/SKILL.md) alone enough for a
+model to complete representative confluence-as tasks? The model gets the
+shipped plugin, the Bash and Skill tools (Skill is required to load the
+hint at all), no MCP servers, and a `confluence-as` forced into
+simulation transport with CONFLUENCE_ALLOWED_SPACES=DOCS and no
+credentials, so nothing it runs can reach a live site. Each task's
+prompt gets a fixed trailer (runner.PROMPT_TRAILER) telling the model to
+act now rather than ask a clarifying question. A trial passes when any
+confluence-as invocation in its transcript matches the task's `accept`
+list (see test_cases.yaml and runner.command_matches_accept) and that
+invocation's replay classifies well-formed (runner.classify_replay) --
+and fails outright if the model loaded any skill other than
+`confluence` (see runner.extract_skill_invocations).
+
+Thresholds: five cold trials per task; a task passes at four or more
+well-formed trials; the arm passes only when all seven tasks pass.
+Model: claude-sonnet-5.
+
+Run with: pytest tests/e2e/ -v
+Not run in CI: this launches the `claude` binary. See
+.github/workflows/ci.yml, which deselects this file.
 """
 
-from pathlib import Path
-
 import pytest
-
-from .conftest import assert_response_contains
-from .runner import E2ETestStatus
+import yaml
 
 pytestmark = [pytest.mark.e2e, pytest.mark.slow]
 
-
-def _discover_skills() -> list[str]:
-    """Dynamically discover skills from plugin directory."""
-    skills_dir = Path(__file__).parent.parent.parent / "skills"
-    if not skills_dir.exists():
-        return []
-    return sorted(
-        d.name
-        for d in skills_dir.iterdir()
-        if d.is_dir() and d.name.startswith("confluence-")
-    )
+TRIALS_PER_TASK = 5
+MIN_PASSING_TRIALS = 4
 
 
-# Dynamically discover all Confluence skills
-EXPECTED_SKILLS = _discover_skills()
+def _load_tasks(test_cases_path):
+    with test_cases_path.open() as f:
+        data = yaml.safe_load(f)
+    return data.get("tasks", [])
 
 
-class TestPluginInstallation:
-    """Plugin installation tests."""
+class TestSufficiencyArm:
+    """One test per representative task; each runs its own cold trials."""
 
-    def test_plugin_installs(self, claude_runner, e2e_enabled):
-        """Verify plugin installs successfully."""
-        if not e2e_enabled:
-            pytest.skip("E2E disabled")
+    @pytest.fixture(autouse=True)
+    def _tasks(self, test_cases_path):
+        self.tasks = {
+            t["id"]: (t["prompt"], t["accept"]) for t in _load_tasks(test_cases_path)
+        }
 
-        result = claude_runner.install_plugin(".")
-        assert result["success"] or "already installed" in result["output"].lower()
+    def _run_task(self, sufficiency_runner, task_id):
+        prompt, accept = self.tasks[task_id]
+        results = sufficiency_runner.run_task(task_id, prompt, accept, TRIALS_PER_TASK)
+        well_formed = sum(1 for r in results if r.well_formed)
+        evidence_dir = results[0].evidence_dir if results else ""
 
-    def test_skills_discoverable(self, claude_runner, installed_plugin, e2e_enabled):
-        """Verify skills are discoverable after installation."""
-        if not e2e_enabled:
-            pytest.skip("E2E disabled")
+        # Always visible (pytest shows captured stdout for a failing
+        # test regardless of -s; for a passing one it needs -s or -rP),
+        # and always in the failure message below: every trial's full
+        # transcript and command detail is on disk here, so a scoring
+        # question never requires re-running the live arm.
+        print(f"[{task_id}] evidence: {evidence_dir}")
 
-        result = claude_runner.send_prompt("What skills are available?")
+        if well_formed < MIN_PASSING_TRIALS:
+            trial_reports = []
+            for i, r in enumerate(results, 1):
+                if r.replay_outcomes:
+                    outcomes = "; ".join(
+                        f"{o.command!r} -> exit {o.exit_code}, "
+                        + ("ok" if o.ok else f"FAIL ({o.reason})")
+                        for o in r.replay_outcomes
+                    )
+                else:
+                    outcomes = "(no matching invocation replayed)"
+                trial_reports.append(
+                    f"  trial {i}: well_formed={r.well_formed} passed={r.command!r}\n"
+                    f"    all commands run: {r.commands}\n"
+                    f"    matching-command replays: {outcomes}\n"
+                    f"    transcript_error: {r.transcript_error}"
+                )
+            pytest.fail(
+                f"[{task_id}] expected >= {MIN_PASSING_TRIALS}/{TRIALS_PER_TASK} "
+                f"well-formed trials, got {well_formed}/{TRIALS_PER_TASK}\n"
+                f"Evidence directory: {evidence_dir}\n"
+                f"Prompt: {prompt}\nAccept: {accept}\n" + "\n".join(trial_reports)
+            )
 
-        # Check for at least one skill mentioned
-        assert_response_contains(
-            result,
-            EXPECTED_SKILLS,
-            "No Confluence skills found in output",
-            match_any=True,
-        )
+    def test_read_page(self, sufficiency_runner):
+        self._run_task(sufficiency_runner, "read-page")
 
+    def test_search_cql(self, sufficiency_runner):
+        self._run_task(sufficiency_runner, "search-cql")
 
-class TestConfluenceSkills:
-    """Test individual Confluence skills."""
+    def test_create_page_property(self, sufficiency_runner):
+        self._run_task(sufficiency_runner, "create-page-property")
 
-    @pytest.mark.parametrize("skill", EXPECTED_SKILLS)
-    def test_skill_mentioned(self, claude_runner, installed_plugin, e2e_enabled, skill):
-        """Verify each skill can be referenced."""
-        if not e2e_enabled:
-            pytest.skip("E2E disabled")
+    def test_read_page_labels(self, sufficiency_runner):
+        self._run_task(sufficiency_runner, "read-page-labels")
 
-        # Extract the operation type from skill name
-        operation = skill.replace("confluence-", "")
-        result = claude_runner.send_prompt(
-            f"Without reading any files, in one sentence: what does the confluence-{operation} skill do?"
-        )
+    def test_update_page_property(self, sufficiency_runner):
+        self._run_task(sufficiency_runner, "update-page-property")
 
-        # Should get a response without errors
-        assert result["success"] or not result.get("error"), (
-            f"Error for {skill}: {result.get('error')}"
-        )
+    def test_delete_page(self, sufficiency_runner):
+        self._run_task(sufficiency_runner, "delete-page")
 
-
-class TestPageOperations:
-    """Test page-related skill functionality."""
-
-    def test_page_creation_help(self, claude_runner, installed_plugin, e2e_enabled):
-        """Test help for page creation."""
-        if not e2e_enabled:
-            pytest.skip("E2E disabled")
-
-        result = claude_runner.send_prompt(
-            "Without reading any files, briefly explain: what CLI command creates a Confluence page?"
-        )
-
-        assert_response_contains(
-            result,
-            ["create", "page", "space", "confluence"],
-            "Expected page creation info in response",
-        )
-
-    def test_page_update_help(self, claude_runner, installed_plugin, e2e_enabled):
-        """Test help for page updates."""
-        if not e2e_enabled:
-            pytest.skip("E2E disabled")
-
-        result = claude_runner.send_prompt(
-            "Without reading any files, briefly explain: what CLI command updates a Confluence page?"
-        )
-
-        assert_response_contains(
-            result,
-            ["update", "edit", "modify", "page", "content"],
-            "Expected page update info in response",
-        )
-
-
-class TestSearchOperations:
-    """Test search-related skill functionality."""
-
-    def test_cql_help(self, claude_runner, installed_plugin, e2e_enabled):
-        """Test CQL query help."""
-        if not e2e_enabled:
-            pytest.skip("E2E disabled")
-
-        result = claude_runner.send_prompt("How do I write a CQL query for Confluence?")
-
-        assert_response_contains(
-            result,
-            ["cql", "query", "search", "confluence"],
-            "Expected CQL info in response",
-        )
-
-    def test_export_help(self, claude_runner, installed_plugin, e2e_enabled):
-        """Test search export help."""
-        if not e2e_enabled:
-            pytest.skip("E2E disabled")
-
-        result = claude_runner.send_prompt(
-            "Without reading any files, briefly explain: what CLI command exports Confluence search results to CSV?"
-        )
-
-        assert_response_contains(
-            result,
-            ["export", "csv", "json", "results", "search"],
-            "Expected export info in response",
-        )
-
-
-@pytest.mark.skip(reason="Redundant with test_individual_case parametrized tests")
-class TestYAMLSuites:
-    """Run all YAML-defined test suites."""
-
-    def test_all_suites(self, e2e_runner, e2e_enabled):
-        """Execute all test suites from test_cases.yaml."""
-        if not e2e_enabled:
-            pytest.skip("E2E disabled")
-
-        results = e2e_runner.run_all()
-        e2e_runner.print_summary(results)
-
-        failures = [
-            f"{s.suite_name}::{t.test_id}"
-            for s in results
-            for t in s.tests
-            if t.status != E2ETestStatus.PASSED
-        ]
-        assert len(failures) == 0, f"Test failures: {failures}"
-
-
-class TestErrorHandling:
-    """Test error handling scenarios."""
-
-    def test_invalid_page_id(self, claude_runner, installed_plugin, e2e_enabled):
-        """Test handling of invalid page ID."""
-        if not e2e_enabled:
-            pytest.skip("E2E disabled")
-
-        result = claude_runner.send_prompt("Get Confluence page with ID 'not-a-number'")
-
-        # Should not crash
-        assert "segmentation fault" not in result.get("error", "").lower()
-        assert "panic" not in result.get("error", "").lower()
-
-    def test_missing_credentials_message(
-        self, claude_runner, installed_plugin, e2e_enabled
-    ):
-        """Test helpful message for missing credentials."""
-        if not e2e_enabled:
-            pytest.skip("E2E disabled")
-
-        result = claude_runner.send_prompt(
-            "What do I need to configure to use Confluence skills?"
-        )
-
-        assert_response_contains(
-            result,
-            [
-                "api_token",
-                "api token",
-                "credential",
-                "authentication",
-                "configure",
-                "token",
-                "url",
-                "email",
-                "settings",
-                "environment",
-            ],
-            "Expected configuration info in response",
-        )
+    def test_find_attachments_operation(self, sufficiency_runner):
+        self._run_task(sufficiency_runner, "find-attachments-operation")

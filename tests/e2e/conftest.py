@@ -1,223 +1,231 @@
-"""Pytest configuration and fixtures for E2E tests."""
+"""Pytest configuration and fixtures for the help-only sufficiency arm.
 
-import json
+The sufficiency arm answers: is the Entry-Point Hint alone
+(skills/confluence/SKILL.md, shipped via the plugin manifest) enough for
+a model to complete representative confluence-as tasks? The model under
+test gets nothing else: no other skill, no tool besides Bash and Skill
+(Skill is required to load the plugin's SKILL.md at all -- see
+runner.py), no project context from this repository, and a
+`confluence-as` on PATH forced into its `simulation` transport with
+`CONFLUENCE_ALLOWED_SPACES=DOCS` and no credentials in the environment,
+so nothing it runs can reach a live site.
+
+This arm launches the real `claude` binary and spends real tokens, so it
+never runs silently: it requires the explicit E2E_SUFFICIENCY=1 opt-in
+(see `_sufficiency_gate` below), rather than inferring "enabled" from
+whatever credentials happen to be present. Adapted from the jira
+plugin's own tests/e2e/conftest.py.
+"""
+
 import os
-from datetime import datetime
+import re
+import subprocess
 from pathlib import Path
-from typing import Any
 
 import pytest
 
-from .runner import ClaudeCodeRunner, E2ETestRunner
+from tests.harness_env import build_harness_env
 
+from .runner import SufficiencyRunner
 
-class ResponseLogger:
-    """Logs Claude responses for debugging failed tests."""
+DEFAULT_MODEL = "claude-sonnet-5"
 
-    def __init__(self, output_dir: Path, enabled: bool = True):
-        self.output_dir = output_dir
-        self.enabled = enabled
-        self.responses: list[dict[str, Any]] = []
-        if enabled:
-            self.output_dir.mkdir(parents=True, exist_ok=True)
+# Explicit opt-in required to run this arm at all. Do NOT infer "enabled"
+# from ANTHROPIC_API_KEY or ~/.claude/credentials.json: a `claude auth
+# login` keeps OAuth credentials in the system keychain, which would
+# otherwise make the arm look "enabled" and skip silently through some
+# other path, with no visible signal in a test run.
+E2E_SUFFICIENCY_VAR = "E2E_SUFFICIENCY"
 
-    def log(self, test_name: str, prompt: str, result: dict[str, Any]) -> None:
-        """Log a response for later analysis."""
-        entry = {
-            "timestamp": datetime.now().isoformat(),
-            "test_name": test_name,
-            "prompt": prompt,
-            "output": result.get("output", ""),
-            "error": result.get("error", ""),
-            "success": result.get("success", False),
-            "exit_code": result.get("exit_code"),
-            "duration": result.get("duration"),
-        }
-        self.responses.append(entry)
-
-        if self.enabled:
-            # Write individual response file
-            safe_name = test_name.replace("::", "_").replace(" ", "_")[:50]
-            response_file = self.output_dir / f"{safe_name}.json"
-            with response_file.open("w") as f:
-                json.dump(entry, f, indent=2)
-
-    def save_all(self) -> None:
-        """Save all responses to a single file."""
-        if self.enabled and self.responses:
-            all_responses_file = self.output_dir / "all_responses.json"
-            with all_responses_file.open("w") as f:
-                json.dump(self.responses, f, indent=2)
-
-
-def assert_response_contains(
-    result: dict[str, Any], terms: list[str], message: str, match_any: bool = True
-) -> None:
-    """
-    Assert that response contains expected terms, with helpful error message.
-
-    Args:
-        result: The response dict from claude_runner.send_prompt()
-        terms: List of terms to search for
-        message: Error message prefix
-        match_any: If True, pass if ANY term found. If False, ALL must be found.
-    """
-    output = result.get("output", "").lower()
-    error = result.get("error", "").lower()
-    combined = f"{output}\n{error}"
-
-    if match_any:
-        found = any(term.lower() in combined for term in terms)
-    else:
-        found = all(term.lower() in combined for term in terms)
-
-    if not found:
-        # Build detailed error message
-        error_details = [
-            f"\n{message}",
-            f"\nExpected {'any of' if match_any else 'all of'}: {terms}",
-            f"\n\n--- ACTUAL RESPONSE ({len(output)} chars) ---",
-            output[:2000] if output else "(empty)",
-        ]
-        if error:
-            error_details.extend(["\n\n--- STDERR ---", error[:500]])
-        error_details.append("\n--- END RESPONSE ---\n")
-
-        raise AssertionError("".join(error_details))
+# The scratch confluence-as this harness requires: only the 2.0.0rc1
+# pre-release is on PyPI as of this writing (2.0.0 final has not
+# shipped), so this checks the major version only, not an exact match.
+_VERSION_RE = re.compile(r"\bversion\s+2\.")
 
 
 def pytest_addoption(parser):
     """Add custom command line options."""
     parser.addoption(
-        "--e2e-timeout",
+        "--sufficiency-timeout",
         action="store",
-        default=os.environ.get("E2E_TEST_TIMEOUT", "120"),
-        help="Timeout per test in seconds",
+        default=os.environ.get("SUFFICIENCY_TEST_TIMEOUT", "120"),
+        help="Timeout per trial in seconds",
     )
     parser.addoption(
-        "--e2e-model",
+        "--sufficiency-model",
         action="store",
-        default=os.environ.get("E2E_TEST_MODEL", "claude-sonnet-4-20250514"),
-        help="Claude model to use",
-    )
-    parser.addoption(
-        "--e2e-verbose",
-        action="store_true",
-        default=os.environ.get("E2E_VERBOSE", "").lower() == "true",
-        help="Enable verbose output",
-    )
-    parser.addoption(
-        "--e2e-save-responses",
-        action="store_true",
-        default=os.environ.get("E2E_SAVE_RESPONSES", "").lower() == "true",
-        help="Save all responses to files for debugging",
+        default=os.environ.get("SUFFICIENCY_TEST_MODEL", DEFAULT_MODEL),
+        help="Claude model to use for the sufficiency arm",
     )
 
 
 @pytest.fixture(scope="session")
 def e2e_enabled():
-    """Check if E2E tests should run."""
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    oauth_token = os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
-    claude_dir = Path.home() / ".claude"
-
-    if api_key:
-        return True
-    if oauth_token:
-        return True
-    return bool(claude_dir.exists() and (claude_dir / "credentials.json").exists())
+    """
+    Whether the sufficiency arm should run for real -- gated on the
+    explicit E2E_SUFFICIENCY=1 opt-in only. See the module docstring for
+    why this is not inferred from ambient credentials.
+    """
+    return os.environ.get(E2E_SUFFICIENCY_VAR) == "1"
 
 
 @pytest.fixture(scope="session")
-def project_root():
-    """Get the project root directory."""
+def harness_env():
+    """
+    The environment the model's Claude Code process (and every
+    confluence-as invocation re-run from its transcript) executes under.
+    Built once per session so the gate below and the runner fixture
+    share exactly the same PATH (including any HARNESS_CLI_BIN prefix).
+    """
+    return build_harness_env()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _sufficiency_gate(e2e_enabled, harness_env):
+    """
+    Never let the arm run silently, and never let it run against a
+    broken or wrong-version toolchain.
+
+    Without E2E_SUFFICIENCY=1, every test in this directory is skipped
+    with a loud reason naming the variable -- not a quiet pass. With the
+    variable set, this probes `claude --version` and `confluence-as
+    --version` once per session (on the SAME built environment/PATH the
+    trials themselves use, so HARNESS_CLI_BIN is honored) and FAILS (not
+    skips) if either binary is missing, times out, errors, or --for
+    confluence-as-- does not report a 2.x version: an operator who
+    explicitly opted in asked for a real run, and a missing, broken, or
+    mismatched-version CLI is a setup defect, not something to quietly
+    skip past. Auth absence is likewise never silently skipped: a
+    `claude` binary that cannot authenticate reports a nonzero exit
+    here.
+    """
+    if not e2e_enabled:
+        pytest.skip(
+            f"Sufficiency arm disabled: set {E2E_SUFFICIENCY_VAR}=1 to run "
+            "it (it launches the real `claude` binary and spends real "
+            "tokens)."
+        )
+
+    try:
+        probe = subprocess.run(
+            ["claude", "--version"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=harness_env,
+        )
+    except FileNotFoundError:
+        pytest.fail(
+            f"{E2E_SUFFICIENCY_VAR}=1 was set but the `claude` binary is "
+            "not on PATH; install/authenticate Claude Code before running "
+            "the sufficiency arm."
+        )
+    except subprocess.TimeoutExpired:
+        pytest.fail(
+            f"{E2E_SUFFICIENCY_VAR}=1 was set but `claude --version` did "
+            "not respond within 30s."
+        )
+
+    if probe.returncode != 0:
+        pytest.fail(
+            f"{E2E_SUFFICIENCY_VAR}=1 was set but `claude --version` "
+            f"exited {probe.returncode}: {probe.stderr.strip()[:500]}"
+        )
+
+    try:
+        cas_probe = subprocess.run(
+            ["confluence-as", "--version"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=harness_env,
+        )
+    except FileNotFoundError:
+        pytest.fail(
+            f"{E2E_SUFFICIENCY_VAR}=1 was set but `confluence-as` is not "
+            "on the harness PATH; set HARNESS_CLI_BIN to a scratch venv's "
+            "bin/ (see tests/harness_env.py) or install confluence-as>=2,<3."
+        )
+    except subprocess.TimeoutExpired:
+        pytest.fail(
+            f"{E2E_SUFFICIENCY_VAR}=1 was set but `confluence-as "
+            "--version` did not respond within 30s."
+        )
+
+    if cas_probe.returncode != 0:
+        pytest.fail(
+            f"{E2E_SUFFICIENCY_VAR}=1 was set but `confluence-as "
+            f"--version` exited {cas_probe.returncode}: "
+            f"{cas_probe.stderr.strip()[:500]}"
+        )
+
+    version_output = cas_probe.stdout + cas_probe.stderr
+    if not _VERSION_RE.search(version_output):
+        pytest.fail(
+            f"{E2E_SUFFICIENCY_VAR}=1 was set but confluence-as on the "
+            "harness PATH did not report a 2.x version (only 2.0.0rc1 "
+            f"is on PyPI as a pre-release until 2.0.0 final ships): "
+            f"{version_output!r}"
+        )
+
+
+@pytest.fixture(scope="session")
+def repo_root():
+    """The shipped plugin's own directory: manifest + skills/confluence/SKILL.md."""
     return Path(__file__).parent.parent.parent
 
 
 @pytest.fixture(scope="session")
-def test_cases_path(project_root):
-    """Get path to test cases YAML."""
-    return project_root / "tests" / "e2e" / "test_cases.yaml"
+def test_cases_path(repo_root):
+    """Path to the seven representative tasks."""
+    return repo_root / "tests" / "e2e" / "test_cases.yaml"
 
 
 @pytest.fixture(scope="session")
-def e2e_timeout(request):
-    """Get E2E test timeout."""
-    return int(request.config.getoption("--e2e-timeout"))
+def sufficiency_timeout(request):
+    return int(request.config.getoption("--sufficiency-timeout"))
 
 
 @pytest.fixture(scope="session")
-def e2e_model(request):
-    """Get E2E test model."""
-    return request.config.getoption("--e2e-model")
+def sufficiency_model(request):
+    return request.config.getoption("--sufficiency-model")
 
 
 @pytest.fixture(scope="session")
-def e2e_verbose(request):
-    """Get E2E verbosity setting."""
-    return request.config.getoption("--e2e-verbose")
+def simulation_env(harness_env):
+    """
+    The environment the model's Claude Code process (and every
+    confluence-as invocation re-run from its transcript) executes under.
+    Built by the shared tests/harness_env.py allowlist (also used by the
+    routing check), not by denylisting a copy of the whole environment:
+    only PATH (with HARNESS_CLI_BIN prepended when set), HOME, USER,
+    LOGNAME, TERM and LANG (the last two if present) are ever copied,
+    plus CONFLUENCE_AS_TRANSPORT forced to simulation and
+    CONFLUENCE_ALLOWED_SPACES forced to DOCS, so confluence-as never
+    dials out to a live site regardless of what it's told, and every
+    identity-scoped operation can actually resolve against the
+    simulation store's default seed.
+    """
+    return harness_env
 
 
 @pytest.fixture(scope="session")
-def e2e_save_responses(request):
-    """Get E2E save responses setting."""
-    return request.config.getoption("--e2e-save-responses")
-
-
-@pytest.fixture(scope="session")
-def response_logger(project_root, e2e_save_responses, request):
-    """Create response logger for debugging."""
-    output_dir = project_root / "tests" / "e2e" / "responses"
-    logger = ResponseLogger(output_dir, enabled=e2e_save_responses)
-
-    yield logger
-
-    # Save all responses at end of session
-    logger.save_all()
-
-
-@pytest.fixture(scope="session")
-def claude_runner(project_root, e2e_timeout, e2e_model, e2e_verbose, e2e_enabled):
-    """Create Claude Code runner."""
-    if not e2e_enabled:
-        pytest.skip("E2E tests disabled (no API key or OAuth credentials)")
-
-    return ClaudeCodeRunner(
-        working_dir=project_root,
-        timeout=e2e_timeout,
-        model=e2e_model,
-        verbose=e2e_verbose,
-    )
-
-
-@pytest.fixture(scope="session")
-def e2e_runner(
-    test_cases_path, project_root, e2e_timeout, e2e_model, e2e_verbose, e2e_enabled
+def sufficiency_runner(
+    repo_root,
+    sufficiency_timeout,
+    sufficiency_model,
+    simulation_env,
+    _sufficiency_gate,
 ):
-    """Create E2E test runner."""
-    if not e2e_enabled:
-        pytest.skip("E2E tests disabled (no API key or OAuth credentials)")
-
-    return E2ETestRunner(
-        test_cases_path=test_cases_path,
-        working_dir=project_root,
-        timeout=e2e_timeout,
-        model=e2e_model,
-        verbose=e2e_verbose,
+    """
+    Build the runner that drives Claude Code with ONLY the shipped plugin
+    (skills/confluence/SKILL.md) and the Bash and Skill tools installed.
+    Depending on `_sufficiency_gate` guarantees the opt-in/probes run
+    first.
+    """
+    return SufficiencyRunner(
+        plugin_dir=repo_root,
+        timeout=sufficiency_timeout,
+        model=sufficiency_model,
+        env=simulation_env,
     )
-
-
-@pytest.fixture(scope="session")
-def installed_plugin(claude_runner, e2e_enabled):
-    """Install the plugin once for all tests."""
-    if not e2e_enabled:
-        pytest.skip("E2E tests disabled")
-
-    result = claude_runner.install_plugin(".")
-    if (
-        not result["success"]
-        and "already installed" not in result.get("output", "").lower()
-    ):
-        pytest.fail(f"Failed to install plugin: {result.get('error', 'Unknown error')}")
-
-    return result

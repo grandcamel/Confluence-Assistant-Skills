@@ -1,0 +1,6 @@
+{
+  "name": "jira-stub",
+  "version": "0.0.0",
+  "description": "Non-shipped test fixture: a minimal Jira skill used only to verify inter-plugin routing.",
+  "license": "MIT"
+}
