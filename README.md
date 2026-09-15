@@ -42,7 +42,7 @@ confluence-as api topics                 # deep-dive topics (credentials, scope,
 
 ## Testing
 
-The offline suite runs with no credentials, no network, and no `claude`/`confluence-as` binary:
+The offline suite runs with no credentials, no network, and no `claude`/`confluence-as` binary; it needs only `git` and a git checkout:
 
 ```bash
 python -m pytest -q --deselect skills/confluence/tests/test_routing.py --deselect tests/e2e/test_plugin_e2e.py

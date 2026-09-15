@@ -20,13 +20,14 @@ plugin's own tests/e2e/conftest.py.
 import os
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
 
 from tests.harness_env import build_harness_env
 
-from .runner import SufficiencyRunner
+from .runner import EMPTY_MCP_CONFIG, SufficiencyRunner
 
 DEFAULT_MODEL = "claude-sonnet-5"
 
@@ -81,7 +82,7 @@ def harness_env():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _sufficiency_gate(e2e_enabled, harness_env):
+def _sufficiency_gate(request, e2e_enabled, harness_env):
     """
     Never let the arm run silently, and never let it run against a
     broken or wrong-version toolchain.
@@ -95,9 +96,10 @@ def _sufficiency_gate(e2e_enabled, harness_env):
     confluence-as-- does not report a 2.x version: an operator who
     explicitly opted in asked for a real run, and a missing, broken, or
     mismatched-version CLI is a setup defect, not something to quietly
-    skip past. Auth absence is likewise never silently skipped: a
-    `claude` binary that cannot authenticate reports a nonzero exit
-    here.
+    skip past. Auth absence is likewise never silently skipped: one
+    authenticated one-turn `claude --print` probe runs here, on the same
+    built environment, and FAILS on a nonzero exit, so an unauthenticated
+    host is reported before any trial is scored.
     """
     if not e2e_enabled:
         pytest.skip(
@@ -130,6 +132,43 @@ def _sufficiency_gate(e2e_enabled, harness_env):
         pytest.fail(
             f"{E2E_SUFFICIENCY_VAR}=1 was set but `claude --version` "
             f"exited {probe.returncode}: {probe.stderr.strip()[:500]}"
+        )
+
+    model = request.config.getoption("--sufficiency-model")
+    with tempfile.TemporaryDirectory(prefix="sufficiency-auth-probe-") as probe_cwd:
+        try:
+            auth_probe = subprocess.run(
+                [
+                    "claude",
+                    "--print",
+                    "--model",
+                    model,
+                    "--max-turns",
+                    "1",
+                    "--strict-mcp-config",
+                    "--mcp-config",
+                    str(EMPTY_MCP_CONFIG),
+                    "Reply with the single word OK.",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                env=harness_env,
+                cwd=probe_cwd,
+            )
+        except subprocess.TimeoutExpired:
+            pytest.fail(
+                f"{E2E_SUFFICIENCY_VAR}=1 was set but the authenticated "
+                "`claude --print` probe did not respond within 120s."
+            )
+    if auth_probe.returncode != 0:
+        detail = (auth_probe.stderr or auth_probe.stdout).strip()[:500]
+        pytest.fail(
+            f"{E2E_SUFFICIENCY_VAR}=1 was set but `claude` cannot complete an "
+            f"authenticated request (exit {auth_probe.returncode}): {detail} "
+            "-- log in to Claude Code on this host (the harness passes only "
+            "PATH, HOME, USER and LOGNAME through) before running the "
+            "sufficiency arm."
         )
 
     try:

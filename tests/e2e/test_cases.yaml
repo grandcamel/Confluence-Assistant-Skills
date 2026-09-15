@@ -19,19 +19,25 @@
 # is nothing for that shape to match here.
 #
 # Every accept entry below was verified against the scratch confluence-as
-# 2.0.0rc1 binary before this file was frozen. Two of the seven initially
-# sketched tasks (add a label or comment to page 1; update page 1's
-# title) were substituted for a functionally equivalent operation after
+# 2.0.0rc1 binary before this file was frozen. Three of the seven initially
+# sketched tasks (create a page in space DOCS; add a label or comment to
+# page 1; update page 1's title) were substituted for a functionally equivalent operation after
 # verification showed the originally-sketched operation cannot succeed
 # under this harness's simulation transport at all -- a transport
 # limitation, not a hint-sufficiency question:
+#   - createPage exits 4 under both scope routes ("body scope requires an
+#     allowed argv identity"): resolving a space key to an id needs
+#     getSpaces, which the simulation transport blocks ("site access is
+#     disabled"), and passing spaceId=55 directly fails identically, so no
+#     page-create operation is exercisable under simulation at all;
+#     getPageLabels (a second read) takes the seventh slot.
 #   - createFooterComment, createInlineComment, getPageFooterComments and
 #     getPageInlineComments all exit 6, "simulation does not support
 #     operation: <name>"; `api search label` lists no write (POST)
 #     endpoint for labels at all in this CLI version.
 #   - updatePageTitle also exits 6 the same way ("simulation does not
 #     support operation: updatePageTitle").
-# Both substitutes below (createPageProperty, updatePagePropertyById) are
+# The two write substitutes below (createPageProperty, updatePagePropertyById) are
 # genuinely functional, page-1-scoped write operations verified end to
 # end against the scratch binary, including updatePagePropertyById's
 # not-found response against a property that does not exist by default

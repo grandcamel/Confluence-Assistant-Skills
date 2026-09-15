@@ -244,11 +244,12 @@ CONCEPT_WORD_RE = re.compile(
 # (allowed to use concept words describing what those releases actually
 # did), and this sweep does not parse the file by version heading to
 # separate them from the new 3.0.0 entry -- the 3.0.0 entry is written,
-# and spot-checked, to name commands only. `.github/` is exempt as CI
-# infrastructure/config, not documentation explaining Confluence -- the
-# same reasoning the ruling gives for allowing "instructions about this
-# repository itself" everywhere.
-_CONCEPT_SWEEP_EXEMPT_PREFIXES = ("tests/", "skills/confluence/tests/", ".github/")
+# and spot-checked, to name commands only (seat review sign-off, 2026-09-15: the
+# 3.0.0 entry may list the deleted skill directory names as a record of
+# the deletion; that is not explaining a Confluence concept). `.github/` is NOT exempt: its only concept-stem hits are
+# the GitHub Actions `permissions:` key, recorded below as known false
+# positives by exact (path, word) pair.
+_CONCEPT_SWEEP_EXEMPT_PREFIXES = ("tests/", "skills/confluence/tests/")
 _CONCEPT_SWEEP_EXEMPT_FILES = ("CHANGELOG.md",)
 
 
@@ -268,6 +269,10 @@ def _is_concept_sweep_exempt(rel_path: str) -> bool:
 _CONCEPT_SWEEP_KNOWN_FALSE_POSITIVES = {
     ("LICENSE", "permission"),
     ("pyproject.toml", "space"),
+    (".github/workflows/ci.yml", "permission"),
+    (".github/workflows/ci.yml", "permissions"),
+    (".github/workflows/release.yml", "permission"),
+    (".github/workflows/release.yml", "permissions"),
 }
 
 
@@ -332,19 +337,19 @@ def test_no_confluence_concept_word_outside_exempt_files():
 _JAS_TICKET_RE = re.compile(r"\bJAS-\d+\b")
 _GC_TICKET_RE = re.compile(r"\bGC-\d+\b")
 
+# Built from fragments at runtime so this public repository never carries
+# the literal strings it forbids (the sibling plugin's review made the same
+# call): the joined values are the organization's sandbox key, maintainer
+# handle, private repository name, two host-wrapper names and its
+# Atlassian host.
 _INSTANCE_FACT_LITERAL_PATTERNS = [
-    "SBX",
-    "jasonkrue",
-    "grand-camel-platform",
-    "jira-dev-host",
-    "confluence-dev-host",
-    "jasonkrue.atlassian.net",
+    "".join(("S", "B", "X")),
+    "".join(("jason", "krue")),
+    "".join(("grand-", "camel-", "platform")),
+    "".join(("jira-", "dev-", "host")),
+    "".join(("confluence-", "dev-", "host")),
+    "".join(("jason", "krue", ".atlassian.net")),
 ]
-
-# This test file's own path, so the sweep below does not flag its own
-# source code for containing the literal pattern strings it searches
-# for (the constants immediately above, and the two regexes below).
-_THIS_FILE_REL_PATH = Path(__file__).resolve().relative_to(REPO_ROOT).as_posix()
 
 
 def test_no_instance_fact_patterns_anywhere():
@@ -360,8 +365,6 @@ def test_no_instance_fact_patterns_anywhere():
     """
     hits = []
     for rel_path in _tracked_files():
-        if rel_path == _THIS_FILE_REL_PATH:
-            continue
         text = _read_text_if_possible(REPO_ROOT / rel_path)
         if text is None:
             continue

@@ -117,8 +117,9 @@ from tests.evidence import new_run_dir, write_json, write_transcript
 # treat that as a reason to retry or ask further questions.
 PROMPT_TRAILER = (
     "Do this now with the confluence-as CLI in this shell. Do not ask me "
-    "questions. The CLI is in simulation mode: use space DOCS and page 1 "
-    "where an id is needed; a scope or not-found response is expected "
+    "questions. The CLI is in simulation mode: use space DOCS and, where "
+    "the task does not name one, page 1 where an id is needed; a scope or "
+    "not-found response is expected "
     "and fine. When finished, reply with the exact command you ran."
 )
 
@@ -546,12 +547,18 @@ def classify_replay(exit_code: int, stdout: str, stderr: str) -> tuple[bool, str
         return False, f"exit 4 with unrecognized scope message: {combined[:300]!r}"
 
     if exit_code == 5:
-        try:
-            payload = json.loads(combined.strip())
-        except (json.JSONDecodeError, TypeError):
+        payload = None
+        for candidate in (stderr, stdout, combined):
+            try:
+                payload = json.loads(candidate.strip())
+                break
+            except (json.JSONDecodeError, TypeError, AttributeError):
+                continue
+        if not isinstance(payload, dict):
             return (
                 False,
-                f"exit 5 but stdout+stderr was not valid JSON: {combined[:300]!r}",
+                "exit 5 but neither stderr, stdout nor their concatenation "
+                f"was a JSON object: {combined[:300]!r}",
             )
         messages = payload.get("messages") or []
         if any(_UNKNOWN_OPERATION_RE.match(str(m)) for m in messages):
@@ -559,6 +566,14 @@ def classify_replay(exit_code: int, stdout: str, stderr: str) -> tuple[bool, str
         if payload.get("status") == 404:
             return True, ""
         return False, f"exit 5 with unexpected payload: {payload}"
+
+    if exit_code == 6:
+        return (
+            False,
+            "transport-unsupported: the simulation transport does not implement "
+            f"this operation (exit 6), so this trial measures the transport, not "
+            f"the hint: {combined[:300]!r}",
+        )
 
     if exit_code == 2:
         return False, f"exit 2 usage error: {combined[:300]}"

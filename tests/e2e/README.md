@@ -178,7 +178,7 @@ transcript and the observed skill.
 ## The seven tasks
 
 `test_cases.yaml` holds seven representative, concrete tasks, each with
-an `accept` list of what counts as a matching invocation. Two of the
+an `accept` list of what counts as a matching invocation. Three of the
 seven substitute for an originally-sketched operation that verification
 found cannot succeed under this harness's simulation transport at all
 (see `test_cases.yaml`'s header comment for the full justification):
@@ -189,7 +189,9 @@ found cannot succeed under this harness's simulation transport at all
    (`createPageProperty` -- substitutes for "add a label or comment",
    which no confluence-as operation can complete under simulation).
 4. Find out whether Confluence page 1 in space DOCS has any labels
-   (`getPageLabels`).
+   (`getPageLabels` -- takes the slot of "create a page in space DOCS":
+   `createPage` cannot succeed under simulation by any scope route, so no
+   page-create operation is exercisable here).
 5. Update a property on Confluence page 1 in space DOCS
    (`updatePagePropertyById` -- substitutes for "update page 1's
    title": `updatePageTitle` itself exits 6, "simulation does not

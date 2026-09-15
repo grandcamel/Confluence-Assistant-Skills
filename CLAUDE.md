@@ -92,9 +92,9 @@ Versions are hand-bumped across five sites: `VERSION`,
 file exists in this repository). `tests/test_consistency.py` asserts
 they all agree. Conventional commits carry no `!` suffix and no
 `BREAKING CHANGE:` footer -- a breaking release is recorded by hand in
-`CHANGELOG.md` under a `### ⚠ BREAKING CHANGES` heading instead, so
-`release-please`'s own version-bump proposal is never skipped past the
-hand-bumped tag.
+`CHANGELOG.md` under a `### ⚠ BREAKING CHANGES` heading instead. Because the manifest is hand-bumped, `release-please`
+proposes its own next minor on `main`; the release itself is a manual
+`vX.Y.Z` tag after merge, and the `release-please` proposal is closed.
 
 `.github/workflows/sync-marketplace.yml` pushes this repository's
 `.claude-plugin/plugin.json` version to the separate `as-plugins`

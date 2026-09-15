@@ -59,7 +59,9 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install mypy types-requests types-click
-          pip install -e ".[dev]"
+          # confluence-as 2.0.0 final is not on PyPI yet; --pre until it ships.
+          pip install --pre "confluence-as>=2,<3"
+          pip install --no-deps -e .
 
       - name: Run mypy on source
         run: |
