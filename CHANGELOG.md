@@ -5,6 +5,45 @@ All notable changes to the Confluence Assistant Skills project will be documente
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-09-15
+
+### ⚠ BREAKING CHANGES
+
+* The `confluence-assistant` hub skill and the sixteen domain skills
+  (`confluence-admin`, `confluence-analytics`, `confluence-attachment`,
+  `confluence-bulk`, `confluence-comment`, `confluence-hierarchy`,
+  `confluence-jira`, `confluence-label`, `confluence-ops`,
+  `confluence-page`, `confluence-permission`, `confluence-property`,
+  `confluence-search`, `confluence-space`, `confluence-template`,
+  `confluence-watch`), their references and shared hub-era docs and
+  config, are removed.
+* The `browse-skills` and `skill-info` commands, premised on browsing
+  many skills, are removed; `confluence-assistant-setup` is removed too
+  (nothing was left of it once every confluence-as flag and environment
+  variable name it walked through was scrubbed).
+* One `confluence` skill now carries the Entry-Point Hint: run
+  `confluence-as help` first; find operations with `confluence-as api
+  search`/`api describe`; the CLI's own help is the source of truth.
+* Requires `confluence-as>=2,<3`.
+* The end-to-end harness is now the help-only sufficiency arm
+  (`tests/e2e/`), and the routing test is now the two-skill routing check
+  (`skills/confluence/tests/test_routing.py`); both are host-run, not CI.
+* The dormant `e2e-tests.yml` GitHub Actions workflow, and the Docker
+  image it built, are removed.
+
+### Features
+
+* **confluence:** one skill holding the Entry-Point Hint replaces the
+  hub and sixteen domain skills (JAS-54, JAS-31)
+
+### Tests
+
+* **confluence:** add a two-skill (confluence vs. a non-shipped
+  jira-stub fixture) inter-plugin routing check
+* **e2e:** rewrite the end-to-end harness as the help-only sufficiency
+  arm: the model gets only the Entry-Point Hint, the Bash tool, and
+  `confluence-as` in simulation transport with no credentials
+
 ## [2.0.1] - 2026-08-19
 
 ### Changed
