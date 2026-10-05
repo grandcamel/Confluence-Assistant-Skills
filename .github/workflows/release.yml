@@ -21,6 +21,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  CORE_WHEEL: "https://files.pythonhosted.org/packages/9c/ed/544ab9a6038e66dfea45cd6db097d05afc82f879fbdf28835e8de310e238/as_engine-0.1.2-py3-none-any.whl#sha256=ac4cb0b07effbecff812652a33aea54b036971e883d3fe349428c6d723d90d83"
   CLI_WHEEL_URL: ${{ vars.CONFLUENCE_CLI_WHEEL_URL }}
   CLI_WHEEL_SHA256: ${{ vars.CONFLUENCE_CLI_WHEEL_SHA256 }}
   E2E_SUFFICIENCY: "0"
@@ -53,7 +54,8 @@ jobs:
         run: |
           pip install pytest pytest-asyncio pytest-cov pyyaml ruff
           python tests/release_checks.py fetch-wheel .artifacts
-          pip install .artifacts/*.whl
+          pip install "$CORE_WHEEL" .artifacts/*.whl
+          python tests/release_checks.py verify-core
           pip install --no-deps -e .
           pip check
 

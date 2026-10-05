@@ -10,10 +10,12 @@ import yaml
 
 from tests.release_checks import (
     ARCHIVE_FILES,
+    CORE_SHA256,
     ROOT,
     HTTPSRedirectHandler,
     build_archive,
     fetch_wheel,
+    verify_core,
     verify_versions,
     verify_wheel,
 )
@@ -167,3 +169,42 @@ def test_validation_requires_bound_cli_wheel_and_paid_collection_only(name):
     assert 'pip install --pre "confluence-as' not in text
     assert "--collect-only" in text
     assert "ruff check . --output-format=github || true" not in text
+
+
+@pytest.mark.parametrize(
+    "version,direct,accepted",
+    [
+        ("0.1.2", {"archive_info": {"hashes": {"sha256": CORE_SHA256}}}, True),
+        ("0.1.3", {"archive_info": {"hashes": {"sha256": CORE_SHA256}}}, False),
+        ("0.1.2", {"archive_info": {"hashes": {"sha256": "0" * 64}}}, False),
+        ("0.1.2", {"dir_info": {"editable": True}}, False),
+        ("0.1.2", {}, False),
+    ],
+)
+def test_installed_core_identity_refuses_unreviewed_distribution(
+    monkeypatch, version, direct, accepted
+):
+    import json
+
+    class Distribution:
+        def read_text(self, name):
+            assert name == "direct_url.json"
+            return json.dumps(direct)
+
+    core = Distribution()
+    core.version = version
+    monkeypatch.setattr("importlib.metadata.distribution", lambda name: core)
+    if accepted:
+        verify_core()
+    else:
+        with pytest.raises(ValueError, match="reviewed non-editable"):
+            verify_core()
+
+
+@pytest.mark.parametrize("name", ["ci.yml", "release.yml"])
+def test_validation_pins_and_verifies_published_core(name):
+    workflow = _workflow(name)
+    assert workflow["env"]["CORE_WHEEL"].endswith("#sha256=" + CORE_SHA256)
+    text = (ROOT / ".github/workflows" / name).read_text()
+    assert 'pip install "$CORE_WHEEL" .artifacts/*.whl' in text
+    assert "python tests/release_checks.py verify-core" in text

@@ -3,6 +3,7 @@
 import argparse
 import gzip
 import hashlib
+import importlib.metadata
 import io
 import json
 import os
@@ -85,6 +86,21 @@ def fetch_wheel(destination: Path) -> Path:
     return path
 
 
+CORE_SHA256 = "ac4cb0b07effbecff812652a33aea54b036971e883d3fe349428c6d723d90d83"
+
+
+def verify_core() -> None:
+    """Release validation requires the tested non-editable published compiler."""
+    core = importlib.metadata.distribution("as-engine")
+    direct = json.loads(core.read_text("direct_url.json") or "{}")
+    if (
+        core.version != "0.1.2"
+        or direct.get("dir_info", {}).get("editable")
+        or direct.get("archive_info", {}).get("hashes", {}).get("sha256") != CORE_SHA256
+    ):
+        raise ValueError("Expected the reviewed non-editable as-engine 0.1.2 wheel")
+
+
 def verify_versions(root: Path = ROOT) -> None:
     plugin = json.loads((root / ".claude-plugin/plugin.json").read_text())
     marketplace = json.loads((root / ".claude-plugin/marketplace.json").read_text())
@@ -132,9 +148,14 @@ def build_archive(output: Path, root: Path = ROOT) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("operation", choices=("fetch-wheel", "archive"))
-    parser.add_argument("output", type=Path)
+    parser.add_argument("operation", choices=("fetch-wheel", "archive", "verify-core"))
+    parser.add_argument("output", type=Path, nargs="?")
     args = parser.parse_args()
+    if args.operation == "verify-core":
+        verify_core()
+        return
+    if args.output is None:
+        parser.error("output is required for fetch-wheel and archive")
     if args.operation == "fetch-wheel":
         fetch_wheel(args.output)
     else:

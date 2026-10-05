@@ -109,12 +109,11 @@ EMPTY_MCP_CONFIG = (REPO_ROOT / "tests" / "e2e" / "empty-mcp.json").resolve()
 # tests/evidence.py): every trial's transcript and observed skill is
 # written to disk, so a scoring question never requires re-running the
 # live check.
-from tests.evidence import new_run_dir, write_json, write_transcript  # noqa: E402
-
 # The generic Popen-based incremental reader (see its module docstring):
 # stops a trial the moment a Skill tool_use block is observed instead of
 # blocking until the model finishes an entire task or the timeout fires.
-from tests.stream_observe import run_and_observe  # noqa: E402
+from tests.evaluation_budget import harness_call, require_launcher  # noqa: E402
+from tests.evidence import new_run_dir, write_json, write_transcript  # noqa: E402
 
 GOLDEN_FILE = TESTS_DIR / "routing_golden.yaml"
 
@@ -314,9 +313,10 @@ def run_claude_routing(
         write_transcript(transcript_path, lines_so_far)
 
     with tempfile.TemporaryDirectory(prefix="jas54-routing-") as scratch_dir:
-        observation = run_and_observe(
+        observation = require_launcher().run(
             cmd,
             input_text,
+            call=harness_call("routing", test_id, trial_number),
             detect_line=extract_skill_from_transcript_line,
             on_line=_on_line,
             timeout=timeout,

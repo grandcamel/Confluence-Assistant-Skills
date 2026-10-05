@@ -106,6 +106,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from tests.evaluation_budget import BudgetLauncher, Call, harness_call, require_launcher
 from tests.evidence import new_run_dir, write_json, write_transcript
 
 # Fixed instruction appended to every task prompt. Without it, the model
@@ -632,6 +633,7 @@ class SufficiencyRunner:
         timeout: int = 120,
         model: str = "claude-sonnet-5",
         env: dict[str, str] | None = None,
+        launcher: BudgetLauncher | None = None,
     ):
         # Always absolute: --plugin-dir must resolve independently of the
         # empty temp cwd each trial runs from.
@@ -639,6 +641,7 @@ class SufficiencyRunner:
         self.timeout = timeout
         self.model = model
         self.env = env or {}
+        self.launcher = launcher
 
         # One evidence directory per runner (i.e. per pytest session,
         # since sufficiency_runner is a session-scoped fixture): every
@@ -653,7 +656,7 @@ class SufficiencyRunner:
             "tasks": {},
         }
 
-    def _run_claude(self, prompt: str, cwd: str) -> tuple[list[str], str]:
+    def _run_claude(self, prompt: str, cwd: str, call: Call) -> tuple[list[str], str]:
         """
         Send one prompt to Claude Code, restricted to the shipped plugin,
         the Bash and Skill tools (both pre-approved via --allowedTools so
@@ -682,17 +685,18 @@ class SufficiencyRunner:
             self.model,
         ]
 
-        result = subprocess.run(
+        result = (self.launcher or require_launcher()).run(
             cmd,
-            input=prompt,
-            capture_output=True,
-            text=True,
+            prompt,
+            call=call,
             timeout=self.timeout,
             env=self.env,
             cwd=cwd,
         )
 
-        return result.stdout.splitlines(), result.stderr
+        if result.timed_out:
+            raise subprocess.TimeoutExpired(cmd, self.timeout)
+        return result.lines, result.stderr
 
     def run_trial(self, task_id: str, prompt: str, accept: list[str]) -> TrialResult:
         """Run one cold trial: one fresh `claude` invocation from an empty
@@ -715,7 +719,9 @@ class SufficiencyRunner:
         with tempfile.TemporaryDirectory(prefix="jas54-sufficiency-") as scratch_dir:
             try:
                 transcript_lines, _claude_stderr = self._run_claude(
-                    full_prompt, cwd=scratch_dir
+                    full_prompt,
+                    cwd=scratch_dir,
+                    call=harness_call("sufficiency", task_id, trial_number),
                 )
             except subprocess.TimeoutExpired:
                 result = TrialResult(
@@ -831,15 +837,12 @@ class SufficiencyRunner:
         """
         try:
             with tempfile.TemporaryDirectory(prefix="jas54-replay-") as scratch_dir:
-                result = subprocess.run(
-                    ["bash", "-o", "pipefail", "-c", raw_command],
-                    capture_output=True,
-                    text=True,
+                return (self.launcher or require_launcher()).replay(
+                    raw_command,
                     timeout=self.timeout,
                     env=self.env,
                     cwd=scratch_dir,
                 )
-                return result.returncode, result.stdout, result.stderr
         except (subprocess.TimeoutExpired, FileNotFoundError, ValueError) as exc:
             return -1, "", str(exc)
 
