@@ -52,6 +52,15 @@ class RateLimitStop(D.BudgetStop):
     """Terminal subscription limit; no retry or fallback."""
 
 
+class ProviderStop(D.BudgetStop):
+    """Safe classification only; no SDK exception body, headers or credential."""
+
+    def __init__(self, category, status=None):
+        super().__init__("provider invocation failed; reservation retained")
+        self.category = category
+        self.upstream_status = status
+
+
 def oauth_presence():
     """Dry admission checks only presence, never inspects a credential value."""
     if "DEMO_CLAUDE_CODE_OAUTH_TOKEN" not in os.environ:
@@ -196,6 +205,20 @@ def prepare_request(body, binding):
         raise D.BudgetStop("server context edits refused")
     result.pop("metadata", None)
     result["max_tokens"] = min(body["max_tokens"], MAX_OUTPUT)
+    thinking = result.get("thinking")
+    if isinstance(thinking, dict) and thinking.get("type") == "enabled":
+        # Haiku has no interleaved thinking; its budget must fit inside output.
+        # The native default is 31999, so clamping output alone made a 400.
+        budget = thinking.get("budget_tokens")
+        if (
+            binding.model != "claude-haiku-4-5-20251001"
+            or type(budget) is not int
+            or budget < 1024
+        ):
+            raise D.BudgetStop("unsupported manual thinking budget")
+        if result["max_tokens"] <= 1024:
+            raise D.BudgetStop("finite output cannot accommodate manual thinking")
+        thinking["budget_tokens"] = min(budget, 1024)
     result["stream"] = False
     result["service_tier"] = "standard_only"
     result["inference_geo"] = "global"
@@ -337,7 +360,21 @@ class Provider:
 
             if isinstance(error, anthropic.RateLimitError):
                 raise RateLimitStop("subscription rate limit; no retry") from None
-            raise D.BudgetStop("API failure; charge uncertain") from None
+            if isinstance(error, anthropic.APIStatusError):
+                status = error.status_code
+                if type(status) is not int or not 100 <= status <= 599:
+                    status = None
+                category = (
+                    "authentication-rejected"
+                    if status in (401, 403)
+                    else "request-rejected"
+                    if status in (400, 404, 422)
+                    else "upstream-http-error"
+                )
+                raise ProviderStop(category, status) from None
+            if isinstance(error, anthropic.APIConnectionError):
+                raise ProviderStop("transport-failure") from None
+            raise ProviderStop("sdk-failure") from None
 
 
 class Session:
@@ -413,8 +450,30 @@ class Session:
                 },
             )
             raise
-        except BaseException:
-            self.failed = True
+        except BaseException as error:
+            self.failed = self.revoked = True
+            seal_json(
+                self.directory / "session-stop.json",
+                {
+                    "call_id": self.call.call_id,
+                    "category": error.category
+                    if isinstance(error, ProviderStop)
+                    else "request-or-accounting-failure",
+                    "upstream_status": error.upstream_status
+                    if isinstance(error, ProviderStop)
+                    else None,
+                    "upstream_response_observed": isinstance(error, ProviderStop)
+                    and error.upstream_status is not None,
+                    "completed_requests": len(self.requests),
+                    "intent_count": len(list(self.directory.glob("*.intent.json"))),
+                    "delivery": "response observed"
+                    if isinstance(error, ProviderStop)
+                    and error.upstream_status is not None
+                    else "unknown; never infer zero from missing response",
+                    "retry_count": 0,
+                    "reservation": "retained in full",
+                },
+            )
             raise
         finally:
             self.lock.release()
@@ -599,7 +658,21 @@ class Broker:
                     )
                     if not session.revoked:
                         session.failed = True
-                    self.send_error(403, "joint controller refused request")
+                    payload = json.dumps(
+                        {
+                            "type": "error",
+                            "error": {
+                                "type": "invalid_request_error",
+                                "message": "joint controller terminal refusal; no retry",
+                            },
+                        }
+                    ).encode()
+                    self.send_response(400)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Length", str(len(payload)))
+                    self.send_header("x-should-retry", "false")
+                    self.end_headers()
+                    self.wfile.write(payload)
 
         self.server = HTTPServer(("127.0.0.1", 0), Handler)
         self.server.timeout = 1

@@ -28,7 +28,7 @@ from tests.evaluation_api import (
     seal_json,
     usd,
 )
-from tests.evaluation_sandbox import Sandbox
+from tests.evaluation_sandbox import Sandbox, SandboxStop
 
 CODE_FILES = {
     "budget": "tests/evaluation_budget.py",
@@ -519,19 +519,48 @@ class ProductionTransport:
             # bounded turn so native usage/cost can be checked before settlement.
             return False
 
-        with Broker(session) as port:
-            rc, stdout, stderr = self.sandbox.run(
-                argv,
-                prompt=prompt,
-                timeout=timeout,
-                port=port,
-                on_line=observe,
-                broker_token=session.token,
-                stop_requested=lambda: session.rate_limited,
+        try:
+            with Broker(session) as port:
+                rc, stdout, stderr = self.sandbox.run(
+                    argv,
+                    prompt=prompt,
+                    timeout=timeout,
+                    port=port,
+                    on_line=observe,
+                    broker_token=session.token,
+                    stop_requested=lambda: session.failed,
+                )
+        except SandboxStop as error:
+            seal_json(
+                session.directory / "child-stop.json",
+                {
+                    "reason": error.reason,
+                    "returncode": None,
+                    "stdout_partial": error.stdout,
+                    "stderr": error.stderr,
+                    "reservation": "retained in full",
+                },
+            )
+            raise
+        else:
+            seal_json(
+                session.directory / "child-stop.json",
+                {
+                    "reason": "session-failed" if session.failed else "completed",
+                    "returncode": rc,
+                    "stderr": stderr,
+                    "reservation": "retained in full"
+                    if session.failed
+                    else "requires complete usage settlement",
+                },
             )
         if session.rate_limited:
             self.rate_limited = True
             raise RateLimitStop("subscription rate limit; partial evidence retained")
+        if session.failed:
+            raise D.BudgetStop(
+                "terminal broker failure; see safe session-stop evidence; no retries"
+            )
         if len(reports) != 1:
             raise D.BudgetStop("missing or duplicate native Claude usage report")
         report = reports[0]
@@ -689,9 +718,9 @@ def main():
                         raise D.BudgetStop("probe reservation exceeds $0.50")
                     launcher = JointLauncher(ledger, binding, transport)
                     call = D.Call(
-                        "joint-oauth-availability-probe-v1",
+                        "joint-oauth-availability-probe-v2",
                         "probe",
-                        "oauth-equivalent-accounting",
+                        "oauth-equivalent-accounting-v2",
                         1,
                         config["sources"]["plugin"]["head"],
                     )

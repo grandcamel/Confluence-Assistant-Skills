@@ -707,7 +707,9 @@ def test_sdk_child_logging_cannot_expose_requests_or_error(monkeypatch):
     )
     try:
         provider = Provider()
-        with pytest.raises(D.BudgetStop, match="uncertain"):
+        with pytest.raises(
+            D.BudgetStop, match="provider invocation failed; reservation retained"
+        ):
             provider.message(
                 {
                     "model": "claude-haiku-4-5-20251001",
@@ -816,7 +818,9 @@ def test_broker_capability_prevents_detached_child_reuse(tmp_path, reg):
             json.dumps(body(b)),
             {"X-Api-Key": "obsolete-fixture-capability"},
         )
-        assert connection.getresponse().status == 403
+        response = connection.getresponse()
+        assert response.status == 400
+        assert response.getheader("x-should-retry") == "false"
         connection.close()
     assert fake.calls == []
 

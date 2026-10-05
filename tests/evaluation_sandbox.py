@@ -18,6 +18,14 @@ from pathlib import Path
 from tests.evaluation_budget import BudgetStop
 
 
+class SandboxStop(BudgetStop):
+    """Bounded partial child output, never parent credentials or SDK errors."""
+
+    def __init__(self, reason, stdout, stderr):
+        super().__init__(f"sandbox child {reason}; reservation retained")
+        self.reason, self.stdout, self.stderr = reason, stdout, stderr
+
+
 def profile(scratch: Path, reads: list[Path], port: int | None = None) -> str:
     def literal(path):
         return json.dumps(str(path))
@@ -139,17 +147,28 @@ class Sandbox:
                 process.stdin.close()
                 deadline = time.monotonic() + timeout
                 line_buffer = bytearray()
+
+                def decoded(pipe):
+                    value = bytes(collected[pipe]).decode("utf-8", errors="replace")
+                    return (
+                        value.replace(broker_token, "<broker-capability-redacted>")
+                        if broker_token
+                        else value
+                    )
+
+                def stopped(reason):
+                    return SandboxStop(
+                        reason, decoded(process.stdout), decoded(process.stderr)
+                    )
+
                 try:
                     while selector.get_map():
                         if stop_requested is not None and stop_requested():
                             return 130, *(
-                                bytes(collected[p]).decode("utf-8", errors="replace")
-                                for p in (process.stdout, process.stderr)
+                                decoded(p) for p in (process.stdout, process.stderr)
                             )
                         if time.monotonic() >= deadline:
-                            raise BudgetStop(
-                                "sandbox child timeout; reservation retained"
-                            )
+                            raise stopped("timeout")
                         for key, _ in selector.select(
                             min(0.1, max(0, deadline - time.monotonic()))
                         ):
@@ -163,21 +182,21 @@ class Sandbox:
                                 while b"\n" in line_buffer:
                                     line, _, remainder = line_buffer.partition(b"\n")
                                     line_buffer = bytearray(remainder)
-                                    if on_line(line.decode("utf-8", errors="replace")):
+                                    text = line.decode("utf-8", errors="replace")
+                                    if broker_token:
+                                        text = text.replace(
+                                            broker_token, "<broker-capability-redacted>"
+                                        )
+                                    if on_line(text):
                                         return 0, *(
-                                            bytes(collected[p]).decode(
-                                                "utf-8", errors="replace"
-                                            )
+                                            decoded(p)
                                             for p in (process.stdout, process.stderr)
                                         )
                             if sum(len(v) for v in collected.values()) > 8_000_000:
-                                raise BudgetStop(
-                                    "sandbox output limit; reservation retained"
-                                )
+                                raise stopped("output-limit")
                     process.wait(timeout=max(0.1, deadline - time.monotonic()))
                     return process.returncode, *(
-                        bytes(collected[p]).decode("utf-8", errors="replace")
-                        for p in (process.stdout, process.stderr)
+                        decoded(p) for p in (process.stdout, process.stderr)
                     )
                 finally:
                     selector.close()
@@ -187,9 +206,7 @@ class Sandbox:
                     process.stdout.close()
                     process.stderr.close()
             except subprocess.TimeoutExpired:
-                raise BudgetStop(
-                    "sandbox child timeout; reservation retained"
-                ) from None
+                raise stopped("timeout") from None
             except OSError:
                 raise BudgetStop("sandbox child unavailable") from None
 
