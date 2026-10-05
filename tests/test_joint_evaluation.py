@@ -15,6 +15,7 @@ from tests import evaluation_budget as D
 from tests.evaluation_api import (
     Broker,
     Provider,
+    RateLimitStop,
     Session,
     prepare_request,
     request_bound,
@@ -23,6 +24,7 @@ from tests.evaluation_api import (
 )
 from tests.evaluation_sandbox import Sandbox
 from tests.joint_evaluation import (
+    CONTEXT_SOURCES,
     MODEL_ROUTES,
     JointLauncher,
     ProductionTransport,
@@ -42,8 +44,10 @@ def reg(tmp_path):
                 "binding_id": identity,
                 "model_id": model,
                 "provider": "anthropic",
-                "authentication": "owner-environment-ANTHROPIC_API_KEY",
-                "billing": "api-usage-usd-v1",
+                "authentication": "owner-environment-DEMO_CLAUDE_CODE_OAUTH_TOKEN",
+                "billing": "api-equivalent-usage-usd-v1",
+                "max_context_tokens": MODEL_ROUTES[identity][1],
+                "context_source": CONTEXT_SOURCES[model],
                 "rates_usd_per_million_tokens": {
                     "input_tokens": rate,
                     "output_tokens": str(int(rate) * 5),
@@ -93,12 +97,14 @@ class FakeProvider:
         self.mode = mode
         self.calls = []
 
-    def message(self, request):
+    def message(self, request, **kwargs):
         self.calls.append(request)
         if self.mode == "timeout":
             raise TimeoutError("synthetic timeout")
         if self.mode == "crash":
             raise KeyboardInterrupt
+        if self.mode == "rate-limit":
+            raise RateLimitStop("synthetic subscription limit")
         result = response(request["model"])
         result["id"] += str(len(self.calls))
         if self.mode == "missing":
@@ -120,11 +126,78 @@ def body(binding):
     }
 
 
+def claude_report(binding, requests=1):
+    usage = dict.fromkeys(D.API_USAGE_FIELDS, 0)
+    usage.update(input_tokens=7 * requests, output_tokens=2 * requests)
+    charge = binding.pricing.charge(usage)
+    return {
+        "type": "result",
+        "subtype": "success",
+        "result": "OK",
+        "usage": {
+            k: usage[k]
+            for k in (
+                "input_tokens",
+                "output_tokens",
+                "cache_read_input_tokens",
+                "cache_creation_input_tokens",
+            )
+        },
+        "total_cost_usd": charge / 1_000_000,
+        "modelUsage": {
+            binding.model: {
+                "inputTokens": usage["input_tokens"],
+                "outputTokens": usage["output_tokens"],
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0,
+                "costUSD": charge / 1_000_000,
+            }
+        },
+    }
+
+
+class FakeOAuthCLI:
+    """Offline native-output client: consumes the real broker, never a credential."""
+
+    claude = Path("/fixture/claude")
+
+    def __init__(self, reg):
+        self.reg = reg
+        self.report_mode = "ok"
+
+    def run(self, argv, *, port=None, broker_token=None, on_line=None, **kwargs):
+        import http.client
+
+        model = argv[argv.index("--model") + 1]
+        binding = next(b for b in self.reg.bindings if b.model == model)
+        connection = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
+        connection.request(
+            "POST",
+            "/v1/messages",
+            json.dumps(body(binding)),
+            {"X-Api-Key": broker_token},
+        )
+        response = connection.getresponse()
+        response.read()
+        connection.close()
+        if response.status != 200:
+            return 1, "", "offline broker refused"
+        report = claude_report(binding)
+        if self.report_mode == "missing":
+            report.pop("usage")
+        elif self.report_mode == "mismatch":
+            report["total_cost_usd"] = 0.5
+        line = json.dumps(report)
+        if on_line:
+            on_line(line)
+        return 0, line + "\n", ""
+
+
 def launcher(tmp_path, reg, mode="ok"):
     config = {"files": {}, "evidence_root": str(tmp_path / "evidence")}
     ledger = D.Ledger.create(tmp_path / "ledger.sqlite3", reg)
     provider = FakeProvider(mode)
-    transport = ProductionTransport(config, reg, None, provider)
+    transport = ProductionTransport(config, reg, FakeOAuthCLI(reg), provider)
     return JointLauncher(ledger, reg.binding("floor-haiku45-api"), transport), provider
 
 
@@ -173,7 +246,7 @@ def test_crash_after_outcome_before_settle_reconciles_once(tmp_path, reg):
     launch.ledger.reserve(c, b)
     session = Session(b, c, provider, tmp_path / "interrupted")
     session.message(body(b))
-    receipt = session.settlement({"answer": "OK"})
+    receipt = session.settlement({"answer": "OK"}, claude_report=claude_report(b))
     launch.ledger.record_outcome(c.call_id, D.Outcome(lines=["OK"], receipt=receipt))
     assert reconcile_existing(launch.ledger)["exposure"] == 17
     assert reconcile_existing(launch.ledger)["exposure"] == 17
@@ -275,7 +348,9 @@ def test_single_request_session_refuses_helper(tmp_path, reg):
     with pytest.raises(D.BudgetStop):
         session.message(body(b))
     assert len(provider.calls) == 1
-    assert session.settlement({}).actual_usd == "0.000017"
+    assert (
+        session.settlement({}, claude_report=claude_report(b)).actual_usd == "0.000017"
+    )
 
 
 def test_concurrent_helper_marks_session_incomplete(tmp_path, reg):
@@ -288,6 +363,7 @@ def test_concurrent_helper_marks_session_incomplete(tmp_path, reg):
 
 def test_missing_key_refused(monkeypatch):
     for name in (
+        "DEMO_CLAUDE_CODE_OAUTH_TOKEN",
         "ANTHROPIC_API_KEY",
         "ANTHROPIC_AUTH_TOKEN",
         "ANTHROPIC_CUSTOM_HEADERS",
@@ -309,18 +385,19 @@ def test_subscription_cannot_enable_default_launcher(monkeypatch):
 
 
 def test_probe_checks_exact_provider_context(reg, monkeypatch):
-    class Models:
-        def retrieve(self, model):
-            class Info:
-                def model_dump(self):
-                    return {"id": model, "max_input_tokens": 200001}
-
-            return Info()
-
     p = object.__new__(Provider)
-    p.client = type("Client", (), {"models": Models()})()
+    # No unmetered availability call: subscription setup-token scopes only
+    # authorize inference. The probe checks its exact response model instead.
+    p.available(reg.binding("floor-haiku45-api"))
     with pytest.raises(D.BudgetStop):
-        p.available(reg.binding("floor-haiku45-api"))
+        p.available(
+            replace(
+                reg.binding("floor-haiku45-api"),
+                contract=D.LaunchContract(
+                    "claude-print-v1", "anthropic-api-key", "api-usage-usd-v1"
+                ),
+            )
+        )
 
 
 def test_init_refuses_prior_spend_and_reinitialization(tmp_path, reg):
@@ -443,13 +520,14 @@ def test_real_sandbox_network_only_broker_and_descendant_inheritance(sandbox):
         server.server_close()
 
 
-def test_real_claude_uses_only_fake_broker(tmp_path, reg, sandbox):
-    binary = Path("/Users/jasonkrueger/.local/bin/claude")
+@pytest.mark.parametrize("binding_id", list(MODEL_ROUTES))
+def test_real_claude_uses_only_fake_broker(tmp_path, reg, sandbox, binding_id):
+    binary = Path.home() / ".local/bin/claude"
     if not binary.exists():
         pytest.skip("receipt pins local Claude binary; no provider call")
     sandbox.claude = binary.resolve()
     sandbox.reads.append(sandbox.claude)
-    b = reg.binding("floor-haiku45-api")
+    b = reg.binding(binding_id)
     fake = FakeProvider()
     session = Session(b, call(), fake, tmp_path / "native-cli", single=True)
     with Broker(session) as port:
@@ -462,8 +540,12 @@ def test_real_claude_uses_only_fake_broker(tmp_path, reg, sandbox):
                 "--verbose",
                 "--model",
                 b.model,
+                "--max-turns",
+                "1",
                 "--tools",
                 "",
+                "--permission-mode",
+                "dontAsk",
                 "--settings",
                 '{"disableAllHooks":true}',
                 "--setting-sources",
@@ -477,11 +559,22 @@ def test_real_claude_uses_only_fake_broker(tmp_path, reg, sandbox):
     assert rc == 0, (error, session.refusal, session.request_fields)
     assert len(fake.calls) == 1
     assert not session.failed
-    assert session.settlement({"output": output}).actual_usd == "0.000017"
+    report = next(
+        json.loads(line)
+        for line in output.splitlines()
+        if json.loads(line).get("type") == "result"
+    )
+    receipt = session.settlement({"output": output}, claude_report=report)
+    assert D.microdollars(receipt.actual_usd) == D.microdollars(
+        str(claude_report(b)["total_cost_usd"])
+    )
 
 
-def test_real_skill_and_bash_retain_tools_inside_sandbox(tmp_path, reg, sandbox):
-    binary = Path("/Users/jasonkrueger/.local/bin/claude")
+@pytest.mark.parametrize("routing", [False, True])
+def test_real_skill_and_bash_retain_tools_inside_sandbox(
+    tmp_path, reg, sandbox, routing
+):
+    binary = Path.home() / ".local/bin/claude"
     if not binary.exists():
         pytest.skip("local pinned Claude binary needed")
     root = Path(__file__).resolve().parents[1]
@@ -498,7 +591,7 @@ def test_real_skill_and_bash_retain_tools_inside_sandbox(tmp_path, reg, sandbox)
     provider = FakeProvider()
     original = provider.message
 
-    def scripted(request):
+    def scripted(request, **kwargs):
         value = original(request)
         if len(provider.calls) == 1:
             value.update(
@@ -556,16 +649,25 @@ def test_real_skill_and_bash_retain_tools_inside_sandbox(tmp_path, reg, sandbox)
                 '{"disableAllHooks":true}',
                 "--setting-sources",
                 "",
+                *(["--max-turns", "1"] if routing else []),
             ],
             prompt="Read local CLI version.",
             port=port,
             broker_token=session.token,
             timeout=30,
         )
-    assert rc == 0, (error, session.refusal, session.request_fields)
-    assert len(provider.calls) == 3
-    assert "version 2." in output
+    assert rc == (1 if routing else 0), (error, session.refusal, session.request_fields)
+    assert len(provider.calls) == (1 if routing else 3)
+    if not routing:
+        assert "version 2." in output
     assert not session.failed
+    report = next(
+        json.loads(line)
+        for line in output.splitlines()
+        if json.loads(line).get("type") == "result"
+    )
+    receipt = session.settlement({"output": output}, claude_report=report)
+    assert D.microdollars(receipt.actual_usd) == (34 if routing else 102)
 
 
 def test_sdk_child_logging_cannot_expose_requests_or_error(monkeypatch):
@@ -585,7 +687,7 @@ def test_sdk_child_logging_cannot_expose_requests_or_error(monkeypatch):
         "CLAUDE_CODE_USE_FOUNDRY",
     ):
         monkeypatch.delenv(name, raising=False)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "synthetic-test-only")
+    monkeypatch.setenv("DEMO_CLAUDE_CODE_OAUTH_TOKEN", "synthetic-test-only")
     output = io.StringIO()
     handler = logging.StreamHandler(output)
     root = logging.getLogger()
@@ -851,3 +953,293 @@ def test_bootstrap_refuses_native_shadow_before_import(tmp_path):
     assert result.returncode != 0
     assert "refused before controller import" in result.stderr
     assert "imported too soon" not in result.stderr
+
+
+def test_no_api_key_fallback_when_owner_oauth_missing(monkeypatch):
+    monkeypatch.delenv("DEMO_CLAUDE_CODE_OAUTH_TOKEN", raising=False)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "synthetic-api-key-never-used")
+    with pytest.raises(D.BudgetStop, match="missing"):
+        Provider()
+
+
+@pytest.mark.parametrize("limited", [False, True])
+def test_fake_oauth_sdk_exact_bearer_route_and_zero_retries(monkeypatch, limited):
+    import anthropic
+    import httpx2
+
+    for name in (
+        "ANTHROPIC_AUTH_TOKEN",
+        "ANTHROPIC_CUSTOM_HEADERS",
+        "ANTHROPIC_LOG",
+        "ANTHROPIC_BASE_URL",
+        "CLAUDE_CODE_USE_BEDROCK",
+        "CLAUDE_CODE_USE_VERTEX",
+        "CLAUDE_CODE_USE_FOUNDRY",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("DEMO_CLAUDE_CODE_OAUTH_TOKEN", "synthetic-oauth-token")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "synthetic-api-key-never-forwarded")
+    calls = []
+
+    def exchange(request):
+        calls.append(request)
+        assert str(request.url) == "https://api.anthropic.com/v1/messages"
+        assert request.headers["authorization"] == "Bearer synthetic-oauth-token"
+        assert "x-api-key" not in request.headers
+        assert "oauth-2025-04-20" in request.headers["anthropic-beta"]
+        if limited:
+            return httpx2.Response(
+                429,
+                json={
+                    "type": "error",
+                    "error": {"type": "rate_limit_error", "message": "synthetic"},
+                },
+            )
+        return httpx2.Response(200, json=response())
+
+    original = anthropic.DefaultHttpxClient
+    monkeypatch.setattr(
+        anthropic,
+        "DefaultHttpxClient",
+        lambda **kw: original(transport=httpx2.MockTransport(exchange), **kw),
+    )
+    provider = Provider()
+    try:
+        if limited:
+            with pytest.raises(RateLimitStop):
+                provider.message(
+                    {
+                        "model": "claude-haiku-4-5-20251001",
+                        "max_tokens": 1,
+                        "messages": [{"role": "user", "content": "offline"}],
+                    }
+                )
+        else:
+            assert (
+                provider.message(
+                    {
+                        "model": "claude-haiku-4-5-20251001",
+                        "max_tokens": 1,
+                        "messages": [{"role": "user", "content": "offline"}],
+                    }
+                )["usage"]["input_tokens"]
+                == 7
+            )
+        assert len(calls) == 1
+    finally:
+        provider.client.close()
+
+
+@pytest.mark.parametrize("mode", ["missing", "mismatch"])
+def test_cli_report_missing_or_disagreeing_keeps_full_reservation(tmp_path, reg, mode):
+    launch, provider = launcher(tmp_path, reg)
+    launch.transport.sandbox.report_mode = mode
+    with pytest.raises(D.BudgetStop):
+        invoke(launch, call())
+    snapshot = launch.ledger.snapshot()
+    assert snapshot["metadata"]["halted"]
+    assert snapshot["exposure"] == 210241
+    assert len(provider.calls) == 1
+
+
+def test_oauth_rate_limit_is_terminal_partial_stop_without_retry(tmp_path, reg):
+    launch, provider = launcher(tmp_path, reg, "rate-limit")
+    with pytest.raises(RateLimitStop):
+        invoke(launch, call())
+    snapshot = launch.ledger.snapshot()
+    assert snapshot["metadata"]["halted"]
+    assert snapshot["exposure"] == 210241
+    path = (
+        Path(launch.transport.config["evidence_root"])
+        / "calls"
+        / call().call_id
+        / "rate-limit-stop.json"
+    )
+    stop = json.loads(path.read_text())
+    assert stop["status"] == "STOPPED_RATE_LIMIT" and stop["retry_count"] == 0
+    assert stop["completed_requests"] == 0
+    with pytest.raises(D.BudgetStop):
+        invoke(launch, call(2))
+    assert len(provider.calls) == 1
+
+
+def test_dry_refuses_absent_oauth_before_any_provider_or_ledger(
+    tmp_path, monkeypatch, capsys
+):
+    from tests import joint_evaluation as joint
+
+    monkeypatch.delenv("DEMO_CLAUDE_CODE_OAUTH_TOKEN", raising=False)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "joint",
+            "--config",
+            str(tmp_path / "unused"),
+            "--config-sha256",
+            "0" * 64,
+            "dry-admission",
+        ],
+    )
+    assert joint.main() == 2
+    assert json.loads(capsys.readouterr().out)["status"] == "STOPPED_INCOMPLETE"
+
+
+def test_children_receive_no_provider_auth_variables(sandbox, monkeypatch):
+    names = (
+        "ANTHROPIC_API_KEY",
+        "ANTHROPIC_AUTH_TOKEN",
+        "CLAUDE_CODE_OAUTH_TOKEN",
+        "CLAUDE_CODE_OAUTH_REFRESH_TOKEN",
+        "DEMO_CLAUDE_CODE_OAUTH_TOKEN",
+    )
+    for name in names:
+        monkeypatch.setenv(name, "synthetic-parent-only")
+    program = (
+        "import os; print(','.join(n for n in " + repr(names) + " if n in os.environ))"
+    )
+    rc, stdout, _ = sandbox.run(
+        [str(Path(sys.executable).resolve()), "-I", "-c", program], timeout=5
+    )
+    assert rc == 0 and not stdout.strip()
+
+
+@pytest.mark.parametrize(
+    "capability",
+    [
+        "context-2m-2026-01-01",
+        "fast-mode-2026-02-01",
+        "server-side-fallback-2026-07-01",
+        "message-batches-2024-09-24",
+        "web-search-2025-03-05",
+        "unknown",
+        "oauth-2025-04-20\r\nX-Other: bad",
+    ],
+)
+def test_unreviewed_capability_refused_before_forward(tmp_path, reg, capability):
+    binding = reg.binding("floor-haiku45-api")
+    provider = FakeProvider()
+    session = Session(binding, call(), provider, tmp_path / "capability")
+    with pytest.raises(D.BudgetStop):
+        session.message(
+            {"model": binding.model, "max_tokens": 5, "messages": []},
+            headers={"anthropic-beta": capability},
+        )
+    assert provider.calls == []
+    assert not list(session.directory.glob("request-*/intent.json"))
+
+
+def test_model_specific_input_admission_size_before_forward(tmp_path, reg):
+    binding = reg.binding("floor-haiku45-api")
+    provider = FakeProvider()
+    session = Session(binding, call(), provider, tmp_path / "oversized")
+    with pytest.raises(D.BudgetStop, match="admission size"):
+        session.message(
+            {
+                "model": binding.model,
+                "max_tokens": 5,
+                "messages": [{"role": "user", "content": "x" * 200_000}],
+            }
+        )
+    assert provider.calls == []
+
+
+def test_missing_context_maximum_refuses_registry(tmp_path, reg):
+    route_path = Path(reg.bindings[0].pricing.evidence_path)
+    data = json.loads(route_path.read_text())
+    data["routes"][0].pop("max_context_tokens")
+    route_path.write_text(json.dumps(data))
+    with pytest.raises(D.BudgetStop, match="hard context"):
+        registry(route_path, reg.evidence_path)
+
+
+@pytest.mark.parametrize("phase", ["floor-trial", "floor-judge"])
+def test_floor_caught_rate_limit_preserves_terminal_reason(tmp_path, reg, phase):
+    from tests.joint_evaluation import finish_floor
+
+    launch, provider = launcher(tmp_path, reg, "rate-limit")
+    transport = launch.transport
+
+    class PartialFloor:
+        def main(self, *, transport):
+            try:
+                invoke(launch, replace(call(), phase=phase))
+            except RuntimeError:
+                return 1
+            raise AssertionError("expected limit")
+
+    with pytest.raises(RateLimitStop, match="Floor partial"):
+        finish_floor(PartialFloor(), transport)
+    assert len(provider.calls) == 1
+    with pytest.raises(RateLimitStop):
+        transport.validate(reg.binding("floor-haiku45-api"))
+    assert len(provider.calls) == 1
+
+
+@pytest.mark.parametrize("binding_id", list(MODEL_ROUTES))
+def test_frozen_hard_context_maximum_is_covered_before_dispatch(reg, binding_id):
+    binding = reg.binding(binding_id)
+    limit = binding.pricing.max_context_tokens
+    accepted = {
+        "model": binding.model,
+        "max_tokens": 2048,
+        "messages": [{"role": "user", "content": "x" * (limit - 300)}],
+    }
+    assert prepare_request(accepted, binding)["max_tokens"] == 2048
+    usage = dict.fromkeys(D.API_USAGE_FIELDS, 0)
+    usage.update(input_tokens=limit, output_tokens=2048)
+    assert binding.pricing.charge(usage) == request_bound(binding)
+    assert binding.validate() > request_bound(binding)
+
+
+@pytest.mark.parametrize(
+    "block_type",
+    [
+        "tool_addition",
+        "tool_removal",
+        "tool_definition",
+        "mcp_tool_reference",
+        "mcp_toolset_reference",
+    ],
+)
+def test_mid_conversation_tool_escape_refused_before_forward(tmp_path, reg, block_type):
+    binding = reg.binding("floor-sonnet55-api")
+    provider = FakeProvider()
+    session = Session(binding, call(), provider, tmp_path / "inline-escape")
+    request = body(binding)
+    request["messages"] = [
+        {
+            "role": "system",
+            "content": [
+                {
+                    "type": block_type,
+                    "tool": {
+                        "type": "tool_definition",
+                        "definition": {
+                            "type": "web_search_20250305",
+                            "name": "web_search",
+                        },
+                    },
+                }
+            ],
+        }
+    ]
+    with pytest.raises(D.BudgetStop, match="server content"):
+        session.message(
+            request,
+            headers={
+                "anthropic-beta": "per-turn-control-2026-07-01,mid-conversation-tool-changes-2026-07-01"
+            },
+        )
+    assert provider.calls == []
+
+
+def test_inline_tool_capability_refused_before_forward(tmp_path, reg):
+    binding = reg.binding("floor-sonnet55-api")
+    provider = FakeProvider()
+    session = Session(binding, call(), provider, tmp_path / "inline-capability")
+    with pytest.raises(D.BudgetStop, match="capability"):
+        session.message(
+            body(binding), headers={"anthropic-beta": "inline-tools-2026-09-15"}
+        )
+    assert provider.calls == []

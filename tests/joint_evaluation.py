@@ -21,7 +21,9 @@ from tests import evaluation_budget as D
 from tests.evaluation_api import (
     Broker,
     Provider,
+    RateLimitStop,
     Session,
+    oauth_presence,
     request_bound,
     seal_json,
     usd,
@@ -36,14 +38,22 @@ CODE_FILES = {
     "entry": "scripts/joint_evaluation.py",
 }
 
-CANONICAL = Path(
-    "/Users/jasonkrueger/Documents/Codex/2026-10-05/claude-dispatch/out/confluence-evaluation/aggregate-budget-v2.sqlite3"
+CANONICAL = (
+    Path(__file__).resolve().parents[3]
+    / "out/confluence-evaluation/aggregate-budget-v2.sqlite3"
 )
 MODEL_ROUTES = {
     "plugin-sonnet5-api": ("claude-sonnet-5", 1_000_000),
     "floor-sonnet55-api": ("claude-sonnet-5-5", 1_000_000),
     "floor-haiku45-api": ("claude-haiku-4-5-20251001", 200_000),
     "floor-opus55-api": ("claude-opus-5-5", 1_000_000),
+}
+
+CONTEXT_SOURCES = {
+    "claude-sonnet-5": "https://platform.claude.com/docs/en/docs/about-claude/models/whats-new-sonnet-5",
+    "claude-sonnet-5-5": "https://platform.claude.com/docs/en/models/overview",
+    "claude-opus-5-5": "https://platform.claude.com/docs/en/models/overview",
+    "claude-haiku-4-5-20251001": "https://platform.claude.com/docs/en/models/overview",
 }
 
 
@@ -84,10 +94,15 @@ def registry(model_path, proof_path):
         ) != (
             model,
             "anthropic",
-            "owner-environment-ANTHROPIC_API_KEY",
-            "api-usage-usd-v1",
+            "owner-environment-DEMO_CLAUDE_CODE_OAUTH_TOKEN",
+            "api-equivalent-usage-usd-v1",
         ):
             raise D.BudgetStop("unapproved authentication/model route")
+        if (route.get("max_context_tokens"), route.get("context_source")) != (
+            context,
+            CONTEXT_SOURCES[model],
+        ):
+            raise D.BudgetStop("missing frozen provider hard context maximum")
         pricing = D.ApiPricing(
             model,
             tuple(sorted(route["rates_usd_per_million_tokens"].items())),
@@ -101,20 +116,22 @@ def registry(model_path, proof_path):
             identity,
             model,
             "anthropic",
-            "api-usage-usd",
+            "api-equivalent-usage-usd",
             "1" if identity.startswith("plugin") else "0.000001",
             "0",
             str(proof_path),
             file_hash(proof_path),
             D.LaunchContract(
-                "claude-print-v1", "anthropic-api-key", "api-usage-usd-v1"
+                "claude-print-v1",
+                "claude-code-subscription-oauth",
+                "api-equivalent-usage-usd-v1",
             ),
             pricing,
         )
         binding = replace(binding, inflight_usd=usd(request_bound(binding)))
         bindings.append(binding)
     result = D.Registry(
-        "confluence-joint-api-20261005-v1",
+        "confluence-joint-oauth-equivalent-20261005-v1",
         tuple(bindings),
         str(proof_path),
         file_hash(proof_path),
@@ -176,6 +193,7 @@ def check_source(entry):
 
 
 def checked_config(path, expected):
+    oauth_presence()
     if not (
         sys.flags.isolated
         and sys.flags.dont_write_bytecode
@@ -416,8 +434,11 @@ class ProductionTransport:
         )
         self.local = threading.local()
         self.enabled = True
+        self.rate_limited = False
 
     def validate(self, binding):
+        if self.rate_limited:
+            raise RateLimitStop("subscription rate limit; no further launches")
         if (
             not self.enabled
             or binding.provider != "anthropic"
@@ -448,61 +469,82 @@ class ProductionTransport:
             evidence_destination,
             single=call.phase.startswith("floor-") or call.phase == "probe",
         )
-        if call.phase.startswith("floor-") or call.phase == "probe":
-            response = session.message(
-                {
-                    "model": binding.model,
-                    "max_tokens": 2048,
-                    "messages": [{"role": "user", "content": prompt}],
-                }
-            )
-            lines = [
-                "".join(b["text"] for b in response["content"] if b["type"] == "text")
-            ]
-            outcome = D.Outcome(lines=lines)
-        else:
-            # Exact prepared argv, never a shell. Host settings and hooks are off;
-            # the kernel sandbox is the authority even if a child ignores flags.
-            argv = [
+        single = call.phase.startswith("floor-") or call.phase == "probe"
+        # Native Claude Code supplies an independent result usage/cost report
+        # even for Floor/probe. The parent SDK only forwards its Messages.
+        argv = (
+            [
                 str(self.sandbox.claude),
-                *cmd[1:],
-                "--settings",
-                '{"disableAllHooks":true}',
-                "--setting-sources",
+                "--print",
+                "--verbose",
+                "--output-format",
+                "stream-json",
+                "--model",
+                binding.model,
+                "--tools",
                 "",
+                "--permission-mode",
+                "dontAsk",
+                "--max-turns",
+                "1",
+                "--strict-mcp-config",
+                "--mcp-config",
+                str(Path(__file__).parent / "e2e/empty-mcp.json"),
             ]
-            detected = [None]
+            if single
+            else [str(self.sandbox.claude), *cmd[1:]]
+        )
+        if call.phase == "routing":
+            argv.extend(["--max-turns", "1"])
+        argv.extend(["--settings", '{"disableAllHooks":true}', "--setting-sources", ""])
+        detected = [None]
+        reports = []
 
-            def observe(line):
-                with (session.directory / "child.transcript.jsonl").open(
-                    "a"
-                ) as evidence:
-                    evidence.write(line + "\n")
-                    evidence.flush()
-                    os.fsync(evidence.fileno())
-                if kwargs.get("on_line"):
-                    kwargs["on_line"](line)
-                if kwargs.get("detect_line"):
-                    detected[0] = kwargs["detect_line"](line)
-                    if detected[0] is not None:
-                        session.revoked = True
-                        return True
-                return False
+        def observe(line):
+            with (session.directory / "child.transcript.jsonl").open("a") as evidence:
+                evidence.write(line + "\n")
+                evidence.flush()
+                os.fsync(evidence.fileno())
+            if kwargs.get("on_line"):
+                kwargs["on_line"](line)
+            if kwargs.get("detect_line") and detected[0] is None:
+                detected[0] = kwargs["detect_line"](line)
+            try:
+                event = json.loads(line)
+                if isinstance(event, dict) and event.get("type") == "result":
+                    reports.append(event)
+            except ValueError:
+                pass
+            # Routing retains the first Skill observation but drains this one
+            # bounded turn so native usage/cost can be checked before settlement.
+            return False
 
-            with Broker(session) as port:
-                rc, stdout, stderr = self.sandbox.run(
-                    argv,
-                    prompt=prompt,
-                    timeout=timeout,
-                    port=port,
-                    on_line=observe,
-                    broker_token=session.token,
-                )
-            outcome = D.Outcome(lines=stdout.splitlines(), stderr=stderr, returncode=rc)
-            outcome.result = detected[0]
+        with Broker(session) as port:
+            rc, stdout, stderr = self.sandbox.run(
+                argv,
+                prompt=prompt,
+                timeout=timeout,
+                port=port,
+                on_line=observe,
+                broker_token=session.token,
+                stop_requested=lambda: session.rate_limited,
+            )
+        if session.rate_limited:
+            self.rate_limited = True
+            raise RateLimitStop("subscription rate limit; partial evidence retained")
+        if len(reports) != 1:
+            raise D.BudgetStop("missing or duplicate native Claude usage report")
+        report = reports[0]
+        seal_json(session.directory / "claude-result.json", report)
+        lines = [report.get("result", "")] if single else stdout.splitlines()
+        if not all(isinstance(line, str) for line in lines):
+            raise D.BudgetStop("malformed Claude result")
+        outcome = D.Outcome(lines=lines, stderr=stderr, returncode=rc)
+        outcome.result = detected[0]
         outcome.receipt = session.settlement(
             {"lines": outcome.lines, "stderr": outcome.stderr},
             exit_code=outcome.returncode,
+            claude_report=report,
         )
         return outcome
 
@@ -567,6 +609,8 @@ def run_joint(config, transport):
             "claude-sonnet-5",
         ]
     )
+    if transport.rate_limited:
+        raise RateLimitStop("subscription rate limit; joint run stopped")
     snapshot = reconcile_existing(D.Ledger(Path(config["ledger_path"])))
     plugin_calls = [
         r for r in snapshot["calls"] if r["call"]["phase"] in ("sufficiency", "routing")
@@ -593,10 +637,19 @@ def run_joint(config, transport):
     ]
     if (Path(config["evidence_root"]) / "floor-full-153/manifest.json").exists():
         sys.argv.append("--resume")
-    if floor.main(transport=transport):
-        raise D.BudgetStop("Floor incomplete; see persisted evidence")
+    finish_floor(floor, transport)
     if status:
         raise D.BudgetStop("joint trials complete; plugin scoring threshold failed")
+
+
+def finish_floor(floor, transport):
+    status = floor.main(transport=transport)
+    # Floor catches RuntimeError to preserve its partial manifest. Preserve the
+    # specific terminal financial reason after that boundary, including judges.
+    if transport.rate_limited:
+        raise RateLimitStop("subscription rate limit; Floor partial evidence retained")
+    if status:
+        raise D.BudgetStop("Floor incomplete; see persisted evidence")
 
 
 def main():
@@ -615,7 +668,9 @@ def main():
                         "api_calls": 0,
                         "ledger_initialized": False,
                         "registry_sha256": reg.digest,
-                        "paid_prerequisites": "owner key and account model availability checked only on paid invocation",
+                        "accounting_basis": "API-equivalent USD; not subscription billing",
+                        "credential": "owner OAuth environment variable present; value not inspected",
+                        "paid_prerequisites": "token validity and exact account/model availability proved only by bounded invocation",
                     }
                 )
             )
@@ -634,9 +689,9 @@ def main():
                         raise D.BudgetStop("probe reservation exceeds $0.50")
                     launcher = JointLauncher(ledger, binding, transport)
                     call = D.Call(
-                        "joint-availability-probe-v1",
+                        "joint-oauth-availability-probe-v1",
                         "probe",
-                        "api-accounting",
+                        "oauth-equivalent-accounting",
                         1,
                         config["sources"]["plugin"]["head"],
                     )
@@ -657,6 +712,16 @@ def main():
                 )
             )
         return 0
+    except RateLimitStop:
+        print(
+            json.dumps(
+                {
+                    "status": "STOPPED_RATE_LIMIT",
+                    "detail": "partial evidence and full reservation retained; no retries",
+                }
+            )
+        )
+        return 2
     except (D.BudgetStop, OSError, KeyError, TypeError, ValueError):
         # No exception body/locals: a dependency may retain a credential-bearing request.
         print(

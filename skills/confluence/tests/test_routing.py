@@ -38,19 +38,13 @@ CONFLUENCE_AS_TRANSPORT=simulation and CONFLUENCE_ALLOWED_SPACES=DOCS,
 so a routing trial can never inherit the operator's real Confluence
 credentials.
 
-This is a routing check, not a task run: the only thing being measured
-is which skill (if any) loads on the model's first turn, so a trial ends
-there. `claude` is launched with `subprocess.Popen` (see
-tests/stream_observe.run_and_observe) and its stdout is read one
-stream-json line at a time; the instant a `Skill` tool_use block appears,
-the process is terminated (SIGTERM, then SIGKILL after a grace period)
-and the trial returns -- it never waits for the model to go on and
-actually perform the task. The transcript is persisted line by line as
-it is read, not only at the end, so a trial that never observes a Skill
-tool_use (a timeout, or a slow process) still leaves a complete,
-inspectable partial transcript on disk instead of losing it. The
-per-trial timeout is 120s, matching the sufficiency arm's
-(tests/e2e/runner.py).
+This routing check measures the first observed Skill on the first model turn.
+The admitted joint controller appends `--max-turns 1`, retains that observation,
+and drains the bounded turn to its native result usage/cost report before
+settling API-equivalent spend. Transcript lines are persisted as they arrive,
+so timeout or financial stops retain partial evidence. The per-trial timeout
+is 120s, matching the sufficiency arm. Direct launch without the reviewed
+controller remains refused.
 
 Usage:
     # Run the full routing check (five cold trials per prompt)

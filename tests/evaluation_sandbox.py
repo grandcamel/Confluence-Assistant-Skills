@@ -73,6 +73,7 @@ class Sandbox:
         port=None,
         on_line=None,
         broker_token=None,
+        stop_requested=None,
     ):
         with tempfile.TemporaryDirectory(prefix="joint-sandbox-") as directory:
             scratch = Path(directory).resolve()
@@ -91,11 +92,28 @@ class Sandbox:
                 "DISABLE_ERROR_REPORTING": "1",
                 "OPENSSL_CONF": "/dev/null",
             }
-            if port is not None:
-                env.update(
-                    ANTHROPIC_BASE_URL=f"http://127.0.0.1:{port}",
-                    ANTHROPIC_API_KEY=broker_token or "offline-no-provider-key",
-                )
+            if port is not None and Path(argv[0]).resolve() == self.claude:
+                if not broker_token:
+                    raise BudgetStop("local broker capability required")
+                # The capability authenticates this one local broker session;
+                # it is not a subscription/provider credential. No auth env
+                # variable is supplied to this process or any descendant.
+                capability = scratch / "broker-capability"
+                capability.write_text(broker_token)
+                capability.chmod(0o600)
+                settings = {
+                    "disableAllHooks": True,
+                    "apiKeyHelper": f"/bin/cat {capability}",
+                }
+                argv = list(argv)
+                if "--settings" in argv:
+                    index = argv.index("--settings") + 1
+                    original = json.loads(argv[index])
+                    original.update(settings)
+                    argv[index] = json.dumps(original)
+                else:
+                    argv.extend(["--settings", json.dumps(settings)])
+                env["ANTHROPIC_BASE_URL"] = f"http://127.0.0.1:{port}"
             command = [
                 "/usr/bin/sandbox-exec",
                 "-p",
@@ -123,6 +141,11 @@ class Sandbox:
                 line_buffer = bytearray()
                 try:
                     while selector.get_map():
+                        if stop_requested is not None and stop_requested():
+                            return 130, *(
+                                bytes(collected[p]).decode("utf-8", errors="replace")
+                                for p in (process.stdout, process.stderr)
+                            )
                         if time.monotonic() >= deadline:
                             raise BudgetStop(
                                 "sandbox child timeout; reservation retained"

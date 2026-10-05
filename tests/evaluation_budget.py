@@ -86,7 +86,7 @@ API_PRICE_FIELDS = API_USAGE_FIELDS - {"cache_creation_input_tokens"}
 
 @dataclass(frozen=True)
 class ApiPricing:
-    """Pinned first-party standard/global prices; no subscription dollar proxy.
+    """Pinned first-party standard/global prices for actual or equivalent USD.
 
     Rates are verified USD per million tokens, including both cache-write TTLs.
     The trusted adapter must prove complete attributable API response usage and
@@ -203,15 +203,21 @@ class Binding:
             ):
                 raise BudgetStop("invalid offline-only fake binding")
         elif self.provider == "anthropic":
-            if (
-                self.contract
-                != LaunchContract(
+            if self.contract not in (
+                LaunchContract(
                     "claude-print-v1", "anthropic-api-key", "api-usage-usd-v1"
-                )
-                or self.billing != "api-usage-usd"
+                ),
+                LaunchContract(
+                    "claude-print-v1",
+                    "claude-code-subscription-oauth",
+                    "api-equivalent-usage-usd-v1",
+                ),
+            ) or (self.contract.authentication, self.billing) not in (
+                ("anthropic-api-key", "api-usage-usd"),
+                ("claude-code-subscription-oauth", "api-equivalent-usage-usd"),
             ):
                 raise BudgetStop(
-                    "Claude requires owner API-key/API-usage billing; subscription refused"
+                    "Claude requires reviewed authentication and token accounting"
                 )
             if self.pricing is None or self.pricing.model != self.model:
                 raise BudgetStop("API model/price mismatch")
@@ -348,9 +354,60 @@ def api_usage_charge(call, binding: Binding, proof_path: str, proof_sha256: str)
                 raise BudgetStop("API context exceeds pinned price scope")
             for key in total:
                 total[key] += usage[key]
+        if binding.billing == "api-equivalent-usage-usd":
+            crosscheck_claude_report(
+                proof["claude_report"], binding, total, charge, len(proof["requests"])
+            )
         return total, charge
     except (OSError, ValueError, KeyError, TypeError):
         raise BudgetStop("malformed or unavailable API usage proof") from None
+
+
+def crosscheck_claude_report(report, binding, usage, charge, requests):
+    """Require native CLI token totals and cost to agree before OAuth settlement."""
+    if not isinstance(report, dict) or report.get("type") != "result":
+        raise BudgetStop("missing Claude usage/cost report")
+    reported = report.get("usage")
+    fields = {
+        "input_tokens",
+        "output_tokens",
+        "cache_read_input_tokens",
+        "cache_creation_input_tokens",
+    }
+    if not isinstance(reported, dict) or any(
+        type(reported.get(k)) is not int or reported[k] < 0 or reported[k] != usage[k]
+        for k in fields
+    ):
+        raise BudgetStop("Claude reported usage disagrees with captured requests")
+    models = report.get("modelUsage")
+    if not isinstance(models, dict) or set(models) != {binding.model}:
+        raise BudgetStop("Claude reported untracked model usage")
+    per_model = models[binding.model]
+    names = {
+        "inputTokens": "input_tokens",
+        "outputTokens": "output_tokens",
+        "cacheReadInputTokens": "cache_read_input_tokens",
+        "cacheCreationInputTokens": "cache_creation_input_tokens",
+    }
+    if not isinstance(per_model, dict) or any(
+        type(per_model.get(k)) is not int or per_model[k] != usage[v]
+        for k, v in names.items()
+    ):
+        raise BudgetStop("Claude per-model usage disagrees")
+    for value in (report.get("total_cost_usd"), per_model.get("costUSD")):
+        if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+            raise BudgetStop("missing or malformed Claude equivalent cost")
+        try:
+            decimal = Decimal(str(value))
+            if not decimal.is_finite() or decimal < 0 or decimal > 50:
+                raise BudgetStop("malformed Claude equivalent cost")
+            # D rounds each request upward to a microdollar. CLI reports raw
+            # aggregate floating dollars, so permit only that bounded rounding.
+            if abs(decimal * 1_000_000 - charge) > max(1, requests):
+                raise BudgetStop("Claude equivalent cost disagrees with frozen rates")
+        except InvalidOperation:
+            raise BudgetStop("malformed Claude equivalent cost") from None
+    return str(report["total_cost_usd"])
 
 
 @dataclass(frozen=True)

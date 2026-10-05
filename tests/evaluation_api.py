@@ -16,6 +16,60 @@ from tests import evaluation_budget as D
 MAX_OUTPUT = 2048
 MAX_BODY = 2_000_000
 SDK_VERSION = "1.11.0"
+OAUTH_BETA = "oauth-2025-04-20"  # Pinned native Claude capability; never a credential.
+# Frozen native 2.1.288 basic text/tool/effort capabilities. Inline tool changes
+# are refused in request content even when the native header is present.
+# No long-context, fast,
+# fallback, server-tool, batch or unknown capability can alter reserved exposure.
+ALLOWED_BETAS = frozenset(
+    {
+        OAUTH_BETA,
+        "claude-code-20250219",
+        "interleaved-thinking-2025-05-14",
+        "thinking-token-count-2026-05-13",
+        "context-management-2025-06-27",
+        "prompt-caching-scope-2026-01-05",
+        "mid-conversation-system-2026-04-07",
+        "per-turn-control-2026-07-01",
+        "mid-conversation-tool-changes-2026-07-01",
+        "effort-2025-11-24",
+        "thinking-display-updates-2026-08-18",
+    }
+)
+
+
+def capability_header(headers=None):
+    beta = (headers or {}).get("anthropic-beta", "")
+    if not isinstance(beta, str) or len(beta) > 2048:
+        raise D.BudgetStop("invalid capability header")
+    parts = beta.split(",") if beta else []
+    if any(part not in ALLOWED_BETAS for part in parts):
+        raise D.BudgetStop("unreviewed capability refused")
+    return ",".join(dict.fromkeys([*parts, OAUTH_BETA]))
+
+
+class RateLimitStop(D.BudgetStop):
+    """Terminal subscription limit; no retry or fallback."""
+
+
+def oauth_presence():
+    """Dry admission checks only presence, never inspects a credential value."""
+    if "DEMO_CLAUDE_CODE_OAUTH_TOKEN" not in os.environ:
+        raise D.BudgetStop("owner DEMO_CLAUDE_CODE_OAUTH_TOKEN missing")
+
+
+def owner_oauth_environment():
+    """Private parent-side mapping; never passed to a child or serialized."""
+    oauth_presence()
+    token = os.environ["DEMO_CLAUDE_CODE_OAUTH_TOKEN"]
+    if (
+        not token
+        or not token.strip()
+        or token != token.strip()
+        or any(c.isspace() for c in token)
+    ):
+        raise D.BudgetStop("owner OAuth token missing or malformed")
+    return {"CLAUDE_CODE_OAUTH_TOKEN": token}
 
 
 def seal_json(path, value):
@@ -110,6 +164,11 @@ def prepare_request(body, binding):
                 "container_upload",
                 "server_tool_use",
                 "mcp_tool_use",
+                "tool_addition",
+                "tool_removal",
+                "tool_definition",
+                "mcp_tool_reference",
+                "mcp_toolset_reference",
             ):
                 raise D.BudgetStop("nonlocal or server content refused")
             return {
@@ -119,6 +178,14 @@ def prepare_request(body, binding):
             }
         return value
 
+    # Defense in depth before dispatch, model-specific even for JSON framing.
+    # This byte limit is NOT a tokenizer bound. The exposure proof relies on the
+    # frozen provider hard context maximum, with no context-expanding capability.
+    if (
+        len(json.dumps(body, ensure_ascii=False).encode("utf-8"))
+        > binding.pricing.max_context_tokens
+    ):
+        raise D.BudgetStop("request exceeds frozen model admission size")
     result = scrub(body)
     context = result.pop("context_management", None)
     if context not in (
@@ -210,7 +277,7 @@ def usage_record(response, binding):
 
 
 class Provider:
-    """Only paid runtime reads the key. Explicit endpoint/auth, no proxy/login/retry fallback."""
+    """Parent-only subscription OAuth forwarding, never API-key fallback."""
 
     def __init__(self):
         if any(
@@ -233,14 +300,16 @@ class Provider:
 
         if anthropic.__version__ != SDK_VERSION:
             raise D.BudgetStop("unreviewed Anthropic SDK version")
-        key = os.environ.get("ANTHROPIC_API_KEY")
-        if not key or not key.strip():
-            raise D.BudgetStop("owner ANTHROPIC_API_KEY missing")
+        credentials = owner_oauth_environment()
         self.client = anthropic.Anthropic(
-            api_key=key,
-            auth_token=None,
+            api_key=None,
+            auth_token=credentials["CLAUDE_CODE_OAUTH_TOKEN"],
             webhook_key="",
             base_url="https://api.anthropic.com",
+            default_headers={
+                "anthropic-beta": OAUTH_BETA,
+                "X-Api-Key": anthropic.Omit(),
+            },
             max_retries=0,
             timeout=45,
             http_client=anthropic.DefaultHttpxClient(
@@ -249,23 +318,25 @@ class Provider:
         )
 
     def available(self, binding):
-        try:
-            info = self.client.models.retrieve(binding.model).model_dump()
-            maximum = info.get("max_input_tokens")
-            if (
-                info.get("id") != binding.model
-                or type(maximum) is not int
-                or not 0 < maximum <= binding.pricing.max_context_tokens
-            ):
-                raise D.BudgetStop("exact model/context availability unproved")
-        except Exception:
-            raise D.BudgetStop("account/model availability unproved") from None
+        # Subscription setup-token scopes permit inference, not a Console
+        # Models API preflight. Availability is proved by the bounded call's
+        # exact model response; there is no unmetered model launch here.
+        binding.validate()
+        if binding.contract.authentication != "claude-code-subscription-oauth":
+            raise D.BudgetStop("only subscription OAuth is admitted")
 
-    def message(self, request):
+    def message(self, request, *, headers=None):
         try:
-            return self.client.messages.create(**request).model_dump(exclude_none=True)
-        except Exception:
+            beta = capability_header(headers)
+            return self.client.messages.create(
+                **request, extra_headers={"anthropic-beta": beta}
+            ).model_dump(exclude_none=True)
+        except Exception as error:
             # Never serialize SDK exception: it can contain headers/request data.
+            import anthropic
+
+            if isinstance(error, anthropic.RateLimitError):
+                raise RateLimitStop("subscription rate limit; no retry") from None
             raise D.BudgetStop("API failure; charge uncertain") from None
 
 
@@ -283,8 +354,9 @@ class Session:
         self.refusal = None
         self.request_fields = []
         self.token = secrets.token_hex(32)
+        self.rate_limited = False
 
-    def message(self, body):
+    def message(self, body, *, headers=None):
         if not self.lock.acquire(blocking=False):
             self.failed = True
             raise D.BudgetStop("concurrent helper refused")
@@ -292,6 +364,7 @@ class Session:
             self.lock.release()
             raise D.BudgetStop("session closed")
         try:
+            capability_header(headers)
             request = prepare_request(body, self.binding)
             if self.spent >= D.microdollars(self.binding.session_cap_usd):
                 raise D.BudgetStop("session cap reached")
@@ -307,7 +380,7 @@ class Session:
                     "bound": request_bound(self.binding),
                 },
             )
-            response = self.provider.message(request)
+            response = self.provider.message(request, headers=headers)
             seal_json(
                 self.directory / f"{index:04d}.response-usage.json",
                 {
@@ -326,16 +399,41 @@ class Session:
             self.requests.append(record)
             self.spent += amount
             return response
+        except RateLimitStop:
+            self.rate_limited = self.revoked = self.failed = True
+            seal_json(
+                self.directory / "rate-limit-stop.json",
+                {
+                    "status": "STOPPED_RATE_LIMIT",
+                    "call_id": self.call.call_id,
+                    "completed_requests": len(self.requests),
+                    "retry_count": 0,
+                    "reservation": "retained in full",
+                    "equivalent_spent_microdollars": self.spent,
+                },
+            )
+            raise
         except BaseException:
             self.failed = True
             raise
         finally:
             self.lock.release()
 
-    def settlement(self, transcript, stop="complete", exit_code=0):
+    def settlement(
+        self, transcript, stop="complete", exit_code=0, *, claude_report=None
+    ):
         if self.failed or not self.requests:
             raise D.BudgetStop("incomplete attributable usage; reservation retained")
         proof = self.directory / "proof.json"
+        total = {
+            key: sum(r["usage"][key] for r in self.requests)
+            for key in D.API_USAGE_FIELDS
+        }
+        reported_cost = usd(self.spent)
+        if self.binding.billing == "api-equivalent-usage-usd":
+            reported_cost = D.crosscheck_claude_report(
+                claude_report, self.binding, total, self.spent, len(self.requests)
+            )
         proof_hash = seal_json(
             proof,
             {
@@ -345,12 +443,9 @@ class Session:
                 "binding_id": self.binding.binding_id,
                 "pricing_sha256": self.binding.pricing.digest,
                 "requests": self.requests,
+                "claude_report": claude_report,
             },
         )
-        total = {
-            key: sum(r["usage"][key] for r in self.requests)
-            for key in D.API_USAGE_FIELDS
-        }
         transcript_hash = seal_json(self.directory / "transcript.json", transcript)
         b = self.binding
         return D.Settlement(
@@ -361,7 +456,7 @@ class Session:
             b.billing,
             b.evidence_sha256,
             usd(self.spent),
-            usd(self.spent),
+            reported_cost,
             total,
             stop,
             exit_code,
@@ -478,7 +573,12 @@ class Broker:
                     session.request_fields = (
                         sorted(body) if isinstance(body, dict) else []
                     )
-                    response = session.message(body)
+                    response = session.message(
+                        body,
+                        headers={
+                            "anthropic-beta": self.headers.get("anthropic-beta", "")
+                        },
+                    )
                     stream = body.get("stream") is True
                     payload = (
                         sse(response) if stream else json.dumps(response)
@@ -491,7 +591,7 @@ class Broker:
                     self.send_header("Content-Length", str(len(payload)))
                     self.end_headers()
                     self.wfile.write(payload)
-                except Exception as exc:
+                except BaseException as exc:
                     session.refusal = (
                         str(exc)
                         if isinstance(exc, D.BudgetStop)
