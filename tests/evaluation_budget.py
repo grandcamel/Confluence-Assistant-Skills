@@ -1,9 +1,9 @@
-"""Offline-tested $50 controller; no production billing/containment adapter admitted.
+"""Shared $50 ledger; production admission belongs to the joint controller.
 
 A Binding is a reviewed transport's contract, not proof supplied by the model.
 Only that transport may return a Settlement (CLI total_cost_usd is insufficient).
 All phases, probes and explicit retry attempts must share one ledger. Never make
-one ledger per run. The default harness entry point deliberately refuses launch.
+one ledger per run. The default harness entry point refuses launch outside its reviewed controller.
 """
 
 import fcntl
@@ -887,7 +887,7 @@ class Transport(Protocol):
     validate must prove containment and live cap/in-flight enforcement before
     every run; execute must reap the entire process tree even on callbacks or
     timeout. replay must deny ALL paid paths while retaining shell semantics.
-    No production implementation is supplied in this offline-only slice.
+    The joint controller supplies the reviewed macOS/API broker implementation.
     """
 
     offline_only: bool
@@ -1088,8 +1088,14 @@ class BudgetLauncher:
         return self.transport.replay(command, **kwargs)
 
 
+_ADMITTED_LAUNCHER = None  # Set only inside the reviewed joint controller process.
+
+
 def require_launcher() -> BudgetLauncher:
     """No env opt-in or self-attested JSON can enable unverified paid access."""
+    if _ADMITTED_LAUNCHER is not None:
+        _ADMITTED_LAUNCHER.transport.validate(_ADMITTED_LAUNCHER.binding)
+        return _ADMITTED_LAUNCHER
     raise BudgetStop(
         "paid evaluation disabled: no reviewed billing/model/cap/in-flight/"
         "containment adapter is installed; use the shared $50 ledger only "
@@ -1126,7 +1132,8 @@ def bind_evaluator(
     """Bind the existing shared ledger and an explicitly reviewed code adapter.
 
     This cannot create/reset a ledger or admit a provider. No production adapter
-    ships here; require_launcher remains closed. Never load transport code from
+    is selected by this interface; require_launcher stays closed outside the joint controller.
+    Never load transport code from
     model output, environment toggles or a registry's JSON fields.
     """
     manifest = interface_manifest()

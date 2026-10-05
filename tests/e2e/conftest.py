@@ -18,17 +18,14 @@ plugin's own tests/e2e/conftest.py.
 """
 
 import os
-import re
-import subprocess
-import tempfile
 from pathlib import Path
 
 import pytest
 
-from tests.evaluation_budget import harness_call, require_launcher
+from tests.evaluation_budget import require_launcher
 from tests.harness_env import build_harness_env
 
-from .runner import EMPTY_MCP_CONFIG, SufficiencyRunner
+from .runner import SufficiencyRunner
 
 DEFAULT_MODEL = "claude-sonnet-5"
 
@@ -38,11 +35,6 @@ DEFAULT_MODEL = "claude-sonnet-5"
 # otherwise make the arm look "enabled" and skip silently through some
 # other path, with no visible signal in a test run.
 E2E_SUFFICIENCY_VAR = "E2E_SUFFICIENCY"
-
-# The scratch confluence-as this harness requires: only the 2.0.0rc1
-# pre-release is on PyPI as of this writing (2.0.0 final has not
-# shipped), so this checks the major version only, not an exact match.
-_VERSION_RE = re.compile(r"\bversion\s+2\.")
 
 
 def pytest_addoption(parser):
@@ -84,24 +76,7 @@ def harness_env():
 
 @pytest.fixture(scope="session", autouse=True)
 def _sufficiency_gate(request, e2e_enabled, harness_env):
-    """
-    Never let the arm run silently, and never let it run against a
-    broken or wrong-version toolchain.
-
-    Without E2E_SUFFICIENCY=1, every test in this directory is skipped
-    with a loud reason naming the variable -- not a quiet pass. With the
-    variable set, this probes `claude --version` and `confluence-as
-    --version` once per session (on the SAME built environment/PATH the
-    trials themselves use, so HARNESS_CLI_BIN is honored) and FAILS (not
-    skips) if either binary is missing, times out, errors, or --for
-    confluence-as-- does not report a 2.x version: an operator who
-    explicitly opted in asked for a real run, and a missing, broken, or
-    mismatched-version CLI is a setup defect, not something to quietly
-    skip past. Auth absence is likewise never silently skipped: one
-    authenticated one-turn `claude --print` probe runs here, on the same
-    built environment, and FAILS on a nonzero exit, so an unauthenticated
-    host is reported before any trial is scored.
-    """
+    """Require admitted controller preflight; all model probes belong to it."""
     if not e2e_enabled:
         pytest.skip(
             f"Sufficiency arm disabled: set {E2E_SUFFICIENCY_VAR}=1 to run "
@@ -110,110 +85,7 @@ def _sufficiency_gate(request, e2e_enabled, harness_env):
         )
 
     launcher = require_launcher()  # Refuse before even probing an unbound route.
-    try:
-        probe = subprocess.run(
-            ["claude", "--version"],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            env=harness_env,
-        )
-    except FileNotFoundError:
-        pytest.fail(
-            f"{E2E_SUFFICIENCY_VAR}=1 was set but the `claude` binary is "
-            "not on PATH; install/authenticate Claude Code before running "
-            "the sufficiency arm."
-        )
-    except subprocess.TimeoutExpired:
-        pytest.fail(
-            f"{E2E_SUFFICIENCY_VAR}=1 was set but `claude --version` did "
-            "not respond within 30s."
-        )
-
-    if probe.returncode != 0:
-        pytest.fail(
-            f"{E2E_SUFFICIENCY_VAR}=1 was set but `claude --version` "
-            f"exited {probe.returncode}: {probe.stderr.strip()[:500]}"
-        )
-
-    model = request.config.getoption("--sufficiency-model")
-    with tempfile.TemporaryDirectory(prefix="sufficiency-auth-probe-") as probe_cwd:
-        try:
-            auth_probe = launcher.run(
-                [
-                    "claude",
-                    "--print",
-                    "--output-format",
-                    "stream-json",
-                    "--verbose",
-                    "--tools",
-                    "",
-                    "--model",
-                    model,
-                    "--max-turns",
-                    "1",
-                    "--strict-mcp-config",
-                    "--mcp-config",
-                    str(EMPTY_MCP_CONFIG),
-                ],
-                "Reply with the single word OK.",
-                call=harness_call("probe", "authentication", 1),
-                timeout=120,
-                env=harness_env,
-                cwd=probe_cwd,
-            )
-        except subprocess.TimeoutExpired:
-            pytest.fail(
-                f"{E2E_SUFFICIENCY_VAR}=1 was set but the authenticated "
-                "`claude --print` probe did not respond within 120s."
-            )
-    if auth_probe.timed_out or auth_probe.early_stop:
-        pytest.fail("authenticated probe incomplete; budget reservation retained")
-    if auth_probe.returncode != 0:
-        detail = (auth_probe.stderr or auth_probe.stdout).strip()[:500]
-        pytest.fail(
-            f"{E2E_SUFFICIENCY_VAR}=1 was set but `claude` cannot complete an "
-            f"authenticated request (exit {auth_probe.returncode}): {detail} "
-            "-- log in to Claude Code on this host (the harness passes only "
-            "PATH, HOME, USER and LOGNAME through) before running the "
-            "sufficiency arm."
-        )
-
-    try:
-        cas_probe = subprocess.run(
-            ["confluence-as", "--version"],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            env=harness_env,
-        )
-    except FileNotFoundError:
-        pytest.fail(
-            f"{E2E_SUFFICIENCY_VAR}=1 was set but `confluence-as` is not "
-            "on the harness PATH; set HARNESS_CLI_BIN to a scratch venv's "
-            "bin/ (see tests/harness_env.py) or install confluence-as>=2,<3."
-        )
-    except subprocess.TimeoutExpired:
-        pytest.fail(
-            f"{E2E_SUFFICIENCY_VAR}=1 was set but `confluence-as "
-            "--version` did not respond within 30s."
-        )
-
-    if cas_probe.returncode != 0:
-        pytest.fail(
-            f"{E2E_SUFFICIENCY_VAR}=1 was set but `confluence-as "
-            f"--version` exited {cas_probe.returncode}: "
-            f"{cas_probe.stderr.strip()[:500]}"
-        )
-
-    version_output = cas_probe.stdout + cas_probe.stderr
-    if not _VERSION_RE.search(version_output):
-        pytest.fail(
-            f"{E2E_SUFFICIENCY_VAR}=1 was set but confluence-as on the "
-            "harness PATH did not report a 2.x version (only 2.0.0rc1 "
-            f"is on PyPI as a pre-release until 2.0.0 final ships): "
-            f"{version_output!r}"
-        )
+    launcher.transport.preflight()
 
 
 @pytest.fixture(scope="session")

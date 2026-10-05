@@ -397,9 +397,9 @@ def test_routing_uses_boundary_without_altering_golden_trials():
     routing = (root / "skills/confluence/tests/test_routing.py").read_text()
     probe = (root / "tests/e2e/conftest.py").read_text()
     assert "observation = require_launcher().run(" in routing
-    assert "auth_probe = launcher.run(" in probe
+    assert "launcher.transport.preflight()" in probe
     assert "launcher = require_launcher()" in probe
-    assert '"--max-turns"' in probe
+    assert '"--max-turns"' in (root / "tests/evaluation_budget.py").read_text()
 
 
 @pytest.mark.parametrize("amount", ["1e-1000085", "0e-1000085", "1e-65", "1e1000000"])
@@ -491,31 +491,22 @@ def test_partial_sufficiency_run_resumes_five_identities(budget, tmp_path, monke
     ]
 
 
-@pytest.mark.parametrize("outcome", [Outcome(timed_out=True), Outcome(early_stop=True)])
-def test_auth_probe_fixture_rejects_incomplete_outcome(monkeypatch, outcome):
+@pytest.mark.parametrize("reason", ["sandbox refused", "model unavailable"])
+def test_auth_fixture_rejects_incomplete_controller_preflight(monkeypatch, reason):
     from types import SimpleNamespace
 
     from tests.e2e import conftest as fixtures
 
-    monkeypatch.setenv("EVALUATION_SOURCE_COMMIT", BASE)
+    def preflight():
+        raise BudgetStop(reason)
+
     monkeypatch.setattr(
         fixtures,
         "require_launcher",
-        lambda: SimpleNamespace(run=lambda *a, **k: outcome),
+        lambda: SimpleNamespace(transport=SimpleNamespace(preflight=preflight)),
     )
-    probes = []
-
-    def version_probe(argv, **kwargs):
-        probes.append(argv)
-        return SimpleNamespace(returncode=0, stdout="version 2.0.0", stderr="")
-
-    monkeypatch.setattr(fixtures.subprocess, "run", version_probe)
-    request = SimpleNamespace(
-        config=SimpleNamespace(getoption=lambda name: "claude-sonnet-5")
-    )
-    with pytest.raises(pytest.fail.Exception, match="probe incomplete"):
-        fixtures._sufficiency_gate.__wrapped__(request, True, {})
-    assert probes == [["claude", "--version"]]
+    with pytest.raises(BudgetStop, match=reason):
+        fixtures._sufficiency_gate.__wrapped__(None, True, {})
 
 
 def test_routing_restart_preserves_first_skill_and_trial_count(budget, monkeypatch):
