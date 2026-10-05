@@ -192,8 +192,9 @@ def check_source(entry):
         raise D.BudgetStop("untracked importable source refused")
 
 
-def checked_config(path, expected):
-    oauth_presence()
+def checked_config(path, expected, *, recovery=False):
+    if not recovery:
+        oauth_presence()
     if not (
         sys.flags.isolated
         and sys.flags.dont_write_bytecode
@@ -266,7 +267,18 @@ def checked_config(path, expected):
     if manifest != runtime_manifest():
         raise D.BudgetStop("runtime import surface changed")
     check_floor_policy(config, result)
-    check_ledger_eligibility(config, result)
+    if recovery:
+        entry = config["files"]["recovery_plan"]
+        plan = D._reviewed_recovery_plan(
+            entry["path"], entry["sha256"], CANONICAL, result
+        )
+        if plan["provenance"]["source_heads"] != {
+            name: source["head"] for name, source in config["sources"].items()
+        }:
+            raise D.BudgetStop("recovery configuration/source mismatch")
+        return config, result, None  # Recovery never creates a child or provider.
+    else:
+        check_ledger_eligibility(config, result)
     sandbox = Sandbox(
         Path(config["files"]["claude"]["path"]),
         Path(config["cli_bin"]),
@@ -345,7 +357,7 @@ def check_ledger_eligibility(config, reg):
         ):
             raise D.BudgetStop("canonical ledger halted or registry differs")
         for row in snapshot["calls"]:
-            if row["status"] == "settled":
+            if row["status"] in {"settled", "charged-uncertain"}:
                 continue
             if (
                 row["status"] != "reserved"
@@ -374,6 +386,8 @@ def reconcile_existing(ledger):
     """Never invent a settlement from a partial request list after a crash."""
     snapshot = ledger.snapshot()
     for row in snapshot["calls"]:
+        if row["status"] == "charged-uncertain":
+            continue  # Permanent conservative consumption; never reconcile/refund.
         if row["status"] == "settled":
             ledger.reconcile(D.Settlement(**row["receipt"]))  # idempotent read-back
         elif (
@@ -386,7 +400,7 @@ def reconcile_existing(ledger):
                 ledger.reconcile(D.Settlement(**row["partial_receipt"]))
     snapshot = ledger.snapshot()
     if snapshot["metadata"]["halted"] or any(
-        r["status"] != "settled" for r in snapshot["calls"]
+        r["status"] not in {"settled", "charged-uncertain"} for r in snapshot["calls"]
     ):
         raise D.BudgetStop(
             "unresolved prior charge/reservation; reconciliation required"
@@ -685,10 +699,34 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--config-sha256", required=True)
-    parser.add_argument("mode", choices=("dry-admission", "probe", "run"))
+    parser.add_argument(
+        "mode", choices=("dry-admission", "probe", "run", "recover-and-transition")
+    )
     args = parser.parse_args()
     try:
-        config, reg, sandbox = checked_config(args.config, args.config_sha256)
+        recovering = args.mode == "recover-and-transition"
+        config, reg, sandbox = (
+            checked_config(args.config, args.config_sha256, recovery=True)
+            if recovering
+            else checked_config(args.config, args.config_sha256)
+        )
+        if recovering:
+            if not CANONICAL.is_file():
+                raise D.BudgetStop("recovery requires existing canonical ledger")
+            with CANONICAL.with_suffix(".joint-lock").open("a") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                ledger = D.Ledger(CANONICAL)
+                with ledger.controller():
+                    entry = config["files"]["recovery_plan"]
+                    result = ledger.recover_and_transition(
+                        Path(entry["path"]), entry["sha256"], reg
+                    )
+            print(
+                json.dumps(
+                    {"status": "RECOVERED_AND_TRANSITIONED", "api_calls": 0, **result}
+                )
+            )
+            return 0
         if args.mode == "dry-admission":
             print(
                 json.dumps(
