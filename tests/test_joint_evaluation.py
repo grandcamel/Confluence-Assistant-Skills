@@ -309,7 +309,7 @@ def test_wrong_routes_helpers_and_unbounded_requests_never_call_provider(
         ("cache_read_input_tokens", 1),
         ("cache_creation_input_tokens", 3),
         ("service_tier", "priority"),
-        ("inference_geo", None),
+        ("inference_geo", "us"),
         ("speed", "fast"),
         ("future_charge", 1),
         ("server_tool_use", {"web_search_requests": 1, "web_fetch_requests": 0}),
@@ -987,7 +987,7 @@ def test_fake_oauth_sdk_exact_bearer_route_and_zero_retries(monkeypatch, limited
 
     def exchange(request):
         calls.append(request)
-        assert str(request.url) == "https://api.anthropic.com/v1/messages"
+        assert str(request.url) == "https://api.anthropic.com/v1/messages?beta=true"
         assert request.headers["authorization"] == "Bearer synthetic-oauth-token"
         assert "x-api-key" not in request.headers
         assert "oauth-2025-04-20" in request.headers["anthropic-beta"]

@@ -756,9 +756,9 @@ def main():
                         raise D.BudgetStop("probe reservation exceeds $0.50")
                     launcher = JointLauncher(ledger, binding, transport)
                     call = D.Call(
-                        "joint-oauth-availability-probe-v2",
+                        "joint-oauth-availability-probe-v3",
                         "probe",
-                        "oauth-equivalent-accounting-v2",
+                        "oauth-equivalent-accounting-v3",
                         1,
                         config["sources"]["plugin"]["head"],
                     )

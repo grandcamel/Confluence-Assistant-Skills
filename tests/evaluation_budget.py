@@ -335,7 +335,15 @@ def api_usage_charge(call, binding: Binding, proof_path: str, proof_sha256: str)
             if (
                 request["model"] != binding.model
                 or request["service_tier"] != "standard"
-                or request["inference_geo"] != "global"
+                or not (
+                    request["inference_geo"] == "global"
+                    or (
+                        binding.model == "claude-haiku-4-5-20251001"
+                        and request["inference_geo"] in (None, "not_available")
+                        and request.get("billing_scope_basis")
+                        == "legacy-model-standard-rates"
+                    )
+                )
                 or request["speed"] != "standard"
                 or request["server_tool_use"]
                 != {"web_search_requests": 0, "web_fetch_requests": 0}
@@ -554,11 +562,19 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
         "evidence",
         "provenance",
     }
+    if isinstance(plan, dict) and plan.get("schema_version") == 2:
+        required |= {
+            "original_registry_sha256",
+            "previous_transition",
+            "expected_calls",
+            "expected_charges",
+            "expected_exposure_microdollars",
+        }
     if (
         not isinstance(plan, dict)
         or set(plan) != required
         or type(plan["schema_version"]) is not int
-        or plan["schema_version"] != 1
+        or plan["schema_version"] not in (1, 2)
     ):
         raise BudgetStop("unsupported recovery plan")
     _token(plan["transition_id"])
@@ -604,10 +620,91 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
     original_init = json.loads(Path(marker["path"]).read_text())
     if (
         set(original_init) != {"registry_sha256", "prior_sha256"}
-        or original_init["registry_sha256"] != plan["old_registry_sha256"]
+        or original_init["registry_sha256"]
+        != plan.get("original_registry_sha256", plan["old_registry_sha256"])
         or not SHA.fullmatch(original_init["prior_sha256"])
     ):
         raise BudgetStop("original initialization provenance mismatch")
+    if plan["schema_version"] == 2:
+        prior = plan["previous_transition"]
+        if (
+            not isinstance(plan["original_registry_sha256"], str)
+            or not SHA.fullmatch(plan["original_registry_sha256"])
+            or not isinstance(prior, dict)
+            or set(prior) != {"sequence", "record_sha256", "payload_sha256"}
+            or type(prior["sequence"]) is not int
+            or prior["sequence"] != 1
+            or any(
+                not isinstance(prior[k], str) or not SHA.fullmatch(prior[k])
+                for k in ("record_sha256", "payload_sha256")
+            )
+        ):
+            raise BudgetStop("invalid previous transition seal")
+        inventory = plan["expected_calls"]
+        charges = plan["expected_charges"]
+        if (
+            not isinstance(inventory, list)
+            or len(inventory) != 2
+            or any(
+                not isinstance(item, dict)
+                or set(item)
+                != {
+                    "call_id",
+                    "identity_sha256",
+                    "payload_sha256",
+                    "reservation_microdollars",
+                    "accounting_status",
+                }
+                for item in inventory
+            )
+            or len({item["call_id"] for item in inventory}) != 2
+            or {item["accounting_status"] for item in inventory}
+            != {"charged-uncertain", "uncertain"}
+        ):
+            raise BudgetStop("closed two-call inventory required")
+        for item in inventory:
+            _token(item["call_id"])
+            if (
+                any(
+                    not isinstance(item[k], str) or not SHA.fullmatch(item[k])
+                    for k in ("identity_sha256", "payload_sha256")
+                )
+                or type(item["reservation_microdollars"]) is not int
+                or not 0 < item["reservation_microdollars"] <= CAP
+            ):
+                raise BudgetStop("invalid closed inventory")
+        target = next(
+            item for item in inventory if item["accounting_status"] == "uncertain"
+        )
+        if {k: v for k, v in target.items() if k != "accounting_status"} != call:
+            raise BudgetStop("charged target differs from inventory")
+        if (
+            not isinstance(charges, list)
+            or len(charges) != 1
+            or not isinstance(charges[0], dict)
+            or set(charges[0])
+            != {"call_id", "payload_sha256", "amount", "transition_sha256"}
+        ):
+            raise BudgetStop("exact historical charge required")
+        protected = next(
+            item
+            for item in inventory
+            if item["accounting_status"] == "charged-uncertain"
+        )
+        if (
+            charges[0]
+            != {
+                "call_id": protected["call_id"],
+                "payload_sha256": protected["payload_sha256"],
+                "amount": protected["reservation_microdollars"],
+                "transition_sha256": prior["record_sha256"],
+            }
+            or type(plan["expected_exposure_microdollars"]) is not int
+            or plan["expected_exposure_microdollars"]
+            != sum(item["reservation_microdollars"] for item in inventory)
+            or plan["expected_exposure_microdollars"] > CAP
+        ):
+            raise BudgetStop("historical charge or exposure differs")
     folder = Path(plan["evidence_directory"])
     if not folder.is_absolute() or folder.resolve() != folder or not folder.is_dir():
         raise BudgetStop("original evidence directory unavailable")
@@ -702,7 +799,7 @@ def _transition_record(
     old_meta = json.loads(old_metadata_payload)
     if (
         _raw_sha(old_metadata_payload) != plan["expected_metadata_sha256"]
-        or old_meta["version"] != 2
+        or old_meta["version"] != (2 if plan["schema_version"] == 1 else 3)
         or old_meta["cap"] != CAP
         or old_meta["halted"] is not True
         or old_meta["registry_sha256"] != plan["old_registry_sha256"]
@@ -713,10 +810,19 @@ def _transition_record(
     if old_registry.digest != plan["old_registry_sha256"]:
         raise BudgetStop("original recovery registry mismatch")
     _same_economics(old_registry, new_registry)
-    return {
-        "schema_version": 1,
-        "sequence": 1,
-        "previous_hash": plan["expected_metadata_sha256"],
+    second = plan["schema_version"] == 2
+    if (
+        second
+        and old_meta.get("transition_head")
+        != plan["previous_transition"]["record_sha256"]
+    ):
+        raise BudgetStop("historical metadata transition head differs")
+    record = {
+        "schema_version": plan["schema_version"],
+        "sequence": 2 if second else 1,
+        "previous_hash": plan["previous_transition"]["record_sha256"]
+        if second
+        else plan["expected_metadata_sha256"],
         "transition_id": plan["transition_id"],
         "from_registry_sha256": old_registry.digest,
         "to_registry_sha256": new_registry.digest,
@@ -730,6 +836,17 @@ def _transition_record(
         "aggregate_cap_microdollars": CAP,
         "basis": "entire original reservation permanently consumed; actual usage unknown; never refunded",
     }
+    if second:
+        record.update(
+            previous_transition=plan["previous_transition"],
+            expected_calls=plan["expected_calls"],
+            expected_charges=plan["expected_charges"],
+            original_registry_sha256=plan["original_registry_sha256"],
+            cumulative_consumed_exposure_microdollars=plan[
+                "expected_exposure_microdollars"
+            ],
+        )
+    return record
 
 
 class Ledger:
@@ -937,40 +1054,102 @@ class Ledger:
             if meta["transition_head"] is not None or charges:
                 raise BudgetStop("orphan recovery state")
             return {}
-        # This authority covers exactly one legacy→repaired transition. A new
-        # transition needs a separately reviewed scope; never silently generalize.
-        if len(transitions) != 1 or transitions[0][0] != 1:
+        # Only the commissioned original recovery plus one v2 recovery.
+        if len(transitions) > 2 or [entry[0] for entry in transitions] != list(
+            range(1, len(transitions) + 1)
+        ):
             raise BudgetStop("unsupported registry transition chain")
-        _, payload, sha256 = transitions[0]
-        record = json.loads(payload)
-        if _digest(record) != sha256 or meta["transition_head"] != sha256:
-            raise BudgetStop("registry transition hash chain differs")
-        ref = record["plan"]
-        plan = _reviewed_recovery_plan(ref["path"], ref["sha256"], self.path, registry)
-        expected = _transition_record(
-            ref["path"], ref["sha256"], plan, record["old_metadata_payload"], registry
-        )
-        if _digest(expected) != sha256:
-            raise BudgetStop("registry transition provenance differs")
-        call = plan["call"]
-        if charges != [
-            (
-                call["call_id"],
-                call["payload_sha256"],
-                call["reservation_microdollars"],
-                sha256,
+        protected = {}
+        expected_charges = []
+        previous_record = previous_payload = previous_sha = None
+        for sequence, payload, sha256 in transitions:
+            record = json.loads(payload)
+            historical_target = Registry.from_dict(record["new_registry"])
+            historical_target.validate()
+            if _digest(record) != sha256:
+                raise BudgetStop("registry transition hash chain differs")
+            ref = record["plan"]
+            plan = _reviewed_recovery_plan(
+                ref["path"], ref["sha256"], self.path, historical_target
             )
-        ]:
-            raise BudgetStop("charged-uncertain mapping differs")
-        return {
-            call["call_id"]: {
+            if plan["schema_version"] != sequence:
+                raise BudgetStop("transition format/order differs")
+            expected = _transition_record(
+                ref["path"],
+                ref["sha256"],
+                plan,
+                record["old_metadata_payload"],
+                historical_target,
+            )
+            if _digest(expected) != sha256:
+                raise BudgetStop("registry transition provenance differs")
+            if sequence == 2:
+                if (
+                    plan["previous_transition"]
+                    != {
+                        "sequence": 1,
+                        "record_sha256": previous_sha,
+                        "payload_sha256": _raw_sha(previous_payload),
+                    }
+                    or record["previous_hash"] != previous_sha
+                    or record["from_registry_sha256"]
+                    != previous_record["to_registry_sha256"]
+                    or plan["expected_charges"] != expected_charges
+                    or plan["original_registry_sha256"]
+                    != previous_record["from_registry_sha256"]
+                ):
+                    raise BudgetStop("historical transition link differs")
+                prior_call = next(
+                    item
+                    for item in plan["expected_calls"]
+                    if item["accounting_status"] == "charged-uncertain"
+                )
+                known = protected.get(prior_call["call_id"])
+                if known is None or any(
+                    prior_call[key] != known[key]
+                    for key in (
+                        "identity_sha256",
+                        "payload_sha256",
+                        "reservation_microdollars",
+                    )
+                ):
+                    raise BudgetStop("historical inventory differs")
+            call = plan["call"]
+            if call["call_id"] in protected:
+                raise BudgetStop("duplicate permanent charge")
+            expected_charges.append(
+                {
+                    "call_id": call["call_id"],
+                    "payload_sha256": call["payload_sha256"],
+                    "amount": call["reservation_microdollars"],
+                    "transition_sha256": sha256,
+                }
+            )
+            protected[call["call_id"]] = {
                 **call,
                 "registry": Registry.from_dict(
                     json.loads(record["old_metadata_payload"])["registry"]
                 ),
                 "transition_sha256": sha256,
             }
-        }
+            previous_record, previous_payload, previous_sha = record, payload, sha256
+        expected_sql = sorted(
+            (
+                item["call_id"],
+                item["payload_sha256"],
+                item["amount"],
+                item["transition_sha256"],
+            )
+            for item in expected_charges
+        )
+        if charges != expected_sql:
+            raise BudgetStop("charged-uncertain mapping differs")
+        if (
+            meta["transition_head"] != previous_sha
+            or registry.digest != previous_record["to_registry_sha256"]
+        ):
+            raise BudgetStop("active registry/transition head differs")
+        return protected
 
     def recover_and_transition(
         self, plan_path: Path, plan_sha256: str, registry: Registry
@@ -990,42 +1169,100 @@ class Ledger:
             if db.execute("PRAGMA journal_mode").fetchone()[0] != "delete":
                 raise BudgetStop("unsupported recovery journal mode")
             meta, rows, exposure = self._read(db)
-            if (
-                meta["version"] == SCHEMA_VERSION
-                and meta["transition_head"] is not None
-            ):
-                record = json.loads(
+            existing = (
+                list(
                     db.execute(
-                        "SELECT payload FROM registry_transitions WHERE seq=1"
-                    ).fetchone()[0]
+                        "SELECT seq,payload,sha256 FROM registry_transitions ORDER BY seq"
+                    )
                 )
+                if meta["version"] == 3
+                else []
+            )
+            if existing:
+                tail = json.loads(existing[-1][1])
                 if (
-                    record["plan"] != {"path": str(plan_path), "sha256": plan_sha256}
-                    or meta["registry_sha256"] != registry.digest
+                    tail["plan"] == {"path": str(plan_path), "sha256": plan_sha256}
+                    and meta["registry_sha256"] == registry.digest
                 ):
+                    consumed = sum(
+                        item[0]
+                        for item in db.execute("SELECT amount FROM charged_uncertain")
+                    )
+                    return {
+                        "already_applied": True,
+                        "registry_sha256": registry.digest,
+                        "transition_sha256": meta["transition_head"],
+                        "charged_uncertain_microdollars": consumed,
+                        "newly_consumed_microdollars": 0,
+                        "cumulative_consumed_microdollars": consumed,
+                        "exposure_microdollars": exposure,
+                        "halted": meta["halted"],
+                    }
+                if plan["schema_version"] != 2 or len(existing) != 1:
                     raise BudgetStop("conflicting duplicate recovery")
-                return {
-                    "already_applied": True,
-                    "registry_sha256": registry.digest,
-                    "transition_sha256": meta["transition_head"],
-                    "charged_uncertain_microdollars": plan["call"][
-                        "reservation_microdollars"
-                    ],
-                    "exposure_microdollars": exposure,
-                    "halted": meta["halted"],
-                }
-            if meta["version"] != 2 or meta["halted"] is not True or len(rows) != 1:
-                raise BudgetStop("recovery requires the exact exclusive legacy halt")
+            if plan["schema_version"] == 1:
+                if meta["version"] != 2 or meta["halted"] is not True or len(rows) != 1:
+                    raise BudgetStop(
+                        "recovery requires the exact exclusive legacy halt"
+                    )
+            else:
+                if (
+                    meta["version"] != 3
+                    or meta["halted"] is not True
+                    or len(existing) != 1
+                    or len(rows) != 2
+                    or exposure != plan["expected_exposure_microdollars"]
+                ):
+                    raise BudgetStop(
+                        "recovery requires the exact second-transition halt"
+                    )
+                seq, payload, previous_sha = existing[0]
+                if plan["previous_transition"] != {
+                    "sequence": seq,
+                    "record_sha256": previous_sha,
+                    "payload_sha256": _raw_sha(payload),
+                }:
+                    raise BudgetStop("prior transition seal differs")
+                actual_charges = [
+                    {
+                        "call_id": i,
+                        "payload_sha256": p,
+                        "amount": a,
+                        "transition_sha256": t,
+                    }
+                    for i, p, a, t in db.execute(
+                        "SELECT * FROM charged_uncertain ORDER BY call_id"
+                    )
+                ]
+                if actual_charges != plan["expected_charges"]:
+                    raise BudgetStop("preexisting charge differs")
+                statuses = {row["call"]["call_id"]: row["status"] for row in rows}
+                actual_inventory = [
+                    {
+                        "call_id": i,
+                        "identity_sha256": _raw_sha(identity),
+                        "payload_sha256": _raw_sha(payload),
+                        "reservation_microdollars": json.loads(payload)["reservation"],
+                        "accounting_status": statuses[i],
+                    }
+                    for i, identity, payload in db.execute(
+                        "SELECT * FROM calls ORDER BY id"
+                    )
+                ]
+                if actual_inventory != sorted(
+                    plan["expected_calls"], key=lambda item: item["call_id"]
+                ):
+                    raise BudgetStop("closed recovery inventory differs")
             # Do not reapply this hash once committed: legitimate later calls
             # change DB bytes, but the permanent record/row/evidence seals remain.
             _proof(str(self.path), plan["expected_ledger_sha256"])
             raw_metadata = db.execute(
                 "SELECT payload FROM metadata WHERE id=1"
             ).fetchone()[0]
-            row = rows[0]
             call = plan["call"]
+            row = next(row for row in rows if row["call"]["call_id"] == call["call_id"])
             raw_id, raw_identity, raw_payload = db.execute(
-                "SELECT id, identity, payload FROM calls"
+                "SELECT id, identity, payload FROM calls WHERE id=?", (call["call_id"],)
             ).fetchone()
             if (
                 raw_id != call["call_id"]
@@ -1038,17 +1275,23 @@ class Ledger:
                 or row["partial_receipt"] is not None
                 or row["outcome"] is not None
                 or row["reservation"] != call["reservation_microdollars"]
-                or exposure != call["reservation_microdollars"]
+                or exposure
+                != (
+                    call["reservation_microdollars"]
+                    if plan["schema_version"] == 1
+                    else plan["expected_exposure_microdollars"]
+                )
             ):
                 raise BudgetStop("original uncertain call differs")
             record = _transition_record(
                 plan_path, plan_sha256, plan, raw_metadata, registry
             )
             sha256 = _digest(record)
-            _recovery_schema(db)
+            if plan["schema_version"] == 1:
+                _recovery_schema(db)
             db.execute(
-                "INSERT INTO registry_transitions VALUES (1, ?, ?)",
-                (json.dumps(record, sort_keys=True), sha256),
+                "INSERT INTO registry_transitions VALUES (?, ?, ?)",
+                (record["sequence"], json.dumps(record, sort_keys=True), sha256),
             )
             db.execute(
                 "INSERT INTO charged_uncertain VALUES (?, ?, ?, ?)",
@@ -1071,16 +1314,17 @@ class Ledger:
                 "UPDATE metadata SET payload=? WHERE id=1", (json.dumps(updated),)
             )
             after_meta, after_rows, after_exposure = self._read(db)
-            if (
-                after_exposure != exposure
-                or after_rows[0]["status"] != "charged-uncertain"
+            if after_exposure != exposure or any(
+                row["status"] != "charged-uncertain" for row in after_rows
             ):
                 raise BudgetStop("recovery conservation check failed")
             return {
                 "already_applied": False,
                 "registry_sha256": registry.digest,
                 "transition_sha256": sha256,
-                "charged_uncertain_microdollars": exposure,
+                "charged_uncertain_microdollars": after_exposure,
+                "newly_consumed_microdollars": call["reservation_microdollars"],
+                "cumulative_consumed_microdollars": after_exposure,
                 "exposure_microdollars": after_exposure,
                 "halted": after_meta["halted"],
             }
@@ -1624,7 +1868,7 @@ def harness_call(phase: str, task: str, trial: int, *, attempt: int = 1) -> Call
     return call
 
 
-API_VERSION = 3
+API_VERSION = 4
 
 
 def bind_evaluator(

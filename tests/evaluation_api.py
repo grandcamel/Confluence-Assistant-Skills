@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import secrets
 import threading
 from decimal import Decimal
@@ -16,6 +17,11 @@ from tests import evaluation_budget as D
 MAX_OUTPUT = 2048
 MAX_BODY = 2_000_000
 SDK_VERSION = "1.11.0"
+LEGACY_MODEL = "claude-haiku-4-5-20251001"
+NATIVE_USER_AGENTS = {
+    "claude-cli/2.1.288 (external, cli)",
+    "claude-cli/2.1.288 (external, sdk-cli)",
+}
 OAUTH_BETA = "oauth-2025-04-20"  # Pinned native Claude capability; never a credential.
 # Frozen native 2.1.288 basic text/tool/effort capabilities. Inline tool changes
 # are refused in request content even when the native header is present.
@@ -24,6 +30,7 @@ OAUTH_BETA = "oauth-2025-04-20"  # Pinned native Claude capability; never a cred
 ALLOWED_BETAS = frozenset(
     {
         OAUTH_BETA,
+        "extended-cache-ttl-2025-04-11",
         "claude-code-20250219",
         "interleaved-thinking-2025-05-14",
         "thinking-token-count-2026-05-13",
@@ -45,7 +52,125 @@ def capability_header(headers=None):
     parts = beta.split(",") if beta else []
     if any(part not in ALLOWED_BETAS for part in parts):
         raise D.BudgetStop("unreviewed capability refused")
-    return ",".join(dict.fromkeys([*parts, OAUTH_BETA]))
+    return ",".join(dict.fromkeys([*parts, "claude-code-20250219", OAUTH_BETA]))
+
+
+def forward_headers(headers=None):
+    headers = headers or {}
+    version = headers.get("anthropic-version", "2023-06-01")
+    agent = headers.get("user-agent", "claude-cli/2.1.288 (external, sdk-cli)")
+    app = headers.get("x-app", "cli")
+    if version != "2023-06-01" or agent not in NATIVE_USER_AGENTS or app != "cli":
+        raise D.BudgetStop("unreviewed native protocol identity")
+    return {
+        "anthropic-beta": capability_header(headers),
+        "anthropic-version": version,
+        "user-agent": agent,
+        "x-app": app,
+    }
+
+
+ERROR_TYPES = {
+    "invalid_request_error",
+    "authentication_error",
+    "permission_error",
+    "not_found_error",
+    "request_too_large",
+    "rate_limit_error",
+    "api_error",
+    "overloaded_error",
+}
+
+
+def safe_error_summary(body, request_id, *, secrets_to_redact=(), request=None):
+    """Project selected error JSON only, never request/headers or SDK exception.
+
+    Retain ordinary validation prose. Redact credentials and exact request string
+    values before capping; suppress recognizable serialized body/header echoes.
+    Request inspection stays in memory and is used solely as a redaction source.
+    """
+    private_strings = []
+    pending = [request]
+    nodes = characters = 0
+    redaction_budget_exceeded = False
+    # Iterative and bounded: no recursive walk or unbounded excerpt expansion.
+    while pending:
+        value = pending.pop()
+        nodes += 1
+        if nodes > 10000:
+            redaction_budget_exceeded = True
+            break
+        if isinstance(value, str):
+            characters += len(value)
+            if characters > MAX_BODY:
+                redaction_budget_exceeded = True
+                break
+            if len(value) >= 4:
+                private_strings.extend((value, json.dumps(value)[1:-1]))
+                private_strings.extend(re.findall(r"[A-Za-z0-9_-]{12,}", value))
+                words = value.split()
+                if len(private_strings) + len(words) > 10000:
+                    redaction_budget_exceeded = True
+                    break
+                private_strings.extend(
+                    " ".join(words[i : i + 3]) for i in range(len(words) - 2)
+                )
+        elif isinstance(value, (dict, list)):
+            if len(value) + len(pending) > 10000:
+                redaction_budget_exceeded = True
+                break
+            pending.extend(value.values() if isinstance(value, dict) else value)
+
+    def redact(text):
+        for secret in (
+            *secrets_to_redact,
+            *sorted(private_strings, key=len, reverse=True),
+        ):
+            if isinstance(secret, str) and secret:
+                text = text.replace(secret, "<REDACTED>")
+        text = re.sub(r"(?i)\bbearer\s+[^\s\"'<>]+", "Bearer <REDACTED>", text)
+        text = re.sub(r"(?i)\bsk-(?:ant-)?[a-z0-9_-]+", "<REDACTED>", text)
+        text = re.sub(
+            r"\beyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+", "<REDACTED>", text
+        )
+        text = re.sub(r"[a-fA-F0-9]{32,}", "<REDACTED>", text)
+        return re.sub(r"(?:<REDACTED>)+", "<REDACTED>", text)
+
+    result = {}
+    if isinstance(body, dict) and body.get("type") == "error":
+        result["type"] = "error"
+        error = body.get("error")
+        if isinstance(error, dict):
+            clean = {}
+            if isinstance(error.get("type"), str) and error["type"] in ERROR_TYPES:
+                clean["type"] = error["type"]
+            message = error.get("message")
+            if isinstance(message, str):
+                # Do not retain serialized/explicit request or header echoes even
+                # when the provider places them inside the selected JSON field.
+                if (
+                    redaction_budget_exceeded
+                    or len(message) > 8192
+                    or re.search(
+                        r"(?i)([{}]|request\s+(body|headers?)\s*:|"
+                        r"\b(authorization|x-api-key|cookie|set-cookie)\s*:)",
+                        message,
+                    )
+                ):
+                    message = "<REDACTED REQUEST OR OVERSIZED CONTENT>"
+                else:
+                    message = redact(message)
+                    message = re.sub(r"[\x00-\x1f\x7f]", " ", message)
+                clean["message"] = message[:1024]
+            if clean:
+                result["error"] = clean
+    if isinstance(request_id, str) and re.fullmatch(
+        r"req_[A-Za-z0-9]{8,100}", request_id
+    ):
+        cleaned = redact(request_id)
+        if not redaction_budget_exceeded and cleaned == request_id:
+            result["request_id"] = request_id
+    return result
 
 
 class RateLimitStop(D.BudgetStop):
@@ -55,10 +180,11 @@ class RateLimitStop(D.BudgetStop):
 class ProviderStop(D.BudgetStop):
     """Safe classification only; no SDK exception body, headers or credential."""
 
-    def __init__(self, category, status=None):
+    def __init__(self, category, status=None, summary=None):
         super().__init__("provider invocation failed; reservation retained")
         self.category = category
         self.upstream_status = status
+        self.summary = summary or {}
 
 
 def oauth_presence():
@@ -203,7 +329,36 @@ def prepare_request(body, binding):
         {"edits": [{"type": "clear_thinking_20251015", "keep": "all"}]},
     ):
         raise D.BudgetStop("server context edits refused")
-    result.pop("metadata", None)
+    metadata = result.get("metadata")
+    if metadata is not None:
+        if (
+            not isinstance(metadata, dict)
+            or set(metadata) != {"user_id"}
+            or not isinstance(metadata["user_id"], str)
+            or len(metadata["user_id"]) > 256
+        ):
+            raise D.BudgetStop("unreviewed native metadata")
+        try:
+            identity = json.loads(metadata["user_id"])
+        except (TypeError, ValueError):
+            raise D.BudgetStop("unreviewed native metadata") from None
+        if (
+            not isinstance(identity, dict)
+            or set(identity) != {"device_id", "account_uuid", "session_id"}
+            or not isinstance(identity["device_id"], str)
+            or not re.fullmatch(r"[a-f0-9]{64}", identity["device_id"])
+            or any(
+                not isinstance(identity[k], str)
+                or not re.fullmatch(r"[a-f0-9-]{36}", identity[k])
+                for k in ("session_id",)
+            )
+            or not isinstance(identity["account_uuid"], str)
+            or (
+                identity["account_uuid"]
+                and not re.fullmatch(r"[a-f0-9-]{36}", identity["account_uuid"])
+            )
+        ):
+            raise D.BudgetStop("unreviewed native metadata")
     result["max_tokens"] = min(body["max_tokens"], MAX_OUTPUT)
     thinking = result.get("thinking")
     if isinstance(thinking, dict) and thinking.get("type") == "enabled":
@@ -221,7 +376,24 @@ def prepare_request(body, binding):
         thinking["budget_tokens"] = min(budget, 1024)
     result["stream"] = False
     result["service_tier"] = "standard_only"
-    result["inference_geo"] = "global"
+    if binding.model != LEGACY_MODEL:
+        result["inference_geo"] = "global"
+    if (
+        isinstance(thinking, dict)
+        and thinking.get("type") == "enabled"
+        and (
+            result.get("temperature", 1) != 1
+            or "top_k" in result
+            or (
+                "top_p" in result
+                and (
+                    type(result["top_p"]) not in (int, float)
+                    or not 0.95 <= result["top_p"] <= 1
+                )
+            )
+        )
+    ):
+        raise D.BudgetStop("unsupported thinking sampling parameters")
     return result
 
 
@@ -230,10 +402,13 @@ def usage_record(response, binding):
     if not isinstance(response, dict) or response.get("model") != binding.model:
         raise D.BudgetStop("API response model mismatch")
     usage = response.get("usage")
+    legacy = binding.model == LEGACY_MODEL
+    geo = usage.get("inference_geo") if isinstance(usage, dict) else None
+    legacy_scope = legacy and geo in (None, "not_available")
     if (
         not isinstance(usage, dict)
         or usage.get("service_tier") != "standard"
-        or usage.get("inference_geo") != "global"
+        or (not legacy_scope and geo != "global")
     ):
         raise D.BudgetStop("missing API billing scope")
     allowed = {
@@ -292,7 +467,10 @@ def usage_record(response, binding):
         "request_id": request_id,
         "model": binding.model,
         "service_tier": "standard",
-        "inference_geo": "global",
+        "inference_geo": geo,
+        "billing_scope_basis": "legacy-model-standard-rates"
+        if legacy_scope
+        else "server-global",
         "speed": "standard",
         "server_tool_use": {"web_search_requests": 0, "web_fetch_requests": 0},
         "usage": counters,
@@ -325,7 +503,7 @@ class Provider:
             raise D.BudgetStop("unreviewed Anthropic SDK version")
         credentials = owner_oauth_environment()
         self.client = anthropic.Anthropic(
-            api_key=None,
+            api_key="",
             auth_token=credentials["CLAUDE_CODE_OAUTH_TOKEN"],
             webhook_key="",
             base_url="https://api.anthropic.com",
@@ -350,16 +528,25 @@ class Provider:
 
     def message(self, request, *, headers=None):
         try:
-            beta = capability_header(headers)
-            return self.client.messages.create(
-                **request, extra_headers={"anthropic-beta": beta}
+            outgoing = forward_headers(headers)
+            return self.client.beta.messages.create(
+                **request,
+                betas=outgoing["anthropic-beta"].split(","),
+                extra_headers=outgoing,
             ).model_dump(exclude_none=True)
         except Exception as error:
             # Never serialize SDK exception: it can contain headers/request data.
             import anthropic
 
             if isinstance(error, anthropic.RateLimitError):
-                raise RateLimitStop("subscription rate limit; no retry") from None
+                stopped = RateLimitStop("subscription rate limit; no retry")
+                stopped.summary = safe_error_summary(
+                    error.body,
+                    error.request_id,
+                    secrets_to_redact=(getattr(self.client, "auth_token", ""),),
+                    request=request,
+                )
+                raise stopped from None
             if isinstance(error, anthropic.APIStatusError):
                 status = error.status_code
                 if type(status) is not int or not 100 <= status <= 599:
@@ -371,7 +558,17 @@ class Provider:
                     if status in (400, 404, 422)
                     else "upstream-http-error"
                 )
-                raise ProviderStop(category, status) from None
+                summary = (
+                    safe_error_summary(
+                        error.body,
+                        error.request_id,
+                        secrets_to_redact=(getattr(self.client, "auth_token", ""),),
+                        request=request,
+                    )
+                    if status is not None and 400 <= status <= 599
+                    else {}
+                )
+                raise ProviderStop(category, status, summary) from None
             if isinstance(error, anthropic.APIConnectionError):
                 raise ProviderStop("transport-failure") from None
             raise ProviderStop("sdk-failure") from None
@@ -401,7 +598,7 @@ class Session:
             self.lock.release()
             raise D.BudgetStop("session closed")
         try:
-            capability_header(headers)
+            forward_headers(headers)
             request = prepare_request(body, self.binding)
             if self.spent >= D.microdollars(self.binding.session_cap_usd):
                 raise D.BudgetStop("session cap reached")
@@ -436,12 +633,14 @@ class Session:
             self.requests.append(record)
             self.spent += amount
             return response
-        except RateLimitStop:
+        except RateLimitStop as error:
             self.rate_limited = self.revoked = self.failed = True
             seal_json(
                 self.directory / "rate-limit-stop.json",
                 {
                     "status": "STOPPED_RATE_LIMIT",
+                    "upstream_status": 429,
+                    "upstream_error": getattr(error, "summary", {}),
                     "call_id": self.call.call_id,
                     "completed_requests": len(self.requests),
                     "retry_count": 0,
@@ -459,6 +658,9 @@ class Session:
                     "category": error.category
                     if isinstance(error, ProviderStop)
                     else "request-or-accounting-failure",
+                    "upstream_error": error.summary
+                    if isinstance(error, ProviderStop)
+                    else {},
                     "upstream_status": error.upstream_status
                     if isinstance(error, ProviderStop)
                     else None,
@@ -635,7 +837,14 @@ class Broker:
                     response = session.message(
                         body,
                         headers={
-                            "anthropic-beta": self.headers.get("anthropic-beta", "")
+                            "anthropic-beta": self.headers.get("anthropic-beta", ""),
+                            "anthropic-version": self.headers.get(
+                                "anthropic-version", "2023-06-01"
+                            ),
+                            "user-agent": self.headers.get(
+                                "user-agent", "claude-cli/2.1.288 (external, sdk-cli)"
+                            ),
+                            "x-app": self.headers.get("x-app", "cli"),
                         },
                     )
                     stream = body.get("stream") is True

@@ -62,7 +62,8 @@ def test_exact_native_parent_sdk_failure_terminates_without_retry(
                     "type": "authentication_error"
                     if case in ("401", "403")
                     else "invalid_request_error",
-                    "message": "synthetic-body-must-not-be-logged",
+                    "message": "Synthetic provider validation failure",
+                    "unselected": "synthetic-body-must-not-be-logged",
                 },
             },
         )
@@ -201,7 +202,7 @@ def test_repaired_probe_has_distinct_logical_identity(
         "a" * 40,
     )
     new = observed[0]
-    assert new.call_id == "joint-oauth-availability-probe-v2"
+    assert new.call_id == "joint-oauth-availability-probe-v3"
     assert D.Ledger._identity(new, "floor-haiku45-api") != D.Ledger._identity(
         old, "floor-haiku45-api"
     )
