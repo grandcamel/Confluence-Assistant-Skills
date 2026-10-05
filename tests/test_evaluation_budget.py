@@ -116,6 +116,10 @@ class FakeTransport:
         charge = receipt(self.ledger, self.binding, call)
         if self.mode == "mismatch":
             charge = replace(charge, model="another-model")
+        if self.mode == "completed-observation":
+            return Outcome(
+                receipt=charge, lines=['{"type":"assistant"}'], result="confluence"
+            )
         return Outcome(receipt=charge)
 
     def replay(self, command, **kwargs):
@@ -451,13 +455,13 @@ def test_uncertain_outcome_evidence_loss_stops_next_launch(budget, mode, damage)
 
 
 def test_restart_restores_observation_without_new_charge(budget):
-    launcher, transport = launch(budget, "early")
+    launcher, transport = launch(budget, "completed-observation")
     initial = launcher.run(command(), "prompt", call=call())
     restored = BudgetLauncher(Ledger(launcher.ledger.path), launcher.binding, transport)
     result = restored.run(command(), "prompt", call=call("new-process-uuid"))
     assert result == initial
     assert len(transport.commands) == 1
-    assert restored.ledger.snapshot()["exposure"] == 3_000_000
+    assert restored.ledger.snapshot()["exposure"] == 400_000
     for changed_call, prompt in [
         (call("new", trial=1), "changed prompt"),
         (replace(call("new"), source_commit="a" * 40), "prompt"),
@@ -513,7 +517,7 @@ def test_routing_restart_preserves_first_skill_and_trial_count(budget, monkeypat
     from skills.confluence.tests import test_routing as routing
 
     monkeypatch.setenv("EVALUATION_SOURCE_COMMIT", BASE)
-    launcher, transport = launch(budget, "early")
+    launcher, transport = launch(budget, "completed-observation")
     monkeypatch.setattr(routing, "require_launcher", lambda: launcher)
     monkeypatch.setattr(routing, "get_test_model", lambda: "claude-sonnet-5")
     # Use a task-local evidence directory, not the import-time shared directory.

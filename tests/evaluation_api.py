@@ -375,9 +375,8 @@ def prepare_request(body, binding):
             raise D.BudgetStop("finite output cannot accommodate manual thinking")
         thinking["budget_tokens"] = min(budget, 1024)
     result["stream"] = False
-    result["service_tier"] = "standard_only"
-    if binding.model != LEGACY_MODEL:
-        result["inference_geo"] = "global"
+    # Native subscription OAuth does not send Console organization overrides.
+    result.pop("service_tier", None)
     if (
         isinstance(thinking, dict)
         and thinking.get("type") == "enabled"
@@ -402,13 +401,15 @@ def usage_record(response, binding):
     if not isinstance(response, dict) or response.get("model") != binding.model:
         raise D.BudgetStop("API response model mismatch")
     usage = response.get("usage")
-    legacy = binding.model == LEGACY_MODEL
     geo = usage.get("inference_geo") if isinstance(usage, dict) else None
-    legacy_scope = legacy and geo in (None, "not_available")
+    default_scope = (
+        binding.contract.authentication == "claude-code-subscription-oauth"
+        and geo in (None, "not_available")
+    )
     if (
         not isinstance(usage, dict)
         or usage.get("service_tier") != "standard"
-        or (not legacy_scope and geo != "global")
+        or (not default_scope and geo != "global")
     ):
         raise D.BudgetStop("missing API billing scope")
     allowed = {
@@ -468,8 +469,8 @@ def usage_record(response, binding):
         "model": binding.model,
         "service_tier": "standard",
         "inference_geo": geo,
-        "billing_scope_basis": "legacy-model-standard-rates"
-        if legacy_scope
+        "billing_scope_basis": "oauth-native-default-frozen-rates"
+        if default_scope
         else "server-global",
         "speed": "standard",
         "server_tool_use": {"web_search_requests": 0, "web_fetch_requests": 0},

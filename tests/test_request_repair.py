@@ -84,11 +84,11 @@ def test_legacy_usage_keeps_raw_scope_and_derives_standard_rates(reg, geo):
         value["usage"]["inference_geo"] = geo
     record = usage_record(value, reg.binding("floor-haiku45-api"))
     assert record["inference_geo"] == (None if geo == "absent" else geo)
-    assert record["billing_scope_basis"] == "legacy-model-standard-rates"
+    assert record["billing_scope_basis"] == "oauth-native-default-frozen-rates"
 
 
-@pytest.mark.parametrize("geo", [None, "not_available", "us"])
-def test_later_models_cannot_use_legacy_scope(reg, geo):
+@pytest.mark.parametrize("geo", ["us", "unknown", {}])
+def test_later_models_refuse_nondefault_scope(reg, geo):
     binding = reg.binding("floor-sonnet55-api")
     value = response(binding.model)
     value["usage"]["inference_geo"] = geo

@@ -338,10 +338,20 @@ def api_usage_charge(call, binding: Binding, proof_path: str, proof_sha256: str)
                 or not (
                     request["inference_geo"] == "global"
                     or (
-                        binding.model == "claude-haiku-4-5-20251001"
-                        and request["inference_geo"] in (None, "not_available")
-                        and request.get("billing_scope_basis")
-                        == "legacy-model-standard-rates"
+                        request["inference_geo"] in (None, "not_available")
+                        and (
+                            (
+                                binding.model == "claude-haiku-4-5-20251001"
+                                and request.get("billing_scope_basis")
+                                == "legacy-model-standard-rates"
+                            )
+                            or (
+                                binding.contract.authentication
+                                == "claude-code-subscription-oauth"
+                                and request.get("billing_scope_basis")
+                                == "oauth-native-default-frozen-rates"
+                            )
+                        )
                     )
                 )
                 or request["speed"] != "standard"
@@ -523,6 +533,18 @@ RECOVERY_TRIGGERS = {
 }
 
 
+# Additive guards only at commissioned link3; old schemas/guard definitions stay
+# byte-identical. Derive settled IDs/identities from the append-only sealed record.
+SETTLED_TRIGGERS = {
+    f"historical_settled_{operation}": f"CREATE TRIGGER historical_settled_{operation} BEFORE {operation.upper()} ON calls WHEN EXISTS (SELECT 1 FROM calls c, registry_transitions t, json_each(t.payload, '$.expected_calls') e WHERE t.seq=3 AND json_extract(e.value, '$.accounting_status')='settled' AND c.id=json_extract(e.value, '$.call_id') AND ({predicate})) BEGIN SELECT RAISE(ABORT, 'historical settlement is immutable'); END"
+    for operation, predicate in (
+        ("insert", "c.id=NEW.id OR c.identity=NEW.identity"),
+        ("update", "c.id=OLD.id OR c.id=NEW.id OR c.identity=NEW.identity"),
+        ("delete", "c.id=OLD.id"),
+    )
+}
+
+
 def _recovery_schema(db):
     db.execute(
         "CREATE TABLE registry_transitions (seq INTEGER PRIMARY KEY, payload TEXT NOT NULL, sha256 TEXT UNIQUE NOT NULL)"
@@ -562,7 +584,7 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
         "evidence",
         "provenance",
     }
-    if isinstance(plan, dict) and plan.get("schema_version") == 2:
+    if isinstance(plan, dict) and plan.get("schema_version") in (2, 3):
         required |= {
             "original_registry_sha256",
             "previous_transition",
@@ -570,11 +592,13 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
             "expected_charges",
             "expected_exposure_microdollars",
         }
+    if isinstance(plan, dict) and plan.get("schema_version") == 3:
+        required.add("retry")
     if (
         not isinstance(plan, dict)
         or set(plan) != required
         or type(plan["schema_version"]) is not int
-        or plan["schema_version"] not in (1, 2)
+        or plan["schema_version"] not in (1, 2, 3)
     ):
         raise BudgetStop("unsupported recovery plan")
     _token(plan["transition_id"])
@@ -625,7 +649,7 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
         or not SHA.fullmatch(original_init["prior_sha256"])
     ):
         raise BudgetStop("original initialization provenance mismatch")
-    if plan["schema_version"] == 2:
+    if plan["schema_version"] in (2, 3):
         prior = plan["previous_transition"]
         if (
             not isinstance(plan["original_registry_sha256"], str)
@@ -633,7 +657,7 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
             or not isinstance(prior, dict)
             or set(prior) != {"sequence", "record_sha256", "payload_sha256"}
             or type(prior["sequence"]) is not int
-            or prior["sequence"] != 1
+            or prior["sequence"] != plan["schema_version"] - 1
             or any(
                 not isinstance(prior[k], str) or not SHA.fullmatch(prior[k])
                 for k in ("record_sha256", "payload_sha256")
@@ -644,7 +668,7 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
         charges = plan["expected_charges"]
         if (
             not isinstance(inventory, list)
-            or len(inventory) != 2
+            or len(inventory) != (2 if plan["schema_version"] == 2 else 4)
             or any(
                 not isinstance(item, dict)
                 or set(item)
@@ -655,11 +679,16 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
                     "reservation_microdollars",
                     "accounting_status",
                 }
+                | ({"actual_microdollars"} if plan["schema_version"] == 3 else set())
                 for item in inventory
             )
-            or len({item["call_id"] for item in inventory}) != 2
+            or len({item["call_id"] for item in inventory}) != len(inventory)
             or {item["accounting_status"] for item in inventory}
-            != {"charged-uncertain", "uncertain"}
+            != (
+                {"charged-uncertain", "uncertain"}
+                if plan["schema_version"] == 2
+                else {"charged-uncertain", "uncertain", "settled"}
+            )
         ):
             raise BudgetStop("closed two-call inventory required")
         for item in inventory:
@@ -676,35 +705,103 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
         target = next(
             item for item in inventory if item["accounting_status"] == "uncertain"
         )
-        if {k: v for k, v in target.items() if k != "accounting_status"} != call:
+        if {
+            k: v
+            for k, v in target.items()
+            if k not in {"accounting_status", "actual_microdollars"}
+        } != call:
             raise BudgetStop("charged target differs from inventory")
-        if (
-            not isinstance(charges, list)
-            or len(charges) != 1
-            or not isinstance(charges[0], dict)
-            or set(charges[0])
-            != {"call_id", "payload_sha256", "amount", "transition_sha256"}
-        ):
-            raise BudgetStop("exact historical charge required")
-        protected = next(
-            item
-            for item in inventory
-            if item["accounting_status"] == "charged-uncertain"
-        )
-        if (
-            charges[0]
-            != {
-                "call_id": protected["call_id"],
-                "payload_sha256": protected["payload_sha256"],
-                "amount": protected["reservation_microdollars"],
-                "transition_sha256": prior["record_sha256"],
+        if plan["schema_version"] == 2:
+            if (
+                not isinstance(charges, list)
+                or len(charges) != 1
+                or not isinstance(charges[0], dict)
+                or set(charges[0])
+                != {"call_id", "payload_sha256", "amount", "transition_sha256"}
+            ):
+                raise BudgetStop("exact historical charge required")
+            protected = next(
+                item
+                for item in inventory
+                if item["accounting_status"] == "charged-uncertain"
+            )
+            if (
+                charges[0]
+                != {
+                    "call_id": protected["call_id"],
+                    "payload_sha256": protected["payload_sha256"],
+                    "amount": protected["reservation_microdollars"],
+                    "transition_sha256": prior["record_sha256"],
+                }
+                or type(plan["expected_exposure_microdollars"]) is not int
+                or plan["expected_exposure_microdollars"]
+                != sum(item["reservation_microdollars"] for item in inventory)
+                or plan["expected_exposure_microdollars"] > CAP
+            ):
+                raise BudgetStop("historical charge or exposure differs")
+        else:
+            if (
+                sum(i["accounting_status"] == "charged-uncertain" for i in inventory)
+                != 2
+                or sum(i["accounting_status"] == "uncertain" for i in inventory) != 1
+                or sum(i["accounting_status"] == "settled" for i in inventory) != 1
+                or not isinstance(charges, list)
+                or len(charges) != 2
+                or any(
+                    not isinstance(c, dict)
+                    or set(c)
+                    != {"call_id", "payload_sha256", "amount", "transition_sha256"}
+                    for c in charges
+                )
+            ):
+                raise BudgetStop("exact third recovery inventory required")
+            by_id = {
+                i["call_id"]: i
+                for i in inventory
+                if i["accounting_status"] == "charged-uncertain"
             }
-            or type(plan["expected_exposure_microdollars"]) is not int
-            or plan["expected_exposure_microdollars"]
-            != sum(item["reservation_microdollars"] for item in inventory)
-            or plan["expected_exposure_microdollars"] > CAP
-        ):
-            raise BudgetStop("historical charge or exposure differs")
+            if {c["call_id"] for c in charges} != set(by_id):
+                raise BudgetStop("historical charges differ")
+            for charge in charges:
+                original = by_id[charge["call_id"]]
+                if (
+                    charge["payload_sha256"] != original["payload_sha256"]
+                    or charge["amount"] != original["reservation_microdollars"]
+                    or not isinstance(charge["transition_sha256"], str)
+                    or not SHA.fullmatch(charge["transition_sha256"])
+                ):
+                    raise BudgetStop("historical charge seal differs")
+            for item in inventory:
+                actual = item["actual_microdollars"]
+                if item["accounting_status"] == "settled":
+                    if (
+                        type(actual) is not int
+                        or not 0 <= actual <= item["reservation_microdollars"]
+                    ):
+                        raise BudgetStop("invalid historical actual usage")
+                elif actual is not None:
+                    raise BudgetStop("unexpected historical actual usage")
+            expected = sum(
+                i["actual_microdollars"]
+                if i["accounting_status"] == "settled"
+                else i["reservation_microdollars"]
+                for i in inventory
+            )
+            if (
+                type(plan["expected_exposure_microdollars"]) is not int
+                or plan["expected_exposure_microdollars"] != expected
+                or expected > CAP
+            ):
+                raise BudgetStop("third recovery exposure differs")
+            if plan["retry"] != {
+                "binding_id": "plugin-sonnet5-api",
+                "phase": "sufficiency",
+                "task": "read-page",
+                "trial": 1,
+                "from_attempt": 1,
+                "to_attempt": 2,
+            }:
+                raise BudgetStop("only commissioned read-page attempt2 allowed")
     folder = Path(plan["evidence_directory"])
     if not folder.is_absolute() or folder.resolve() != folder or not folder.is_dir():
         raise BudgetStop("original evidence directory unavailable")
@@ -810,7 +907,7 @@ def _transition_record(
     if old_registry.digest != plan["old_registry_sha256"]:
         raise BudgetStop("original recovery registry mismatch")
     _same_economics(old_registry, new_registry)
-    second = plan["schema_version"] == 2
+    second = plan["schema_version"] >= 2
     if (
         second
         and old_meta.get("transition_head")
@@ -819,7 +916,7 @@ def _transition_record(
         raise BudgetStop("historical metadata transition head differs")
     record = {
         "schema_version": plan["schema_version"],
-        "sequence": 2 if second else 1,
+        "sequence": plan["schema_version"],
         "previous_hash": plan["previous_transition"]["record_sha256"]
         if second
         else plan["expected_metadata_sha256"],
@@ -845,6 +942,13 @@ def _transition_record(
             cumulative_consumed_exposure_microdollars=plan[
                 "expected_exposure_microdollars"
             ],
+        )
+    if plan["schema_version"] == 3:
+        record["retry"] = plan["retry"]
+        record["cumulative_consumed_exposure_microdollars"] = sum(
+            i["reservation_microdollars"]
+            for i in plan["expected_calls"]
+            if i["accounting_status"] != "settled"
         )
     return record
 
@@ -962,6 +1066,12 @@ class Ledger:
                 binding = protection["registry"].binding(row["binding_id"])
             else:
                 binding = registry.binding(row["binding_id"])
+            if (
+                protection is not None
+                and protection.get("kind") == "settled"
+                and row["status"] != "settled"
+            ):
+                raise BudgetStop("historical settlement status differs")
             bound = binding.validate()
             if row["binding_sha256"] != binding.digest:
                 raise BudgetStop("per-call binding seal mismatch")
@@ -999,7 +1109,7 @@ class Ledger:
                 _proof(row["outcome"]["path"], row["outcome"]["sha256"])
             if row["fingerprint"] and not SHA.fullmatch(row["fingerprint"]):
                 raise BudgetStop("invalid execution fingerprint")
-            if protection is not None:
+            if protection is not None and protection.get("kind") != "settled":
                 if (
                     row["status"] != "uncertain"
                     or row["stop_reason"] != "interrupted"
@@ -1038,8 +1148,6 @@ class Ledger:
         triggers = dict(
             db.execute("SELECT name, sql FROM sqlite_master WHERE type='trigger'")
         )
-        if triggers != RECOVERY_TRIGGERS:
-            raise BudgetStop("immutable recovery guards differ")
         transitions = list(
             db.execute(
                 "SELECT seq, payload, sha256 FROM registry_transitions ORDER BY seq"
@@ -1050,16 +1158,23 @@ class Ledger:
                 "SELECT call_id, payload_sha256, amount, transition_sha256 FROM charged_uncertain ORDER BY call_id"
             )
         )
+        expected_guards = RECOVERY_TRIGGERS | (
+            SETTLED_TRIGGERS if len(transitions) == 3 else {}
+        )
+        if triggers != expected_guards:
+            raise BudgetStop("immutable recovery guards differ")
         if not transitions:
             if meta["transition_head"] is not None or charges:
                 raise BudgetStop("orphan recovery state")
             return {}
-        # Only the commissioned original recovery plus one v2 recovery.
-        if len(transitions) > 2 or [entry[0] for entry in transitions] != list(
+        # Only the three owner-commissioned recovery transitions.
+        if len(transitions) > 3 or [entry[0] for entry in transitions] != list(
             range(1, len(transitions) + 1)
         ):
             raise BudgetStop("unsupported registry transition chain")
         protected = {}
+        preserved_settled = {}
+        root_registry = None
         expected_charges = []
         previous_record = previous_payload = previous_sha = None
         for sequence, payload, sha256 in transitions:
@@ -1083,37 +1198,54 @@ class Ledger:
             )
             if _digest(expected) != sha256:
                 raise BudgetStop("registry transition provenance differs")
-            if sequence == 2:
+            if sequence == 1:
+                root_registry = record["from_registry_sha256"]
+            if sequence >= 2:
                 if (
                     plan["previous_transition"]
                     != {
-                        "sequence": 1,
+                        "sequence": sequence - 1,
                         "record_sha256": previous_sha,
                         "payload_sha256": _raw_sha(previous_payload),
                     }
                     or record["previous_hash"] != previous_sha
                     or record["from_registry_sha256"]
                     != previous_record["to_registry_sha256"]
-                    or plan["expected_charges"] != expected_charges
-                    or plan["original_registry_sha256"]
-                    != previous_record["from_registry_sha256"]
+                    or plan["expected_charges"]
+                    != sorted(expected_charges, key=lambda i: i["call_id"])
+                    or plan["original_registry_sha256"] != root_registry
                 ):
                     raise BudgetStop("historical transition link differs")
-                prior_call = next(
-                    item
-                    for item in plan["expected_calls"]
-                    if item["accounting_status"] == "charged-uncertain"
-                )
-                known = protected.get(prior_call["call_id"])
-                if known is None or any(
-                    prior_call[key] != known[key]
-                    for key in (
-                        "identity_sha256",
-                        "payload_sha256",
-                        "reservation_microdollars",
-                    )
+                for prior_call in (
+                    i
+                    for i in plan["expected_calls"]
+                    if i["accounting_status"] == "charged-uncertain"
                 ):
-                    raise BudgetStop("historical inventory differs")
+                    known = protected.get(prior_call["call_id"])
+                    if known is None or any(
+                        prior_call[k] != known[k]
+                        for k in (
+                            "identity_sha256",
+                            "payload_sha256",
+                            "reservation_microdollars",
+                        )
+                    ):
+                        raise BudgetStop("historical inventory differs")
+                if sequence == 3:
+                    item = next(
+                        i
+                        for i in plan["expected_calls"]
+                        if i["accounting_status"] == "settled"
+                    )
+                    if item["call_id"] in protected:
+                        raise BudgetStop("settlement conflicts with permanent charge")
+                    preserved_settled[item["call_id"]] = {
+                        **item,
+                        "kind": "settled",
+                        "registry": Registry.from_dict(
+                            json.loads(record["old_metadata_payload"])["registry"]
+                        ),
+                    }
             call = plan["call"]
             if call["call_id"] in protected:
                 raise BudgetStop("duplicate permanent charge")
@@ -1149,7 +1281,7 @@ class Ledger:
             or registry.digest != previous_record["to_registry_sha256"]
         ):
             raise BudgetStop("active registry/transition head differs")
-        return protected
+        return protected | preserved_settled
 
     def recover_and_transition(
         self, plan_path: Path, plan_sha256: str, registry: Registry
@@ -1198,7 +1330,10 @@ class Ledger:
                         "exposure_microdollars": exposure,
                         "halted": meta["halted"],
                     }
-                if plan["schema_version"] != 2 or len(existing) != 1:
+                if (
+                    plan["schema_version"] not in (2, 3)
+                    or len(existing) != plan["schema_version"] - 1
+                ):
                     raise BudgetStop("conflicting duplicate recovery")
             if plan["schema_version"] == 1:
                 if meta["version"] != 2 or meta["halted"] is not True or len(rows) != 1:
@@ -1209,14 +1344,14 @@ class Ledger:
                 if (
                     meta["version"] != 3
                     or meta["halted"] is not True
-                    or len(existing) != 1
-                    or len(rows) != 2
+                    or len(existing) != plan["schema_version"] - 1
+                    or len(rows) != (2 if plan["schema_version"] == 2 else 4)
                     or exposure != plan["expected_exposure_microdollars"]
                 ):
                     raise BudgetStop(
                         "recovery requires the exact second-transition halt"
                     )
-                seq, payload, previous_sha = existing[0]
+                seq, payload, previous_sha = existing[-1]
                 if plan["previous_transition"] != {
                     "sequence": seq,
                     "record_sha256": previous_sha,
@@ -1245,6 +1380,11 @@ class Ledger:
                         "reservation_microdollars": json.loads(payload)["reservation"],
                         "accounting_status": statuses[i],
                     }
+                    | (
+                        {"actual_microdollars": json.loads(payload)["actual"]}
+                        if plan["schema_version"] == 3
+                        else {}
+                    )
                     for i, identity, payload in db.execute(
                         "SELECT * FROM calls ORDER BY id"
                     )
@@ -1261,6 +1401,25 @@ class Ledger:
             ).fetchone()[0]
             call = plan["call"]
             row = next(row for row in rows if row["call"]["call_id"] == call["call_id"])
+            if plan["schema_version"] == 3:
+                retry = plan["retry"]
+                original_call = Call(**row["call"])
+                if (
+                    row["binding_id"],
+                    original_call.phase,
+                    original_call.task,
+                    original_call.trial,
+                    original_call.attempt,
+                ) != (
+                    retry["binding_id"],
+                    retry["phase"],
+                    retry["task"],
+                    retry["trial"],
+                    retry["from_attempt"],
+                ):
+                    raise BudgetStop(
+                        "third recovery target differs from commissioned retry"
+                    )
             raw_id, raw_identity, raw_payload = db.execute(
                 "SELECT id, identity, payload FROM calls WHERE id=?", (call["call_id"],)
             ).fetchone()
@@ -1302,6 +1461,9 @@ class Ledger:
                     sha256,
                 ),
             )
+            if plan["schema_version"] == 3:
+                for sql in SETTLED_TRIGGERS.values():
+                    db.execute(sql)
             updated = {
                 **meta,
                 "version": SCHEMA_VERSION,
@@ -1315,16 +1477,20 @@ class Ledger:
             )
             after_meta, after_rows, after_exposure = self._read(db)
             if after_exposure != exposure or any(
-                row["status"] != "charged-uncertain" for row in after_rows
+                row["status"] not in {"charged-uncertain", "settled"}
+                for row in after_rows
             ):
                 raise BudgetStop("recovery conservation check failed")
+            consumed = sum(
+                i[0] for i in db.execute("SELECT amount FROM charged_uncertain")
+            )
             return {
                 "already_applied": False,
                 "registry_sha256": registry.digest,
                 "transition_sha256": sha256,
-                "charged_uncertain_microdollars": after_exposure,
+                "charged_uncertain_microdollars": consumed,
                 "newly_consumed_microdollars": call["reservation_microdollars"],
-                "cumulative_consumed_microdollars": after_exposure,
+                "cumulative_consumed_microdollars": consumed,
                 "exposure_microdollars": after_exposure,
                 "halted": after_meta["halted"],
             }
@@ -1426,6 +1592,72 @@ class Ledger:
                 ),
             )
 
+    def retry_call(self, call: Call, binding: Binding) -> Call:
+        """Select only the third plan's single commissioned replacement attempt."""
+        call.validate()
+        with self._transaction() as db:
+            meta, rows, _ = self._read(db)
+            self._approved(meta, binding)
+            if meta["halted"]:
+                raise BudgetStop("ledger halted")
+            tail = db.execute(
+                "SELECT payload FROM registry_transitions ORDER BY seq DESC LIMIT 1"
+            ).fetchone()
+            if tail is None:
+                return call
+            record = json.loads(tail[0])
+            if record["schema_version"] != 3:
+                return call
+            retry = record["retry"]
+            if (binding.binding_id, call.phase, call.task, call.trial) != (
+                retry["binding_id"],
+                retry["phase"],
+                retry["task"],
+                retry["trial"],
+            ):
+                return call
+            if (
+                call.attempt != retry["from_attempt"]
+                or call.source_commit != record["provenance"]["source_heads"]["plugin"]
+            ):
+                raise BudgetStop("unreviewed retry/source refused")
+            predecessor = next(
+                r
+                for r in rows
+                if r["call"]["call_id"] == record["charged_calls"][0]["call_id"]
+            )
+            old = Call(**predecessor["call"])
+            if (
+                predecessor["status"] != "charged-uncertain"
+                or predecessor["binding_id"] != binding.binding_id
+                or (old.phase, old.task, old.trial, old.attempt)
+                != (
+                    retry["phase"],
+                    retry["task"],
+                    retry["trial"],
+                    retry["from_attempt"],
+                )
+            ):
+                raise BudgetStop("reviewed retry predecessor differs")
+            identifier = _digest(
+                [
+                    meta["transition_head"],
+                    binding.binding_id,
+                    call.phase,
+                    call.task,
+                    call.trial,
+                    retry["to_attempt"],
+                ]
+            )[:32]
+            return Call(
+                identifier,
+                call.phase,
+                call.task,
+                call.trial,
+                call.source_commit,
+                retry["to_attempt"],
+            )
+
     def cached(self, call: Call, binding: Binding, fingerprint: str):
         """Restore an exact completed observation without paying for it again."""
         call.validate()
@@ -1449,7 +1681,8 @@ class Ledger:
             ):
                 raise BudgetStop("resume source or request mismatch")
             if (
-                row["status"] in {"reserved", "charged-uncertain"}
+                row["status"] != "settled"
+                or row["receipt"] is None
                 or row["outcome"] is None
             ):
                 raise BudgetStop(
@@ -1583,6 +1816,9 @@ class Ledger:
                 raise BudgetStop(
                     "conservative charge is permanent; reconciliation refused"
                 )
+            if row["status"] == "settled" and row["receipt"] == asdict(receipt):
+                # _read already validated the sealed receipt with its historical binding.
+                return
             try:
                 actual = receipt.validate(
                     Call(**row["call"]),
@@ -1868,7 +2104,7 @@ def harness_call(phase: str, task: str, trial: int, *, attempt: int = 1) -> Call
     return call
 
 
-API_VERSION = 4
+API_VERSION = 5
 
 
 def bind_evaluator(
@@ -1909,6 +2145,7 @@ def interface_manifest():
         Ledger.reserve,
         Ledger.reconcile,
         Ledger.recover_and_transition,
+        Ledger.retry_call,
         Ledger.approved_binding,
         BudgetLauncher.run,
         bind_evaluator,

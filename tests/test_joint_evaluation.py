@@ -336,7 +336,7 @@ def test_cache_controls_removed_before_bounded_dispatch(reg):
     prepared = prepare_request(request, b)
     assert "cache_control" not in str(prepared)
     assert prepared["max_tokens"] == 2048
-    assert prepared["service_tier"] == "standard_only"
+    assert "service_tier" not in prepared and "inference_geo" not in prepared
     assert request_bound(b) == 210240
 
 

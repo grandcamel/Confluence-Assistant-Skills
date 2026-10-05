@@ -600,6 +600,7 @@ class ProductionTransport:
 
 class JointLauncher(D.BudgetLauncher):
     def run(self, cmd, prompt, *, call, evidence_destination=None, **kwargs):
+        call = self.ledger.retry_call(call, self.binding)
         destination = (
             Path(self.transport.config["evidence_root"]) / "calls" / call.call_id
         )
@@ -658,8 +659,9 @@ def run_joint(config, transport):
     plugin_calls = [
         r for r in snapshot["calls"] if r["call"]["phase"] in ("sufficiency", "routing")
     ]
-    if status not in (0, 1) or len(plugin_calls) != 85:
+    if status not in (0, 1):
         raise D.BudgetStop("plugin incomplete; see persisted trial evidence")
+    check_plugin_completion(plugin_calls)
     floor_path = (
         Path(config["sources"]["floor"]["path"]) / "tests/floor_eval/run_eval.py"
     )
@@ -683,6 +685,58 @@ def run_joint(config, transport):
     finish_floor(floor, transport)
     if status:
         raise D.BudgetStop("joint trials complete; plugin scoring threshold failed")
+
+
+def check_plugin_completion(rows):
+    """Exactly85 settled logical observations; only one charged predecessor allowed."""
+    import yaml
+
+    plugin = Path(__file__).resolve().parents[1]
+    sufficiency = yaml.safe_load((plugin / "tests/e2e/test_cases.yaml").read_text())[
+        "tasks"
+    ]
+    routing = yaml.safe_load(
+        (plugin / "skills/confluence/tests/routing_golden.yaml").read_text()
+    )["tests"]
+    expected = {
+        (phase, item["id"], trial)
+        for phase, items in (("sufficiency", sufficiency), ("routing", routing))
+        for item in items
+        for trial in range(1, 6)
+    }
+    if len(expected) != 85:
+        raise D.BudgetStop("plugin inventory differs")
+    observations = {}
+    predecessor = None
+    for row in rows:
+        call = row["call"]
+        logical = (call["phase"], call["task"], call["trial"])
+        if logical not in expected or row["binding_id"] != "plugin-sonnet5-api":
+            raise D.BudgetStop("unexpected plugin observation")
+        if row["status"] == "charged-uncertain":
+            if (
+                logical != ("sufficiency", "read-page", 1)
+                or call["attempt"] != 1
+                or predecessor is not None
+            ):
+                raise D.BudgetStop("unreviewed charged plugin predecessor")
+            predecessor = logical
+            continue
+        if (
+            row["status"] != "settled"
+            or logical in observations
+            or not row["receipt"]
+            or not row["outcome"]
+        ):
+            raise D.BudgetStop(
+                "plugin incomplete or duplicate; see persisted trial evidence"
+            )
+        observations[logical] = call["attempt"]
+    if set(observations) != expected or any(
+        attempt != (2 if logical == predecessor else 1)
+        for logical, attempt in observations.items()
+    ):
+        raise D.BudgetStop("plugin logical trial coverage differs")
 
 
 def finish_floor(floor, transport):
