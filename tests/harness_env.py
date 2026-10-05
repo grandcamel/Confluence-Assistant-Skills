@@ -3,29 +3,19 @@ Shared subprocess-environment builder for the two live harnesses: the
 help-only sufficiency arm (tests/e2e/) and the two-skill routing check
 (skills/confluence/tests/test_routing.py).
 
-Both harnesses launch the real `claude` binary as a subprocess, and the
-sufficiency arm also replays `confluence-as` commands directly. The
-environment is built from an ALLOWLIST, not a denylist: copying
-os.environ and removing a handful of named credential variables would
-still let anything else through unexamined -- another CONFLUENCE_*/
-ANTHROPIC_* variable, or an unrelated secret the operator happens to
-have exported. Adapted from the jira plugin's own tests/harness_env.py:
-see USER/LOGNAME below for a login-lookup finding this module reuses
-unchanged.
+The paid launch and replay boundaries are owned by evaluation_budget.py.
+This helper builds only a credential-free simulation/replay environment; its
+HOME/USER values do not admit a subscription-authenticated model session.
+The owner selected ANTHROPIC_API_KEY plus API usage dollars for Claude trials.
+The separately reviewed transport must inject that owner-provided credential
+without exposing it to tools, replay, transcripts, proofs or the ledger. This
+module never looks up, copies or logs the key. Production is refused by default.
 """
 
 import os
 
-# The only variables ever copied from the operator's own environment.
-# PATH is required to find the `claude` and `confluence-as` binaries at
-# all. HOME is required for Claude Code's own authentication, whose
-# OAuth credentials live under ~/.claude/ -- without it the subprocess
-# cannot authenticate even though nothing Confluence-related is at
-# stake. USER and LOGNAME are required for that same authentication: the
-# jira sibling harness's live probe found that with only
-# PATH/HOME/TERM/LANG set, the CLI reports "Not logged in" -- its
-# Keychain-backed login lookup needs USER/LOGNAME to identify the
-# account, not just HOME to locate the credentials file.
+# Nonsecret process/CLI resolution fields only. Authentication and containment
+# are the trusted transport's responsibility, never inferred from HOME.
 _REQUIRED_PASSTHROUGH_VARS = ("PATH", "HOME", "USER", "LOGNAME")
 
 # Copied only when present; terminal/locale-sensitive output only, no

@@ -25,6 +25,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.evaluation_budget import harness_call, require_launcher
 from tests.harness_env import build_harness_env
 
 from .runner import EMPTY_MCP_CONFIG, SufficiencyRunner
@@ -108,6 +109,7 @@ def _sufficiency_gate(request, e2e_enabled, harness_env):
             "tokens)."
         )
 
+    launcher = require_launcher()  # Refuse before even probing an unbound route.
     try:
         probe = subprocess.run(
             ["claude", "--version"],
@@ -137,10 +139,15 @@ def _sufficiency_gate(request, e2e_enabled, harness_env):
     model = request.config.getoption("--sufficiency-model")
     with tempfile.TemporaryDirectory(prefix="sufficiency-auth-probe-") as probe_cwd:
         try:
-            auth_probe = subprocess.run(
+            auth_probe = launcher.run(
                 [
                     "claude",
                     "--print",
+                    "--output-format",
+                    "stream-json",
+                    "--verbose",
+                    "--tools",
+                    "",
                     "--model",
                     model,
                     "--max-turns",
@@ -148,10 +155,9 @@ def _sufficiency_gate(request, e2e_enabled, harness_env):
                     "--strict-mcp-config",
                     "--mcp-config",
                     str(EMPTY_MCP_CONFIG),
-                    "Reply with the single word OK.",
                 ],
-                capture_output=True,
-                text=True,
+                "Reply with the single word OK.",
+                call=harness_call("probe", "authentication", 1),
                 timeout=120,
                 env=harness_env,
                 cwd=probe_cwd,
@@ -161,6 +167,8 @@ def _sufficiency_gate(request, e2e_enabled, harness_env):
                 f"{E2E_SUFFICIENCY_VAR}=1 was set but the authenticated "
                 "`claude --print` probe did not respond within 120s."
             )
+    if auth_probe.timed_out or auth_probe.early_stop:
+        pytest.fail("authenticated probe incomplete; budget reservation retained")
     if auth_probe.returncode != 0:
         detail = (auth_probe.stderr or auth_probe.stdout).strip()[:500]
         pytest.fail(
