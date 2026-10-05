@@ -56,51 +56,62 @@ point either harness at a `confluence-as` build other than whatever is
 on the operator's own `PATH` -- see the next section for why that
 scratch venv currently has to exist.
 
-## The scratch confluence-as CLI
+## The reviewed confluence-as CLI
 
-`confluence-as` 2.0.0 final is not on PyPI yet -- only the `2.0.0rc1`
-pre-release is. Until it ships:
-
-```bash
-python3 -m venv ~/.venvs/confluence-as-2.0.0rc1
-~/.venvs/confluence-as-2.0.0rc1/bin/pip install --pre "confluence-as==2.0.0rc1" pytest pytest-asyncio pytest-cov pyyaml
-export HARNESS_CLI_BIN=~/.venvs/confluence-as-2.0.0rc1/bin
-```
-
-The offline suite itself does not need the CLI installed at all -- no
-test in it imports or shells out to `confluence-as`.
+Host harnesses must use the exact product wheel from the reviewed build
+packet. Install it into a scratch venv after checking its SHA256 and set
+`HARNESS_CLI_BIN` to that venv's `bin/` directory. The offline suite does
+not need the CLI installed: it uses local fixtures only.
 
 ## CI
 
-`.github/workflows/ci.yml`'s `test` job installs `confluence-as` with
-`--pre` (for the same reason as above) and runs:
+CI and release validation require repository variables
+`CONFLUENCE_CLI_WHEEL_URL` and `CONFLUENCE_CLI_WHEEL_SHA256` from the reviewed
+product build packet. `tests/release_checks.py` rejects missing bindings,
+wrong digests, wrong product names and wrong major versions before installation.
+Validation installs the verified product wheel directly, checks dependencies,
+collects both paid modules without executing them, inspects packaging, and runs:
 
 ```bash
 python -m pytest -q --deselect skills/confluence/tests/test_routing.py --deselect tests/e2e/test_plugin_e2e.py
+ruff check .
+ruff format --check .
 ```
 
-`lint`, `type-check`, `security`, `dependency-scan`, `pre-commit` and
-`docker-lint` run as separate jobs; `ci-success` gates on `lint` and
-`test`. No workflow in this repository invokes the `claude` binary.
+The remaining CI jobs retain their existing advisory role. `ci-success`
+requires successful lint and test jobs, including refusing skipped jobs.
+No workflow invokes the `claude` binary.
 
 ## Release policy
 
-Versions are hand-bumped across five sites: `VERSION`,
+Every present version field must equal `3.0.0`: `VERSION`,
 `.release-please-manifest.json`, `pyproject.toml`,
-`.claude-plugin/plugin.json`, and the skill's own frontmatter `version`
-(`.claude-plugin/marketplace.json`'s two version fields too, since that
-file exists in this repository). `tests/test_consistency.py` asserts
-they all agree. Conventional commits carry no `!` suffix and no
-`BREAKING CHANGE:` footer -- a breaking release is recorded by hand in
-`CHANGELOG.md` under a `### ⚠ BREAKING CHANGES` heading instead. Because the manifest is hand-bumped, `release-please`
-proposes its own next minor on `main`; the release itself is a manual
-`vX.Y.Z` tag after merge, and the `release-please` proposal is closed.
+`.claude-plugin/plugin.json`, the adopted skill's frontmatter, and both
+`.claude-plugin/marketplace.json` fields. The dependency remains
+`confluence-as>=2,<3`. Preserve the adopted skill when preparing packaging.
 
-`.github/workflows/sync-marketplace.yml` pushes this repository's
-`.claude-plugin/plugin.json` version to the separate `as-plugins`
-marketplace repository automatically on every push to `main`; it does
-not update that repository's own `description` field, which needs a
-manual follow-up PR after a version bump that changes it.
+Main pushes cannot start release-please, create a release, or update the
+marketplace. Close the superseded release-please proposal separately after
+review; its historical configuration is retained but no workflow runs it.
+
+Before any dispatch, configure required reviewers and main-only restrictions
+for the separate `plugin-release` and `marketplace-review` environments.
+These settings are an operator prerequisite; YAML cannot configure reviewers.
+Complete product, paid sufficiency/routing, and Knowledge Floor acceptance
+before approving publication. Offline validation alone does not satisfy them.
+
+Dispatch `release.yml` on `main` with the full reviewed `candidate_sha`.
+Its default `publish=false` validates only. Explicit `publish=true` and the
+`plugin-release` environment approval permit the validated archive to be
+released as `v3.0.0`; an existing tag or release must not be replaced.
+`tests/release_checks.py` creates a reproducible archive containing only the
+manifests, adopted skill, README, VERSION and license, never the harnesses.
+
+Dispatch `sync-marketplace.yml` separately with the full reviewed
+`candidate_sha` and approve the `marketplace-review` environment. It creates
+an update PR in `as-plugins` for human review and never auto-merges it.
+A changed product description still needs a separately reviewed update.
+Release and marketplace dispatches do not authorize promotion.
 
 ### Before each plugin release
 

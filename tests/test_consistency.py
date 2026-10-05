@@ -125,7 +125,7 @@ def test_manifests_agree_on_one_version():
     """Every present version-bearing manifest must agree on one version."""
     versions = _manifest_versions()
     unique = set(versions.values())
-    assert len(unique) == 1, f"manifest versions disagree: {versions}"
+    assert unique == {"3.0.0"}, f"manifest versions must equal 3.0.0: {versions}"
 
 
 # ---------------------------------------------------------------------------
@@ -273,6 +273,7 @@ _CONCEPT_SWEEP_KNOWN_FALSE_POSITIVES = {
     (".github/workflows/ci.yml", "permissions"),
     (".github/workflows/release.yml", "permission"),
     (".github/workflows/release.yml", "permissions"),
+    (".github/workflows/sync-marketplace.yml", "permissions"),
 }
 
 

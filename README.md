@@ -23,10 +23,10 @@ claude plugin install confluence-assistant-skills@as-plugins --scope user
 
 ```bash
 git clone https://github.com/grandcamel/Confluence-Assistant-Skills.git
-pip install --pre "confluence-as>=2,<3"
+pip install "confluence-as>=2,<3"
 ```
 
-`--pre` is needed until `confluence-as` 2.0.0 final ships to PyPI (only the `2.0.0rc1` pre-release is published there today).
+For a release candidate, use the exact wheel and SHA256 from its reviewed product packet. Final installation requires the published 2.x release.
 
 ## Use
 
@@ -54,6 +54,19 @@ Two additional harnesses launch the real Claude Code CLI and are host-triggered 
 - **Two-skill routing check** (`skills/confluence/tests/test_routing.py`) -- given a prompt, does Claude Code load this skill, a sibling plugin's, or neither?
 
 See [CLAUDE.md](CLAUDE.md) for repository layout, the release process, and CI.
+
+## Release validation
+
+Landing on `main` runs CI only. Release and marketplace workflows require
+separate manual dispatches bound to the full reviewed main commit SHA;
+marketplace updates create a PR for review and never merge it automatically.
+The release workflow defaults to validation only.
+
+CI and release validation require repository variables
+`CONFLUENCE_CLI_WHEEL_URL` and `CONFLUENCE_CLI_WHEEL_SHA256` from the reviewed
+product build packet. Missing or mismatched bindings fail validation; the
+product wheel is installed directly, with no editable product dependency.
+The plugin archive includes the adopted skill and excludes the test harnesses.
 
 ## License
 

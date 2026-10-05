@@ -10,6 +10,15 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+env:
+  CLI_WHEEL_URL: ${{ vars.CONFLUENCE_CLI_WHEEL_URL }}
+  CLI_WHEEL_SHA256: ${{ vars.CONFLUENCE_CLI_WHEEL_SHA256 }}
+  E2E_SUFFICIENCY: "0"
+  PYTEST_ADDOPTS: ""
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -59,8 +68,8 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install mypy types-requests types-click
-          # confluence-as 2.0.0 final is not on PyPI yet; --pre until it ships.
-          pip install --pre "confluence-as>=2,<3"
+          python tests/release_checks.py fetch-wheel .artifacts
+          pip install .artifacts/*.whl
           pip install --no-deps -e .
 
       - name: Run mypy on source
@@ -153,10 +162,19 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          # confluence-as 2.0.0 final is not on PyPI yet -- only the
-          # 2.0.0rc1 pre-release is, so --pre is required until it ships.
-          pip install --pre "confluence-as>=2,<3" pytest pytest-asyncio pytest-cov pyyaml
+          pip install pytest pytest-asyncio pytest-cov pyyaml
+          python tests/release_checks.py fetch-wheel .artifacts
+          pip install .artifacts/*.whl
           pip install --no-deps -e .
+
+      - name: Check installed dependencies
+        run: pip check
+
+      - name: Collect paid modules without launching
+        run: python -m pytest --collect-only -q skills/confluence/tests/test_routing.py tests/e2e/test_plugin_e2e.py
+
+      - name: Inspect release packaging
+        run: python tests/release_checks.py archive dist/confluence-assistant-skills-3.0.0.tar.gz
 
       - name: Run unit tests
         run: |
@@ -225,8 +243,8 @@ jobs:
     steps:
       - name: Check required jobs
         run: |
-          if [[ "${{ needs.lint.result }}" == "failure" ]] || \
-             [[ "${{ needs.test.result }}" == "failure" ]]; then
+          if [[ "${{ needs.lint.result }}" != "success" ]] || \
+             [[ "${{ needs.test.result }}" != "success" ]]; then
             echo "Required checks failed"
             exit 1
           fi
