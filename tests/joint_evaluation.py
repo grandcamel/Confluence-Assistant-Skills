@@ -56,6 +56,16 @@ CONTEXT_SOURCES = {
     "claude-haiku-4-5-20251001": "https://platform.claude.com/docs/en/models/overview",
 }
 
+# A schema-2 configuration selects ONLY the ten routing prompts x five trials
+# on its own plugin head, in the existing canonical ledger. Its trials get a
+# separate phase and a run-id-scoped task, so they never collide with (or
+# replay) the joint run's settled routing rows and the joint completion check
+# never counts them. No sufficiency, Floor, probe, recovery or retry.
+REACCEPT_KIND = "routing-reacceptance-v1"
+REACCEPT_PHASE = "routing-reaccept"
+REACCEPT_BINDING = "plugin-sonnet5-api"
+ROUTED_PHASES = ("routing", REACCEPT_PHASE)  # both bounded to one model turn
+
 
 def file_hash(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -203,6 +213,7 @@ def checked_config(path, expected, *, recovery=False):
         raise D.BudgetStop("isolated Python with bytecode cache disabled required")
     D._proof(str(path), expected)
     config = json.loads(Path(path).read_text())
+    reaccept = is_reacceptance(config)
     required = {
         "schema_version",
         "ledger_path",
@@ -214,23 +225,25 @@ def checked_config(path, expected, *, recovery=False):
         "cli_bin",
         "runtime_read_paths",
         "evidence_root",
-    }
-    if set(config) != required or config["schema_version"] != 1:
+    } | ({"selection"} if reaccept else set())
+    if set(config) != required or config["schema_version"] != (2 if reaccept else 1):
         raise D.BudgetStop("incomplete controller configuration")
-    if set(config["sources"]) != {"plugin", "floor"}:
-        raise D.BudgetStop("both source checkouts required")
-    if not (
-        set(CODE_FILES)
-        | {
-            "models",
-            "proof",
-            "prior_ledger",
-            "floor_policy",
-            "claude",
-            "runtime_manifest",
-            "cli_wrapper",
-        }
-    ) <= set(config["files"]):
+    if set(config["sources"]) != ({"plugin"} if reaccept else {"plugin", "floor"}):
+        raise D.BudgetStop("reviewed source checkouts required")
+    proofs = set(CODE_FILES) | {
+        "models",
+        "proof",
+        "claude",
+        "runtime_manifest",
+        "cli_wrapper",
+    }
+    if reaccept:
+        if recovery or set(config["files"]) != proofs:
+            raise D.BudgetStop(
+                "routing re-acceptance takes no recovery, Floor or prior-ledger input"
+            )
+        check_selection(config["selection"])
+    elif not (proofs | {"prior_ledger", "floor_policy"}) <= set(config["files"]):
         raise D.BudgetStop("mandatory controller proofs missing")
     root = Path(__file__).resolve().parents[1]
     if Path(config["sources"]["plugin"]["path"]).resolve() != root:
@@ -266,7 +279,8 @@ def checked_config(path, expected, *, recovery=False):
     manifest = json.loads(Path(config["files"]["runtime_manifest"]["path"]).read_text())
     if manifest != runtime_manifest():
         raise D.BudgetStop("runtime import surface changed")
-    check_floor_policy(config, result)
+    if not reaccept:
+        check_floor_policy(config, result)
     if recovery:
         entry = config["files"]["recovery_plan"]
         plan = D._reviewed_recovery_plan(
@@ -277,6 +291,10 @@ def checked_config(path, expected, *, recovery=False):
         }:
             raise D.BudgetStop("recovery configuration/source mismatch")
         return config, result, None  # Recovery never creates a child or provider.
+    elif reaccept:
+        # Lock probes precede any SQLite open: a live writer refuses here.
+        check_quiescent(Path(config["ledger_path"]))
+        check_reacceptance_ledger(config, result)
     else:
         check_ledger_eligibility(config, result)
     sandbox = Sandbox(
@@ -380,6 +398,96 @@ def check_ledger_eligibility(config, reg):
         or D.microdollars(old["unresolved_reservations_usd"])
     ):
         raise D.BudgetStop("prior spend requires reconciliation")
+
+
+def is_reacceptance(config):
+    return isinstance(config, dict) and config.get("schema_version") == 2
+
+
+def check_selection(selection):
+    if (
+        not isinstance(selection, dict)
+        or set(selection) != {"kind", "run_id", "minimum_start_headroom_microdollars"}
+        or selection["kind"] != REACCEPT_KIND
+        or type(selection["minimum_start_headroom_microdollars"]) is not int
+        or not 0 < selection["minimum_start_headroom_microdollars"] <= D.CAP
+    ):
+        raise D.BudgetStop("unreviewed routing re-acceptance selection")
+    D._token(selection["run_id"])
+    if "/" in selection["run_id"]:
+        raise D.BudgetStop("run id must not contain the task separator")
+
+
+def check_quiescent(path):
+    """Refuse while any joint controller or budget controller holds its lock."""
+    for lock_path in (
+        path.with_suffix(".joint-lock"),
+        path.with_suffix(path.suffix + ".controller"),
+    ):
+        with lock_path.open("a") as lock:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise D.BudgetStop("another ledger writer is active") from None
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+
+def check_reacceptance_ledger(config, reg, *, reconcile=False):
+    """Existing canonical ledger only; never initializes, resets or migrates.
+
+    The reviewed minimum covers one full plugin reservation, so a charged
+    uncertain stop always fits inside the shared aggregate cap.
+    """
+    path = Path(config["ledger_path"])
+    if not path.is_file():
+        raise D.BudgetStop("routing re-acceptance requires the existing ledger")
+    check_ledger_eligibility(config, reg)
+    ledger = D.Ledger(path)
+    snapshot = reconcile_existing(ledger) if reconcile else ledger.snapshot()
+    minimum = config["selection"]["minimum_start_headroom_microdollars"]
+    if (
+        snapshot["metadata"]["registry_sha256"] != reg.digest
+        or minimum < reg.binding(REACCEPT_BINDING).validate()
+        or snapshot["headroom"] < minimum
+    ):
+        raise D.BudgetStop("aggregate headroom below reviewed re-acceptance minimum")
+    return ledger, snapshot
+
+
+def reacceptance_summary(config, reg, snapshot):
+    selection = config["selection"]
+    return {
+        "selection": selection["kind"],
+        "run_id": selection["run_id"],
+        "source_commit": config["sources"]["plugin"]["head"],
+        "planned_trials": 50,
+        "per_call_reservation_microdollars": reg.binding(REACCEPT_BINDING).validate(),
+        "minimum_start_headroom_microdollars": selection[
+            "minimum_start_headroom_microdollars"
+        ],
+        "exposure_microdollars": snapshot["exposure"],
+        "headroom_microdollars": snapshot["headroom"],
+    }
+
+
+def reacceptance_call(call, binding, run_id, source_commit):
+    """Fresh ledger identity for one first-attempt routing trial of this run."""
+    call.validate()
+    if (
+        binding.binding_id != REACCEPT_BINDING
+        or call.phase != "routing"
+        or call.attempt != 1
+        or call.source_commit != source_commit
+    ):
+        raise D.BudgetStop("routing re-acceptance admits only its own routing trials")
+    return D.Call(
+        D._digest([REACCEPT_KIND, run_id, call.task, call.trial])[:32],
+        REACCEPT_PHASE,
+        f"{run_id}/{call.task}",
+        call.trial,
+        call.source_commit,
+        1,
+    )
 
 
 def reconcile_existing(ledger):
@@ -508,7 +616,7 @@ class ProductionTransport:
             if single
             else [str(self.sandbox.claude), *cmd[1:]]
         )
-        if call.phase == "routing":
+        if call.phase in ROUTED_PHASES:
             argv.extend(["--max-turns", "1"])
         argv.extend(["--settings", '{"disableAllHooks":true}', "--setting-sources", ""])
         detected = [None]
@@ -599,8 +707,15 @@ class ProductionTransport:
 
 
 class JointLauncher(D.BudgetLauncher):
+    def __init__(self, ledger, binding, transport, reacceptance=None):
+        super().__init__(ledger, binding, transport)
+        self.reacceptance = reacceptance  # (run_id, source head) or None
+
     def run(self, cmd, prompt, *, call, evidence_destination=None, **kwargs):
-        call = self.ledger.retry_call(call, self.binding)
+        if self.reacceptance is None:
+            call = self.ledger.retry_call(call, self.binding)
+        else:  # No commissioned retry exists in a re-acceptance packet.
+            call = reacceptance_call(call, self.binding, *self.reacceptance)
         destination = (
             Path(self.transport.config["evidence_root"]) / "calls" / call.call_id
         )
@@ -615,7 +730,12 @@ def admission(config, reg, sandbox, provider, ledger):
         raise D.BudgetStop("nested controller refused")
     transport = ProductionTransport(config, reg, sandbox, provider)
     D._ADMITTED_LAUNCHER = JointLauncher(
-        ledger, reg.binding("plugin-sonnet5-api"), transport
+        ledger,
+        reg.binding("plugin-sonnet5-api"),
+        transport,
+        (config["selection"]["run_id"], config["sources"]["plugin"]["head"])
+        if is_reacceptance(config)
+        else None,
     )
     try:
         yield transport
@@ -739,6 +859,90 @@ def check_plugin_completion(rows):
         raise D.BudgetStop("plugin logical trial coverage differs")
 
 
+def run_reacceptance(config, transport):
+    """Ten routing prompts x five trials on this head; never sufficiency/Floor."""
+    os.environ["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
+    os.environ.pop("PYTEST_PLUGINS", None)
+    os.environ["PYTEST_ADDOPTS"] = ""
+    import pytest
+
+    plugin = config["sources"]["plugin"]
+    Path(config["evidence_root"]).mkdir(mode=0o700, parents=True, exist_ok=True)
+    os.environ["EVALUATION_SOURCE_COMMIT"] = plugin["head"]
+    os.environ["HARNESS_CLI_BIN"] = config["cli_bin"]
+    os.environ["TMPDIR"] = config["evidence_root"]
+    os.chdir(plugin["path"])
+    status = pytest.main(
+        [
+            "-q",
+            "-p",
+            "no:cacheprovider",
+            "--confcutdir",
+            plugin["path"],
+            "--rootdir",
+            plugin["path"],
+            "-c",
+            str(Path(plugin["path"]) / "pytest.ini"),
+            "skills/confluence/tests/test_routing.py",
+        ]
+    )
+    if transport.rate_limited:
+        raise RateLimitStop("subscription rate limit; re-acceptance stopped")
+    snapshot = reconcile_existing(D.Ledger(Path(config["ledger_path"])))
+    if status not in (0, 1):
+        raise D.BudgetStop("routing re-acceptance incomplete; see trial evidence")
+    tally, settled = check_reacceptance_completion(
+        snapshot["calls"], config["selection"]["run_id"], plugin["head"]
+    )
+    passed = all(item["correct"] >= 4 for item in tally.values())
+    if passed != (status == 0):
+        raise D.BudgetStop("ledger outcomes and pytest verdict disagree")
+    return passed, tally, settled
+
+
+def check_reacceptance_completion(rows, run_id, source_commit):
+    """Exactly 50 settled first attempts of this run; tally from sealed outcomes."""
+    import yaml
+
+    plugin = Path(__file__).resolve().parents[1]
+    golden = yaml.safe_load(
+        (plugin / "skills/confluence/tests/routing_golden.yaml").read_text()
+    )["tests"]
+    expected = {(item["id"], trial) for item in golden for trial in range(1, 6)}
+    if len(expected) != 50:
+        raise D.BudgetStop("routing inventory differs")
+    tally = {
+        item["id"]: {"expected": item.get("expected_skill"), "correct": 0}
+        for item in golden
+    }
+    seen, settled = set(), 0
+    for row in rows:
+        call = row["call"]
+        if call["phase"] != REACCEPT_PHASE or not call["task"].startswith(run_id + "/"):
+            continue
+        logical = (call["task"][len(run_id) + 1 :], call["trial"])
+        if (
+            logical not in expected
+            or logical in seen
+            or row["binding_id"] != REACCEPT_BINDING
+            or call["attempt"] != 1
+            or call["source_commit"] != source_commit
+            or row["status"] != "settled"
+            or not row["receipt"]
+            or not row["outcome"]
+        ):
+            raise D.BudgetStop("routing re-acceptance incomplete or duplicate")
+        seen.add(logical)
+        # The ledger read already verified this outcome file's sealed hash.
+        result = json.loads(Path(row["outcome"]["path"]).read_text())["result"]
+        skill = result if isinstance(result, str) else None
+        tally[logical[0]]["correct"] += skill == tally[logical[0]]["expected"]
+        settled += row["actual"]
+    if seen != expected:
+        raise D.BudgetStop("routing re-acceptance coverage differs")
+    return tally, settled
+
+
 def finish_floor(floor, transport):
     status = floor.main(transport=transport)
     # Floor catches RuntimeError to preserve its partial manifest. Preserve the
@@ -764,6 +968,9 @@ def main():
             if recovering
             else checked_config(args.config, args.config_sha256)
         )
+        reaccept = is_reacceptance(config)
+        if reaccept and args.mode not in ("dry-admission", "run"):
+            raise D.BudgetStop("routing re-acceptance admits only dry-admission/run")
         if recovering:
             if not CANONICAL.is_file():
                 raise D.BudgetStop("recovery requires existing canonical ledger")
@@ -782,19 +989,19 @@ def main():
             )
             return 0
         if args.mode == "dry-admission":
-            print(
-                json.dumps(
-                    {
-                        "status": "DRY_ADMITTED",
-                        "api_calls": 0,
-                        "ledger_initialized": False,
-                        "registry_sha256": reg.digest,
-                        "accounting_basis": "API-equivalent USD; not subscription billing",
-                        "credential": "owner OAuth environment variable present; value not inspected",
-                        "paid_prerequisites": "token validity and exact account/model availability proved only by bounded invocation",
-                    }
-                )
-            )
+            admitted = {
+                "status": "DRY_ADMITTED",
+                "api_calls": 0,
+                "ledger_initialized": False,
+                "registry_sha256": reg.digest,
+                "accounting_basis": "API-equivalent USD; not subscription billing",
+                "credential": "owner OAuth environment variable present; value not inspected",
+                "paid_prerequisites": "token validity and exact account/model availability proved only by bounded invocation",
+            }
+            if reaccept:
+                _, snapshot = check_reacceptance_ledger(config, reg)
+                admitted.update(reacceptance_summary(config, reg, snapshot))
+            print(json.dumps(admitted))
             return 0
         provider = Provider()
         for binding in reg.bindings:
@@ -802,7 +1009,11 @@ def main():
         CANONICAL.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
         with CANONICAL.with_suffix(".joint-lock").open("a") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            ledger = open_ledger(config, reg)
+            ledger = (
+                check_reacceptance_ledger(config, reg, reconcile=True)[0]
+                if reaccept
+                else open_ledger(config, reg)
+            )
             with admission(config, reg, sandbox, provider, ledger) as transport:
                 if args.mode == "probe":
                     binding = reg.binding("floor-haiku45-api")
@@ -822,8 +1033,23 @@ def main():
                         call=call,
                         timeout=60,
                     )
+                elif reaccept:
+                    passed, tally, settled = run_reacceptance(config, transport)
                 else:
                     run_joint(config, transport)
+            if reaccept:
+                print(
+                    json.dumps(
+                        {
+                            "status": "ROUTING_REACCEPTANCE_COMPLETE",
+                            "routing_threshold": "PASSED" if passed else "FAILED",
+                            "correct_of_5": {k: v["correct"] for k, v in tally.items()},
+                            "settled_microdollars": settled,
+                            **reacceptance_summary(config, reg, ledger.snapshot()),
+                        }
+                    )
+                )
+                return 0 if passed else 1
             print(
                 json.dumps(
                     {
