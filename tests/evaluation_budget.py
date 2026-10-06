@@ -6,12 +6,15 @@ All phases, probes and explicit retry attempts must share one ledger. Never make
 one ledger per run. The default harness entry point refuses launch outside its reviewed controller.
 """
 
+import errno
 import fcntl
 import hashlib
 import json
 import os
 import re
 import sqlite3
+import sys
+import threading
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -52,14 +55,171 @@ def _token(value: str) -> None:
         raise BudgetStop("invalid nonsecret identity")
 
 
+# Within ONE ledger read (one SQLite transaction), each (path, digest) pair is
+# hashed once: a settled row names the same proof, registry and price evidence
+# up to six times. Thread-local, set only by Ledger._read; never a cache across
+# reads, so every read still re-hashes every sealed file it depends on.
+_READ_PROOFS = threading.local()
+
+
 def _proof(path: str, digest: str) -> None:
     if not isinstance(digest, str) or not SHA.fullmatch(digest):
         raise BudgetStop("invalid evidence digest")
+    verified = getattr(_READ_PROOFS, "verified", None)
+    key = (str(path), digest)
+    if verified is not None and key in verified:
+        return
     try:
         if hashlib.sha256(Path(path).read_bytes()).hexdigest() != digest:
             raise BudgetStop("evidence hash mismatch")
     except (OSError, TypeError):
         raise BudgetStop("evidence unavailable") from None
+    if verified is not None:
+        verified.add(key)
+
+
+STOP_MESSAGE_LIMIT = 300
+_ECHO = re.compile(
+    r"(?i)([{}]|request\s+(body|headers?)\s*:|"
+    r"\b(authorization|x-api-key|api[_-]?key|cookie|set-cookie|token|secret|password)\s*[:=])"
+)
+_SECRETS = (
+    (re.compile(r"(?i)\bbearer\s+\S+"), "Bearer <REDACTED>"),
+    (re.compile(r"(?i)\bsk-(?:ant-)?[a-z0-9_-]+"), "<REDACTED>"),
+    (re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+"), "<REDACTED>"),
+    # Long opaque runs (OAuth/API tokens, nonces, digests); '/' is excluded so
+    # ordinary file paths survive.
+    (re.compile(r"[A-Za-z0-9+=_-]{32,}"), "<REDACTED>"),
+)
+
+
+def stop_detail(error: BaseException) -> dict:
+    """Exception class and a bounded, redacted message for stop evidence.
+
+    Never locals, a traceback, request/headers or an exception body: echo-shaped
+    text is replaced wholesale, credential-shaped runs are redacted, control
+    characters removed and the result capped. OSError keeps its errno name.
+    """
+    try:
+        text = str(error)
+    except Exception:  # A broken __str__ must not mask the original stop.
+        text = ""
+    if _ECHO.search(text):
+        text = "<REDACTED REQUEST OR CREDENTIAL-SHAPED CONTENT>"
+    else:
+        for pattern, replacement in _SECRETS:
+            text = pattern.sub(replacement, text)
+        text = re.sub(r"[\x00-\x1f\x7f]", " ", text)
+    if len(text) > STOP_MESSAGE_LIMIT:
+        text = text[:STOP_MESSAGE_LIMIT] + "<TRUNCATED>"
+    detail = {"exception_type": type(error).__name__[:80], "message": text}
+    code = getattr(error, "errno", None) if isinstance(error, OSError) else None
+    if type(code) is int:
+        detail["errno"] = errno.errorcode.get(code, str(code))
+    return detail
+
+
+# Host headroom guard. Run 2's interrupted Floor trial coincided with this
+# host reaching its per-user process limit (fork EAGAIN). A launch now
+# refuses BEFORE reserving when the user's processes exceed 60% of that limit:
+# a clean stop with nothing reserved, charged or halted, so the same packet
+# can simply be re-run once the host is quiet.
+HOST_PROCESS_FRACTION = (3, 5)
+KINFO_PROC_SIZE = 648  # sizeof(struct kinfo_proc) on 64-bit macOS
+
+
+def _darwin_process_usage():
+    import ctypes
+    import resource
+
+    libc = ctypes.CDLL("/usr/lib/libSystem.B.dylib", use_errno=True)
+    size_p = ctypes.POINTER(ctypes.c_size_t)
+    libc.sysctlbyname.argtypes = (
+        ctypes.c_char_p,
+        ctypes.c_void_p,
+        size_p,
+        ctypes.c_void_p,
+        ctypes.c_size_t,
+    )
+    libc.sysctl.argtypes = (
+        ctypes.POINTER(ctypes.c_int),
+        ctypes.c_uint,
+        ctypes.c_void_p,
+        size_p,
+        ctypes.c_void_p,
+        ctypes.c_size_t,
+    )
+    value = ctypes.c_int(0)
+    size = ctypes.c_size_t(ctypes.sizeof(value))
+    if libc.sysctlbyname(b"kern.maxprocperuid", ctypes.byref(value), size, None, 0):
+        raise OSError(ctypes.get_errno(), "kern.maxprocperuid unavailable")
+    limit = value.value
+    soft = resource.getrlimit(resource.RLIMIT_NPROC)[0]
+    if soft != resource.RLIM_INFINITY and 0 < soft < limit:
+        limit = soft
+    mib = (ctypes.c_int * 4)(1, 14, 5, os.getuid())  # KERN_PROC_UID
+    for _ in range(5):
+        size = ctypes.c_size_t(0)
+        if libc.sysctl(mib, 4, None, size, None, 0):
+            raise OSError(ctypes.get_errno(), "kern.proc.uid unavailable")
+        size = ctypes.c_size_t(size.value + 64 * KINFO_PROC_SIZE)
+        buffer = ctypes.create_string_buffer(size.value)
+        if not libc.sysctl(mib, 4, buffer, size, None, 0):
+            if size.value % KINFO_PROC_SIZE:
+                raise OSError(errno.EINVAL, "unexpected kinfo_proc size")
+            return size.value // KINFO_PROC_SIZE, limit
+        if ctypes.get_errno() != errno.ENOMEM:
+            raise OSError(ctypes.get_errno(), "kern.proc.uid unavailable")
+    raise OSError(errno.ENOMEM, "process table kept growing")
+
+
+def _linux_process_usage(proc=Path("/proc")):
+    """Offline CI hosts only; production launches are macOS-only."""
+    import resource
+
+    soft = resource.getrlimit(resource.RLIMIT_NPROC)[0]
+    if soft == resource.RLIM_INFINITY:
+        return None
+    uid, count = os.getuid(), 0
+    for entry in proc.iterdir():
+        if entry.name.isdigit():
+            try:
+                count += entry.stat().st_uid == uid
+            except OSError:
+                continue
+    return count, soft
+
+
+def host_process_usage():
+    """(user processes, per-user process limit), or None where no limit applies."""
+    if sys.platform == "darwin":
+        return _darwin_process_usage()
+    if sys.platform.startswith("linux"):
+        return _linux_process_usage()
+    return None
+
+
+def check_host_headroom(usage=host_process_usage):
+    """Refuse a launch, before any reservation, on a saturated host."""
+    try:
+        observed = usage()
+    except Exception:
+        raise BudgetStop(
+            "host process headroom unavailable; no reservation made"
+        ) from None
+    if observed is None:
+        return None
+    count, limit = observed
+    if type(count) is not int or type(limit) is not int or count < 0 or limit < 1:
+        raise BudgetStop("host process headroom unavailable; no reservation made")
+    numerator, denominator = HOST_PROCESS_FRACTION
+    threshold = limit * numerator // denominator
+    if count > threshold:
+        raise BudgetStop(
+            f"host process headroom guard: {count} user processes exceed "
+            f"{threshold} (60% of the per-user limit {limit}); no reservation made"
+        )
+    return count, limit
 
 
 @dataclass(frozen=True)
@@ -1031,6 +1191,16 @@ class Ledger:
             raise BudgetStop("invalid or unavailable budget ledger") from None
 
     def _read(self, db):
+        outer = getattr(_READ_PROOFS, "verified", None)
+        if outer is None:
+            _READ_PROOFS.verified = set()
+        try:
+            return self._read_verified(db)
+        finally:
+            if outer is None:
+                _READ_PROOFS.verified = None
+
+    def _read_verified(self, db):
         meta = json.loads(
             db.execute("SELECT payload FROM metadata WHERE id=1").fetchone()[0]
         )
@@ -1099,7 +1269,11 @@ class Ledger:
                 exposure += bound
             else:
                 raise BudgetStop("invalid call state")
-            if row["partial_receipt"] is not None:
+            if row["partial_receipt"] is not None and not (
+                # Settling copies the partial receipt verbatim; the identical
+                # receipt was validated against the same call/binding above.
+                row["status"] == "settled" and row["partial_receipt"] == row["receipt"]
+            ):
                 partial_actual = Settlement(**row["partial_receipt"]).validate(
                     call, binding
                 )
@@ -1776,8 +1950,22 @@ class Ledger:
         *,
         halt=False,
         receipt: Settlement | None = None,
+        detail: dict | None = None,
     ):
         _token(reason)
+        if detail is not None and (
+            not isinstance(detail, dict)
+            or not detail
+            or len(detail) > 8
+            or any(
+                not isinstance(k, str)
+                or not TOKEN.fullmatch(k)
+                or not isinstance(v, str)
+                or len(v) > 2 * STOP_MESSAGE_LIMIT
+                for k, v in detail.items()
+            )
+        ):
+            raise BudgetStop("invalid stop detail")
         with self._transaction() as db:
             meta, rows, _ = self._read(db)
             row = next((r for r in rows if r["call"]["call_id"] == call_id), None)
@@ -1794,6 +1982,8 @@ class Ledger:
             row.update(
                 status="uncertain", stop_reason=reason, terminal_at_ns=time.time_ns()
             )
+            if detail is not None:
+                row["stop_detail"] = detail
             db.execute(
                 "UPDATE calls SET payload=? WHERE id=?", (json.dumps(row), call_id)
             )
@@ -1967,7 +2157,46 @@ def prepare_launch(
     return cmd  # Fake mode has synthetic caps; no claimed Codex CLI dollar cap.
 
 
+def _seal_stop_evidence(destination, call: Call, detail: dict):
+    """Best effort: the call's own evidence directory gets the stop detail.
+
+    Never masks the original exception; returns the sealed path or None.
+    """
+    if destination is None:
+        return None
+    try:
+        directory = Path(destination)
+        directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+        data = json.dumps(
+            {
+                "call": asdict(call),
+                **detail,
+                "reservation": "retained in full; ledger halted unless already settled",
+            },
+            sort_keys=True,
+        ).encode()
+        for index in range(100):
+            path = directory / (
+                "launcher-stop.json" if not index else f"launcher-stop-{index}.json"
+            )
+            try:
+                fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            except FileExistsError:
+                continue
+            with os.fdopen(fd, "wb") as output:
+                output.write(data)
+                output.flush()
+                os.fsync(output.fileno())
+            return str(path)
+    except OSError:
+        return None
+    return None
+
+
 class BudgetLauncher:
+    # Replaceable only by reviewed controller or test code, never by JSON/env.
+    host_guard = staticmethod(check_host_headroom)
+
     def __init__(self, ledger: Ledger, binding: Binding, transport: Transport):
         self.ledger, self.binding, self.transport = ledger, binding, transport
 
@@ -2018,6 +2247,8 @@ class BudgetLauncher:
                     for line in cached.lines:
                         kwargs["on_line"](line)
                 return cached
+            if self.binding.provider != "fake":
+                self.host_guard()  # refuses before any reservation exists
             self.ledger.reserve(
                 call, self.binding, fingerprint
             )  # durable BEFORE execute
@@ -2059,14 +2290,25 @@ class BudgetLauncher:
                 else:
                     self.ledger.reconcile(outcome.receipt)
                 return outcome
-            except BaseException:
+            except BaseException as error:
+                # Record what stopped the call (class, errno, redacted message)
+                # in its evidence and on its ledger row; the original exception
+                # is always re-raised, never replaced.
+                detail = stop_detail(error)
+                evidence = _seal_stop_evidence(
+                    kwargs.get("evidence_destination"), call, detail
+                )
+                if evidence is not None:
+                    detail["evidence"] = evidence
                 # Reconciliation may already have halted or settled the row.
                 snapshot = self.ledger.snapshot()
                 row = next(
                     r for r in snapshot["calls"] if r["call"]["call_id"] == call.call_id
                 )
                 if row["status"] == "reserved":
-                    self.ledger.uncertain(call.call_id, "interrupted", halt=True)
+                    self.ledger.uncertain(
+                        call.call_id, "interrupted", halt=True, detail=detail
+                    )
                 raise
 
     def replay(self, command: str, **kwargs):
