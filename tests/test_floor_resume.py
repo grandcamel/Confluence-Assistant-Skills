@@ -243,6 +243,15 @@ def floor_packet(fourth, monkeypatch, tmp_path):
         cli_wrapper=entry(wrapper),
         floor_policy=entry(policy_path),
     )
+    # The reviewed baseline: run 2's settled Floor spend in the fixture ledger
+    # (the canonical packet binds the same figure from the canonical ledger).
+    baseline = sum(
+        r["actual"]
+        for r in f.ledger.snapshot()["calls"]
+        if r["call"]["phase"].startswith("floor-")
+        and r["call"]["task"].startswith(RUN + "/")
+        and r["status"] == "settled"
+    )
     config = {
         "schema_version": 3,
         "selection": {
@@ -250,6 +259,7 @@ def floor_packet(fourth, monkeypatch, tmp_path):
             "floor_run_id": RUN,
             "plugin_settled_head": PLUGIN_HEAD,
             "minimum_start_headroom_microdollars": 4_040_961,
+            "baseline_settled_floor_microdollars": baseline,
         },
         "ledger_path": str(f.ledger.path),
         "serial": True,
@@ -287,6 +297,7 @@ def floor_packet(fourth, monkeypatch, tmp_path):
         cli=cli,
         providers=providers,
         output=tmp_path / "paid" / J.FLOOR_OUTPUT,
+        baseline=baseline,
     )
 
 
@@ -317,6 +328,12 @@ def test_dry_admission_reports_floor_work_without_provider_or_writes(
     }
     assert out["exposure_microdollars"] == p.f.exposure
     assert out["admission_headroom_microdollars"] == D.CAP - p.f.exposure
+    # Initial admission: no Floor progress since the reviewed baseline, so the
+    # full reviewed start minimum is required.
+    assert p.baseline > 0 and out["settled_floor_microdollars"] == p.baseline
+    assert out["baseline_settled_floor_microdollars"] == p.baseline
+    assert out["floor_progress_microdollars"] == 0
+    assert out["required_admission_headroom_microdollars"] == 4_040_961
     assert p.providers == [] and p.cli.argvs == []
     assert sha(p.f.ledger.path) == before
 
@@ -382,6 +399,86 @@ def test_clean_host_stop_reserves_nothing_and_the_same_packet_resumes(
     assert provider_calls(p) == 22  # each never-settled call dispatched once
 
 
+def host_stop_after(monkeypatch, launches):
+    """The host guard refuses (before any reservation) after `launches`."""
+    issued = []
+
+    def guard():
+        if len(issued) == launches:
+            D.check_host_headroom(lambda: (2000, 2784))
+        issued.append(1)
+
+    monkeypatch.setattr(D.BudgetLauncher, "host_guard", staticmethod(guard))
+
+
+def test_a_clean_stop_past_the_start_minimum_resumes_on_its_ledger_progress(
+    floor_packet, monkeypatch, capsys
+):
+    """Codex risk r2 finding 2: start exactly at the reviewed start minimum,
+    settle five Floor calls (crossing it) and stop cleanly at the host guard.
+    The unchanged packet is then admitted in both modes on its verified Floor
+    progress, exactly at the boundary, and finishes with every never-settled
+    call dispatched once. A baseline one microdollar higher (one microdollar
+    less progress) refuses both modes: the credit is exactly the progress."""
+    p = floor_packet
+    start = J.admission_headroom(p.f.ledger.snapshot())
+    p.config["selection"]["minimum_start_headroom_microdollars"] = start
+    host_stop_after(monkeypatch, 5)
+    assert p.main("run") == 2
+    stopped = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert "host process headroom guard" in stopped["floor_stop"]["message"]
+    after = p.f.ledger.snapshot()
+    assert not after["metadata"]["halted"] and provider_calls(p) == 5
+    spent = start - after["headroom"]
+    assert spent > 0 and J.admission_headroom(after) == start - spent < start
+    monkeypatch.setattr(D.BudgetLauncher, "host_guard", staticmethod(lambda: None))
+    before = sha(p.f.ledger.path)
+    stricter = json.loads(json.dumps(p.config))
+    stricter["selection"]["baseline_settled_floor_microdollars"] += 1
+    for mode in ("dry-admission", "run"):
+        assert p.main(mode, stricter) == 2
+        refused = json.loads(capsys.readouterr().out)
+        assert "below reviewed Floor resume minimum" in refused["stop"]["message"]
+    assert provider_calls(p) == 5 and sha(p.f.ledger.path) == before
+    assert p.main("dry-admission") == 0
+    dry = json.loads(capsys.readouterr().out)
+    assert dry["floor_progress_microdollars"] == spent
+    assert dry["settled_floor_microdollars"] == p.baseline + spent
+    assert dry["required_admission_headroom_microdollars"] == start - spent
+    assert dry["admission_headroom_microdollars"] == start - spent
+    assert dry["remaining_trials"] == 18 - 5 and sha(p.f.ledger.path) == before
+    assert p.main("run") == 0
+    final = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert final["status"] == "FLOOR_RESUME_COMPLETE"
+    assert final["remaining_trials"] == final["remaining_judges"] == 0
+    assert provider_calls(p) == 22  # each never-settled call dispatched once
+
+
+def test_floor_admission_requirement_from_verified_progress():
+    selection = {
+        "minimum_start_headroom_microdollars": 23_000_000,
+        "baseline_settled_floor_microdollars": 3_233_349,
+    }
+    largest = 4_040_961
+
+    def admit(settled, pending=0):
+        coverage = {
+            "settled_floor_microdollars": settled,
+            "pending_floor_microdollars": pending,
+        }
+        return J.floor_admission(selection, coverage, largest)
+
+    assert admit(3_233_349) == (0, 23_000_000)  # initial admission
+    assert admit(8_233_349) == (5_000_000, 18_000_000)  # a continuation
+    # A validated pending settlement counts, so dry admission and run agree.
+    assert admit(7_233_349, 1_000_000) == (5_000_000, 18_000_000)
+    # Never below the largest Floor reservation.
+    assert admit(23_233_349) == (20_000_000, largest)
+    assert admit(3_233_349 + 23_000_000 - largest) == (23_000_000 - largest, largest)
+    with pytest.raises(D.BudgetStop, match="below the reviewed baseline"):
+        admit(3_233_348)
+
+
 def test_interrupted_floor_call_records_its_cause_and_blocks_both_modes(
     floor_packet, monkeypatch, capsys
 ):
@@ -426,6 +523,22 @@ def test_floor_resume_admits_only_dry_admission_and_run(floor_packet, capsys):
     assert p.providers == []
 
 
+def test_floor_resume_admits_no_plugin_launcher(floor_packet, monkeypatch, capsys):
+    """Standards r2 finding 3: while the Floor stage runs, no plugin harness
+    launcher is admitted at all (the evaluator uses only its own launchers)."""
+    p = floor_packet
+    admitted = []
+    run = J.run_floor_resume
+
+    def observed(config, transport, ledger):
+        admitted.append(D._ADMITTED_LAUNCHER)
+        return run(config, transport, ledger)
+
+    monkeypatch.setattr(J, "run_floor_resume", observed)
+    assert p.main("run") == 0
+    assert admitted == [None] and D._ADMITTED_LAUNCHER is None
+
+
 @pytest.mark.parametrize(
     "mutate",
     [
@@ -434,6 +547,18 @@ def test_floor_resume_admits_only_dry_admission_and_run(floor_packet, capsys):
         lambda c: c["selection"].update(plugin_settled_head="xyz"),
         lambda c: c["selection"].update(minimum_start_headroom_microdollars=0),
         lambda c: c["selection"].update(minimum_start_headroom_microdollars=4_040_960),
+        lambda c: c["selection"].pop("baseline_settled_floor_microdollars"),
+        lambda c: c["selection"].update(baseline_settled_floor_microdollars=-1),
+        lambda c: c["selection"].update(baseline_settled_floor_microdollars=True),
+        lambda c: c["selection"].update(baseline_settled_floor_microdollars=1.0),
+        lambda c: c["selection"].update(baseline_settled_floor_microdollars=D.CAP + 1),
+        # A baseline above the ledger's settled Floor spend: negative progress.
+        lambda c: c["selection"].update(
+            baseline_settled_floor_microdollars=c["selection"][
+                "baseline_settled_floor_microdollars"
+            ]
+            + 1
+        ),
         lambda c: c["files"].update(prior_ledger=c["files"]["models"]),
         lambda c: c["files"].update(recovery_plan=c["files"]["models"]),
         lambda c: c["files"].pop("floor_policy"),
@@ -463,6 +588,7 @@ def test_floor_resume_refuses_a_still_halted_ledger(fourth, monkeypatch):
             "floor_run_id": RUN,
             "plugin_settled_head": PLUGIN_HEAD,
             "minimum_start_headroom_microdollars": 4_040_961,
+            "baseline_settled_floor_microdollars": 0,
         },
         "sources": {"floor": {"head": FLOOR_HEAD}},
     }
@@ -614,7 +740,22 @@ def test_floor_coverage_counts_logical_identities(monkeypatch):
         "remaining_trials": len(TRIALS) - 2,
         "remaining_judges": len(JUDGES) - 1,
         "settled_floor_microdollars": 30,
+        "pending_floor_microdollars": 0,
     }
+    # Dry admission only: a reserved row with a validated sealed receipt is a
+    # pending settlement at its receipt's actual; one without is not credited.
+    pending = coverage_rows(
+        [
+            ("floor-trial", f"{RUN}/sonnet/G042", 1, 1, sonnet, "reserved"),
+            ("floor-trial", f"{RUN}/sonnet/G042", 2, 1, sonnet, "reserved"),
+        ]
+    )
+    pending[0].update(partial_receipt={"actual_usd": "0.000123"}, outcome={})
+    pending[1].update(partial_receipt=None, outcome=None)
+    coverage = J.floor_coverage(pending, RUN, FLOOR_HEAD)
+    assert coverage["pending_settlements"] == 2
+    assert coverage["pending_floor_microdollars"] == D.microdollars("0.000123") > 0
+    assert coverage["settled_floor_microdollars"] == 0
     for bad in (
         ("floor-trial", f"{RUN}/sonnet/G999", 1, 1, sonnet, "settled"),
         ("floor-trial", f"{RUN}/terra/G042", 1, 1, sonnet, "settled"),
@@ -800,6 +941,27 @@ def test_floor_resume_refuses_a_plugin_stage_settled_on_another_head(
     p = plugin_gate
     assert settle_plugin_stage(p.f, foreign=LAST_ROUTING) == 85
     refuses_both_modes(p, capsys, "plugin observations were settled on another head")
+
+
+def test_spend_outside_the_floor_since_the_baseline_is_never_credited(
+    plugin_gate, capsys
+):
+    """Only this run's Floor settlements are progress: the plugin stage settled
+    after a start minimum equal to the headroom is non-Floor spend, so both
+    modes refuse; the same packet with the minimum at the new headroom is
+    admitted with zero Floor progress."""
+    p = plugin_gate
+    start = J.admission_headroom(p.f.ledger.snapshot())
+    p.config["selection"]["minimum_start_headroom_microdollars"] = start
+    assert settle_plugin_stage(p.f) == 85
+    after = J.admission_headroom(p.f.ledger.snapshot())
+    assert after < start
+    refuses_both_modes(p, capsys, "below reviewed Floor resume minimum")
+    p.config["selection"]["minimum_start_headroom_microdollars"] = after
+    assert p.main("dry-admission") == 0
+    dry = json.loads(capsys.readouterr().out)
+    assert dry["floor_progress_microdollars"] == 0
+    assert dry["required_admission_headroom_microdollars"] == after
 
 
 @pytest.mark.parametrize("excess", [0, 1])

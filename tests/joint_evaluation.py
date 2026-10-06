@@ -507,12 +507,15 @@ def check_floor_selection(selection):
             "floor_run_id",
             "plugin_settled_head",
             "minimum_start_headroom_microdollars",
+            "baseline_settled_floor_microdollars",
         }
         or selection["kind"] != FLOOR_KIND
         or not isinstance(selection["plugin_settled_head"], str)
         or not re.fullmatch(r"[a-f0-9]{40}", selection["plugin_settled_head"])
         or type(selection["minimum_start_headroom_microdollars"]) is not int
         or not 0 < selection["minimum_start_headroom_microdollars"] <= D.CAP
+        or type(selection["baseline_settled_floor_microdollars"]) is not int
+        or not 0 <= selection["baseline_settled_floor_microdollars"] <= D.CAP
     ):
         raise D.BudgetStop("unreviewed Floor resume selection")
     D._token(selection["floor_run_id"])
@@ -559,7 +562,7 @@ def check_plugin_settled(rows, head):
 def floor_coverage(rows, run_id, source_commit):
     """Settled logical Floor identities of this run, from the sealed ledger."""
     trials, judges, charged, attempts, pending = set(), set(), [], 0, 0
-    settled = 0
+    settled = pending_actual = 0
     for row in rows:
         call = row["call"]
         if not call["phase"].startswith("floor-") or not call["task"].startswith(
@@ -588,6 +591,9 @@ def floor_coverage(rows, run_id, source_commit):
             continue
         if row["status"] == "reserved":
             pending += 1  # dry admission only; run reconciles first
+            # admission_headroom's validated pending settlement, at its actual.
+            if row["partial_receipt"] is not None and row["outcome"] is not None:
+                pending_actual += D.microdollars(row["partial_receipt"]["actual_usd"])
             continue
         if row["status"] != "settled":
             raise D.BudgetStop("unresolved Floor observation")
@@ -603,7 +609,38 @@ def floor_coverage(rows, run_id, source_commit):
         "remaining_trials": len(FLOOR_TRIALS - trials),
         "remaining_judges": len(FLOOR_JUDGES - judges),
         "settled_floor_microdollars": settled,
+        "pending_floor_microdollars": pending_actual,
     }
+
+
+def largest_floor_reservation(reg):
+    return max(reg.binding(b).validate() for b in FLOOR_BINDINGS.values())
+
+
+def floor_admission(selection, coverage, largest):
+    """(progress, required headroom) for a Floor admission, from the ledger.
+
+    Progress is this run's Floor spend beyond the reviewed baseline: the
+    sealed settled Floor rows of this run id on the Floor source, plus (before
+    reconciliation) the validated pending settlements admission_headroom
+    credits, so dry admission and run agree. Initial admission (no progress)
+    requires the reviewed start minimum. A continuation after a clean stop
+    requires that minimum less the progress: the Floor's own settled work
+    never blocks finishing it, while every other use of the budget since the
+    baseline (another selection's spend, a charged call) still counts against
+    it. Never less than the largest Floor reservation, and every reservation
+    is still checked against the aggregate cap when it is made.
+    """
+    progress = (
+        coverage["settled_floor_microdollars"]
+        + coverage["pending_floor_microdollars"]
+        - selection["baseline_settled_floor_microdollars"]
+    )
+    if progress < 0:
+        raise D.BudgetStop("Floor ledger progress below the reviewed baseline")
+    return progress, max(
+        largest, selection["minimum_start_headroom_microdollars"] - progress
+    )
 
 
 def check_floor_resume_ledger(config, reg, *, reconcile=False):
@@ -619,19 +656,23 @@ def check_floor_resume_ledger(config, reg, *, reconcile=False):
     coverage = floor_coverage(
         snapshot["calls"], selection["floor_run_id"], config["sources"]["floor"]["head"]
     )
-    minimum = selection["minimum_start_headroom_microdollars"]
-    largest = max(reg.binding(b).validate() for b in FLOOR_BINDINGS.values())
+    largest = largest_floor_reservation(reg)
     if (
         snapshot["metadata"]["registry_sha256"] != reg.digest
-        or minimum < largest
-        or admission_headroom(snapshot) < minimum
+        or selection["minimum_start_headroom_microdollars"] < largest
     ):
+        raise D.BudgetStop("aggregate headroom below reviewed Floor resume minimum")
+    _, required = floor_admission(selection, coverage, largest)
+    if admission_headroom(snapshot) < required:
         raise D.BudgetStop("aggregate headroom below reviewed Floor resume minimum")
     return ledger, snapshot, coverage
 
 
 def floor_summary(config, reg, snapshot, coverage):
     selection = config["selection"]
+    progress, required = floor_admission(
+        selection, coverage, largest_floor_reservation(reg)
+    )
     return {
         "selection": FLOOR_KIND,
         "floor_run_id": selection["floor_run_id"],
@@ -645,6 +686,11 @@ def floor_summary(config, reg, snapshot, coverage):
         "minimum_start_headroom_microdollars": selection[
             "minimum_start_headroom_microdollars"
         ],
+        "baseline_settled_floor_microdollars": selection[
+            "baseline_settled_floor_microdollars"
+        ],
+        "floor_progress_microdollars": progress,
+        "required_admission_headroom_microdollars": required,
         "exposure_microdollars": snapshot["exposure"],
         "headroom_microdollars": snapshot["headroom"],
         "admission_headroom_microdollars": admission_headroom(snapshot),
