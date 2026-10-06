@@ -825,10 +825,12 @@ def check_reacceptance_ledger(config, reg, *, reconcile=False):
         reconciled=reconcile,
     )
     minimum = config["selection"]["minimum_start_headroom_microdollars"]
+    # Before reconciliation a crash-window trial still holds its full
+    # reservation; compare with the headroom its sealed receipt leaves.
     if (
         snapshot["metadata"]["registry_sha256"] != reg.digest
         or minimum < reg.binding(REACCEPT_BINDING).validate()
-        or snapshot["headroom"] < minimum
+        or admission_headroom(snapshot) < minimum
     ):
         raise D.BudgetStop("aggregate headroom below reviewed re-acceptance minimum")
     return ledger, snapshot
@@ -847,6 +849,7 @@ def reacceptance_summary(config, reg, snapshot):
         ],
         "exposure_microdollars": snapshot["exposure"],
         "headroom_microdollars": snapshot["headroom"],
+        "admission_headroom_microdollars": admission_headroom(snapshot),
     }
 
 
@@ -891,14 +894,19 @@ def reacceptance_call(call, prompt, binding, run_id, source_commit):
 
 
 def reconcile_existing(ledger):
-    """Never invent a settlement from a partial request list after a crash."""
+    """Never invent a settlement from a partial request list after a crash.
+
+    Only a crash-window row (reserved, with a sealed complete receipt) is
+    settled here. A settled row needs no read-back: the snapshot's ledger read
+    has just re-validated its receipt against its call and binding, and
+    reconciling it with that same receipt writes nothing (one full ledger
+    read per row made this quadratic in the ledger's size).
+    """
     snapshot = ledger.snapshot()
     for row in snapshot["calls"]:
-        if row["status"] == "charged-uncertain":
-            continue  # Permanent conservative consumption; never reconcile/refund.
-        if row["status"] == "settled":
-            ledger.reconcile(D.Settlement(**row["receipt"]))  # idempotent read-back
-        elif (
+        if row["status"] in ("charged-uncertain", "settled"):
+            continue  # Permanent charges are never reconciled or refunded.
+        if (
             row["status"] == "reserved"
             and row["partial_receipt"] is not None
             and row["outcome"] is not None

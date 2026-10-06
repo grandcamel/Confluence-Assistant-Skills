@@ -619,6 +619,14 @@ def packet(tmp_path, reg, monkeypatch):
     return SimpleNamespace(config=config, write=write, ledger=ledger)
 
 
+# checked_config ends with the real macOS Seatbelt self-check (sandbox-exec);
+# production refuses other hosts, so these two run only on macOS (CI: ubuntu).
+needs_sandbox_exec = pytest.mark.skipif(
+    sys.platform != "darwin", reason="runs the real macOS sandbox-exec self-check"
+)
+
+
+@needs_sandbox_exec
 def test_checked_config_admits_routing_packet_without_floor(packet, monkeypatch):
     def forbidden(*args, **kwargs):
         raise AssertionError("routing re-acceptance consulted Floor inputs")
@@ -666,6 +674,7 @@ def test_recovery_mode_refuses_routing_packet(packet):
         J.checked_config(*packet.write(packet.config), recovery=True)
 
 
+@needs_sandbox_exec
 def test_dry_admission_reports_cap_state_without_provider(packet, monkeypatch, capsys):
     path, digest = packet.write(packet.config)
 
@@ -947,7 +956,7 @@ def driven(packet, reg, monkeypatch, tmp_path):
         return J.main()
 
     return SimpleNamespace(
-        cli=cli, providers=providers, main=main, ledger=packet.ledger
+        cli=cli, providers=providers, main=main, ledger=packet.ledger, packet=packet
     )
 
 
@@ -1005,6 +1014,48 @@ def test_killed_run_settles_its_sealed_receipt_and_resumes_without_paying_again(
     assert {r["status"] for r in snapshot["calls"]} == {"settled"}
     assert final["settled_microdollars"] == snapshot["exposure"]
     assert snapshot["exposure"] == sum(r["actual"] for r in snapshot["calls"])
+
+
+def test_resumable_run_near_its_start_minimum_is_admitted_on_its_pending_receipt(
+    driven, reg, monkeypatch, capsys
+):
+    """Codex risk review r3: a kill in the crash window left the trial's full
+    reservation held, so the raw headroom fell below the start minimum and both
+    modes refused a run that settlement would put back above it. Admission now
+    counts the validated pending receipt; one microdollar more still refuses."""
+    restart = kill_at_outcome(monkeypatch, KILLED_TRIAL, "sealed")
+    with pytest.raises(Killed):
+        driven.main("run")
+    restart()
+    snapshot = driven.ledger.snapshot()
+    (pending,) = [r for r in snapshot["calls"] if r["status"] == "reserved"]
+    reservation = reg.binding(J.REACCEPT_BINDING).validate()
+    receipt = D.microdollars(pending["partial_receipt"]["actual_usd"])
+    settled = sum(r["actual"] for r in snapshot["calls"] if r["status"] == "settled")
+    after_settlement = D.CAP - settled - receipt
+    assert snapshot["headroom"] == D.CAP - settled - reservation
+    selection = driven.packet.config["selection"]
+    # The start minimum sits between the raw and the post-settlement headroom.
+    selection["minimum_start_headroom_microdollars"] = after_settlement + 1
+    before = sha(driven.ledger.path)
+    for mode in ("dry-admission", "run"):
+        assert driven.main(mode) == 2
+        assert json.loads(capsys.readouterr().out)["status"] == "STOPPED_INCOMPLETE"
+    assert sha(driven.ledger.path) == before and len(driven.providers) == 1
+    selection["minimum_start_headroom_microdollars"] = after_settlement
+    assert snapshot["headroom"] < after_settlement
+    assert driven.main("dry-admission") == 0
+    dry = json.loads(capsys.readouterr().out)
+    assert dry["headroom_microdollars"] == snapshot["headroom"]
+    assert dry["admission_headroom_microdollars"] == after_settlement
+    assert sha(driven.ledger.path) == before
+    assert driven.main("run") == 0
+    final = json.loads(capsys.readouterr().out)
+    assert final["status"] == "ROUTING_REACCEPTANCE_COMPLETE"
+    assert len(driven.providers[-1].calls) == 50 - KILLED_TRIAL
+    resumed = driven.ledger.snapshot()
+    assert {r["status"] for r in resumed["calls"]} == {"settled"}
+    assert len(resumed["calls"]) == 50
 
 
 @pytest.mark.parametrize("how", ["in-flight", "timed-out", "failed-call"])
