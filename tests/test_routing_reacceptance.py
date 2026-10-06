@@ -1122,6 +1122,9 @@ J.CANONICAL = Path(args["canonical"])
 J.oauth_presence = lambda: None
 J.check_source = lambda entry: None
 J.runtime_manifest = lambda: {"files": ["fixture"]}
+# tests/conftest.py never reaches this child process: keep its result
+# independent of the host's process count here too.
+J.D.BudgetLauncher.host_guard = staticmethod(lambda: None)
 misses, providers = [], []
 
 
