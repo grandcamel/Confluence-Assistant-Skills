@@ -292,7 +292,10 @@ def checked_config(path, expected, *, recovery=False):
             raise D.BudgetStop("recovery configuration/source mismatch")
         return config, result, None  # Recovery never creates a child or provider.
     elif reaccept:
-        # Lock probes precede any SQLite open: a live writer refuses here.
+        # Lock probes precede any SQLite open. They detect a joint controller
+        # (joint lock, held for its whole run) or a call in flight (ledger
+        # controller lock). A writer idle between calls holds neither; the
+        # operator's no-other-writer precondition is the guard for that.
         check_quiescent(Path(config["ledger_path"]))
         check_reacceptance_ledger(config, result)
     else:
@@ -432,6 +435,31 @@ def check_quiescent(path):
             fcntl.flock(lock, fcntl.LOCK_UN)
 
 
+def check_run_id_unspent(rows, run_id, source_commit, *, reconciled):
+    """One run id is one 50-trial measurement on one head, with no retry.
+
+    A charged, uncertain or unreconciled trial of this run id, or one recorded
+    on another head, binding or attempt, means the run id can never complete:
+    refuse it before any reservation. Before reconciliation (dry admission) a
+    reserved row is admitted only because check_ledger_eligibility has already
+    proved it a complete partial receipt, which `run` settles before launching.
+    """
+    allowed = {"settled"} if reconciled else {"settled", "reserved"}
+    for row in rows:
+        call = row["call"]
+        if call["phase"] != REACCEPT_PHASE or not call["task"].startswith(run_id + "/"):
+            continue
+        if (
+            row["status"] not in allowed
+            or row["binding_id"] != REACCEPT_BINDING
+            or call["attempt"] != 1
+            or call["source_commit"] != source_commit
+        ):
+            raise D.BudgetStop(
+                "routing re-acceptance run id is spent; a new reviewed run id is required"
+            )
+
+
 def check_reacceptance_ledger(config, reg, *, reconcile=False):
     """Existing canonical ledger only; never initializes, resets or migrates.
 
@@ -444,6 +472,12 @@ def check_reacceptance_ledger(config, reg, *, reconcile=False):
     check_ledger_eligibility(config, reg)
     ledger = D.Ledger(path)
     snapshot = reconcile_existing(ledger) if reconcile else ledger.snapshot()
+    check_run_id_unspent(
+        snapshot["calls"],
+        config["selection"]["run_id"],
+        config["sources"]["plugin"]["head"],
+        reconciled=reconcile,
+    )
     minimum = config["selection"]["minimum_start_headroom_microdollars"]
     if (
         snapshot["metadata"]["registry_sha256"] != reg.digest
