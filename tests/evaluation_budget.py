@@ -704,6 +704,34 @@ SETTLED_TRIGGERS = {
     )
 }
 
+# Exactly four owner-commissioned links. Each plan schema version is its link's
+# sequence; links 3 and 4 each admit one named replacement attempt only.
+RECOVERY_AUTHORITY = {
+    1: "c-i conservative charged recovery commissioned by dispatch owner 2026-10-05",
+    2: "c-i conservative charged recovery commissioned by dispatch owner 2026-10-05",
+    3: "c-i conservative charged recovery commissioned by dispatch owner 2026-10-05",
+    4: "c-n fourth conservative charged recovery commissioned by dispatch owner 2026-10-06",
+}
+COMMISSIONED_RETRIES = {
+    3: {
+        "binding_id": "plugin-sonnet5-api",
+        "phase": "sufficiency",
+        "task": "read-page",
+        "trial": 1,
+        "from_attempt": 1,
+        "to_attempt": 2,
+    },
+    # Run 2's Floor trial interrupted at 2026-10-06T00:49:02Z.
+    4: {
+        "binding_id": "floor-sonnet55-api",
+        "phase": "floor-trial",
+        "task": "confluence-floor-full-oauth-org-v4/sonnet/G042",
+        "trial": 4,
+        "from_attempt": 1,
+        "to_attempt": 2,
+    },
+}
+
 
 def _recovery_schema(db):
     db.execute(
@@ -744,7 +772,7 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
         "evidence",
         "provenance",
     }
-    if isinstance(plan, dict) and plan.get("schema_version") in (2, 3):
+    if isinstance(plan, dict) and plan.get("schema_version") in (2, 3, 4):
         required |= {
             "original_registry_sha256",
             "previous_transition",
@@ -752,13 +780,15 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
             "expected_charges",
             "expected_exposure_microdollars",
         }
-    if isinstance(plan, dict) and plan.get("schema_version") == 3:
+    if isinstance(plan, dict) and plan.get("schema_version") in (3, 4):
         required.add("retry")
+    if isinstance(plan, dict) and plan.get("schema_version") == 4:
+        required.add("supporting_evidence")
     if (
         not isinstance(plan, dict)
         or set(plan) != required
         or type(plan["schema_version"]) is not int
-        or plan["schema_version"] not in (1, 2, 3)
+        or plan["schema_version"] not in (1, 2, 3, 4)
     ):
         raise BudgetStop("unsupported recovery plan")
     _token(plan["transition_id"])
@@ -767,6 +797,11 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
         or plan["new_registry_sha256"] != new_registry.digest
     ):
         raise BudgetStop("recovery ledger or target registry mismatch")
+    if (
+        plan["schema_version"] == 4
+        and plan["new_registry_sha256"] != plan["old_registry_sha256"]
+    ):
+        raise BudgetStop("the fourth recovery charges only; it keeps the registry")
     for name in (
         "expected_ledger_sha256",
         "expected_metadata_sha256",
@@ -809,7 +844,8 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
         or not SHA.fullmatch(original_init["prior_sha256"])
     ):
         raise BudgetStop("original initialization provenance mismatch")
-    if plan["schema_version"] in (2, 3):
+    schema = plan["schema_version"]
+    if schema in (2, 3, 4):
         prior = plan["previous_transition"]
         if (
             not isinstance(plan["original_registry_sha256"], str)
@@ -828,7 +864,13 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
         charges = plan["expected_charges"]
         if (
             not isinstance(inventory, list)
-            or len(inventory) != (2 if plan["schema_version"] == 2 else 4)
+            # Each link's inventory is the whole ledger: links 2/3 sealed two
+            # and four rows; link 4 seals every row of run 2's halted ledger.
+            or (
+                len(inventory) != {2: 2, 3: 4}[schema]
+                if schema < 4
+                else len(inventory) < 4
+            )
             or any(
                 not isinstance(item, dict)
                 or set(item)
@@ -839,7 +881,7 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
                     "reservation_microdollars",
                     "accounting_status",
                 }
-                | ({"actual_microdollars"} if plan["schema_version"] == 3 else set())
+                | ({"actual_microdollars"} if schema >= 3 else set())
                 for item in inventory
             )
             or len({item["call_id"] for item in inventory}) != len(inventory)
@@ -900,13 +942,19 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
             ):
                 raise BudgetStop("historical charge or exposure differs")
         else:
+            # Every earlier link charged exactly one call: link N's inventory
+            # holds N-1 permanent charges, its one uncertain target and the rest
+            # settled (link 3: exactly the historical probe settlement).
             if (
                 sum(i["accounting_status"] == "charged-uncertain" for i in inventory)
-                != 2
+                != schema - 1
                 or sum(i["accounting_status"] == "uncertain" for i in inventory) != 1
-                or sum(i["accounting_status"] == "settled" for i in inventory) != 1
+                or (
+                    schema == 3
+                    and sum(i["accounting_status"] == "settled" for i in inventory) != 1
+                )
                 or not isinstance(charges, list)
-                or len(charges) != 2
+                or len(charges) != schema - 1
                 or any(
                     not isinstance(c, dict)
                     or set(c)
@@ -953,15 +1001,12 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
                 or expected > CAP
             ):
                 raise BudgetStop("third recovery exposure differs")
-            if plan["retry"] != {
-                "binding_id": "plugin-sonnet5-api",
-                "phase": "sufficiency",
-                "task": "read-page",
-                "trial": 1,
-                "from_attempt": 1,
-                "to_attempt": 2,
-            }:
-                raise BudgetStop("only commissioned read-page attempt2 allowed")
+            if plan["retry"] != COMMISSIONED_RETRIES[schema]:
+                raise BudgetStop(
+                    "only commissioned read-page attempt2 allowed"
+                    if schema == 3
+                    else "only the commissioned Floor G042/sonnet/4 attempt2 allowed"
+                )
     folder = Path(plan["evidence_directory"])
     if not folder.is_absolute() or folder.resolve() != folder or not folder.is_dir():
         raise BudgetStop("original evidence directory unavailable")
@@ -974,7 +1019,9 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
     manifest = plan["evidence"]
     if (
         not isinstance(manifest, list)
-        or not manifest
+        # Link 4's interrupted call wrote nothing before it stopped: its sealed
+        # evidence is that empty directory plus the supporting evidence below.
+        or (not manifest and schema != 4)
         or any(
             not isinstance(item, dict) or set(item) != {"path", "sha256"}
             for item in manifest
@@ -989,12 +1036,30 @@ def _parse_recovery_plan(path, sha256, ledger_path, new_registry):
         raise BudgetStop("original evidence manifest differs")
     for item in manifest:
         _proof(item["path"], item["sha256"])
+    if schema == 4:
+        support = plan["supporting_evidence"]
+        if (
+            not isinstance(support, list)
+            or not support
+            or any(
+                not isinstance(item, dict)
+                or set(item) != {"path", "sha256"}
+                or not isinstance(item["path"], str)
+                or not Path(item["path"]).is_absolute()
+                or Path(item["path"]).resolve() != Path(item["path"])
+                or Path(item["path"]).is_relative_to(folder)
+                for item in support
+            )
+            or len({item["path"] for item in support}) != len(support)
+        ):
+            raise BudgetStop("sealed supporting evidence required")
+        for item in support:
+            _proof(item["path"], item["sha256"])
     provenance = plan["provenance"]
     if (
         not isinstance(provenance, dict)
         or set(provenance) != {"owner_authority", "source_heads", "reviews"}
-        or provenance["owner_authority"]
-        != "c-i conservative charged recovery commissioned by dispatch owner 2026-10-05"
+        or provenance["owner_authority"] != RECOVERY_AUTHORITY[schema]
     ):
         raise BudgetStop("reviewed recovery authority required")
     heads = provenance["source_heads"]
@@ -1103,13 +1168,15 @@ def _transition_record(
                 "expected_exposure_microdollars"
             ],
         )
-    if plan["schema_version"] == 3:
+    if plan["schema_version"] >= 3:
         record["retry"] = plan["retry"]
         record["cumulative_consumed_exposure_microdollars"] = sum(
             i["reservation_microdollars"]
             for i in plan["expected_calls"]
             if i["accounting_status"] != "settled"
         )
+    if plan["schema_version"] == 4:
+        record["supporting_evidence"] = plan["supporting_evidence"]
     return record
 
 
@@ -1333,7 +1400,7 @@ class Ledger:
             )
         )
         expected_guards = RECOVERY_TRIGGERS | (
-            SETTLED_TRIGGERS if len(transitions) == 3 else {}
+            SETTLED_TRIGGERS if len(transitions) >= 3 else {}
         )
         if triggers != expected_guards:
             raise BudgetStop("immutable recovery guards differ")
@@ -1341,8 +1408,8 @@ class Ledger:
             if meta["transition_head"] is not None or charges:
                 raise BudgetStop("orphan recovery state")
             return {}
-        # Only the three owner-commissioned recovery transitions.
-        if len(transitions) > 3 or [entry[0] for entry in transitions] != list(
+        # Only the four owner-commissioned recovery transitions.
+        if len(transitions) > 4 or [entry[0] for entry in transitions] != list(
             range(1, len(transitions) + 1)
         ):
             raise BudgetStop("unsupported registry transition chain")
@@ -1505,7 +1572,7 @@ class Ledger:
                         "halted": meta["halted"],
                     }
                 if (
-                    plan["schema_version"] not in (2, 3)
+                    plan["schema_version"] not in (2, 3, 4)
                     or len(existing) != plan["schema_version"] - 1
                 ):
                     raise BudgetStop("conflicting duplicate recovery")
@@ -1519,7 +1586,10 @@ class Ledger:
                     meta["version"] != 3
                     or meta["halted"] is not True
                     or len(existing) != plan["schema_version"] - 1
-                    or len(rows) != (2 if plan["schema_version"] == 2 else 4)
+                    or len(rows)
+                    != {2: 2, 3: 4}.get(
+                        plan["schema_version"], len(plan["expected_calls"])
+                    )
                     or exposure != plan["expected_exposure_microdollars"]
                 ):
                     raise BudgetStop(
@@ -1556,7 +1626,7 @@ class Ledger:
                     }
                     | (
                         {"actual_microdollars": json.loads(payload)["actual"]}
-                        if plan["schema_version"] == 3
+                        if plan["schema_version"] >= 3
                         else {}
                     )
                     for i, identity, payload in db.execute(
@@ -1575,7 +1645,7 @@ class Ledger:
             ).fetchone()[0]
             call = plan["call"]
             row = next(row for row in rows if row["call"]["call_id"] == call["call_id"])
-            if plan["schema_version"] == 3:
+            if plan["schema_version"] >= 3:
                 retry = plan["retry"]
                 original_call = Call(**row["call"])
                 if (
@@ -1766,71 +1836,102 @@ class Ledger:
                 ),
             )
 
+    @staticmethod
+    def _commissioned(db, meta):
+        """Each sealed link's one commissioned replacement attempt, if any.
+
+        Called only after _read verified the whole chain in this transaction.
+        """
+        if meta["version"] != SCHEMA_VERSION:
+            return []
+        result = []
+        for _, payload, sha256 in db.execute(
+            "SELECT seq, payload, sha256 FROM registry_transitions ORDER BY seq"
+        ):
+            record = json.loads(payload)
+            if "retry" not in record:
+                continue
+            retry = dict(record["retry"])
+            source = "floor" if retry["phase"].startswith("floor-") else "plugin"
+            result.append(
+                {
+                    "retry": retry,
+                    "record_sha256": sha256,
+                    "source_head": record["provenance"]["source_heads"][source],
+                    "predecessor_call_id": record["charged_calls"][0]["call_id"],
+                }
+            )
+        return result
+
+    def commissioned_retries(self):
+        """Read-only: every reviewed replacement attempt and its sealed link."""
+        with self._transaction() as db:
+            meta, _, _ = self._read(db)
+            return self._commissioned(db, meta)
+
     def retry_call(self, call: Call, binding: Binding) -> Call:
-        """Select only the third plan's single commissioned replacement attempt."""
+        """Select only a sealed link's single commissioned replacement attempt.
+
+        The replacement identity derives from the commissioning link's own
+        record hash, so it stays stable when later links are appended.
+        """
         call.validate()
         with self._transaction() as db:
             meta, rows, _ = self._read(db)
             self._approved(meta, binding)
             if meta["halted"]:
                 raise BudgetStop("ledger halted")
-            tail = db.execute(
-                "SELECT payload FROM registry_transitions ORDER BY seq DESC LIMIT 1"
-            ).fetchone()
-            if tail is None:
-                return call
-            record = json.loads(tail[0])
-            if record["schema_version"] != 3:
-                return call
-            retry = record["retry"]
-            if (binding.binding_id, call.phase, call.task, call.trial) != (
-                retry["binding_id"],
-                retry["phase"],
-                retry["task"],
-                retry["trial"],
-            ):
-                return call
-            if (
-                call.attempt != retry["from_attempt"]
-                or call.source_commit != record["provenance"]["source_heads"]["plugin"]
-            ):
-                raise BudgetStop("unreviewed retry/source refused")
-            predecessor = next(
-                r
-                for r in rows
-                if r["call"]["call_id"] == record["charged_calls"][0]["call_id"]
-            )
-            old = Call(**predecessor["call"])
-            if (
-                predecessor["status"] != "charged-uncertain"
-                or predecessor["binding_id"] != binding.binding_id
-                or (old.phase, old.task, old.trial, old.attempt)
-                != (
+            for item in self._commissioned(db, meta):
+                retry = item["retry"]
+                if (binding.binding_id, call.phase, call.task, call.trial) != (
+                    retry["binding_id"],
                     retry["phase"],
                     retry["task"],
                     retry["trial"],
-                    retry["from_attempt"],
+                ):
+                    continue
+                if (
+                    call.attempt != retry["from_attempt"]
+                    or call.source_commit != item["source_head"]
+                ):
+                    raise BudgetStop("unreviewed retry/source refused")
+                predecessor = next(
+                    r
+                    for r in rows
+                    if r["call"]["call_id"] == item["predecessor_call_id"]
                 )
-            ):
-                raise BudgetStop("reviewed retry predecessor differs")
-            identifier = _digest(
-                [
-                    meta["transition_head"],
-                    binding.binding_id,
+                old = Call(**predecessor["call"])
+                if (
+                    predecessor["status"] != "charged-uncertain"
+                    or predecessor["binding_id"] != binding.binding_id
+                    or (old.phase, old.task, old.trial, old.attempt)
+                    != (
+                        retry["phase"],
+                        retry["task"],
+                        retry["trial"],
+                        retry["from_attempt"],
+                    )
+                ):
+                    raise BudgetStop("reviewed retry predecessor differs")
+                identifier = _digest(
+                    [
+                        item["record_sha256"],
+                        binding.binding_id,
+                        call.phase,
+                        call.task,
+                        call.trial,
+                        retry["to_attempt"],
+                    ]
+                )[:32]
+                return Call(
+                    identifier,
                     call.phase,
                     call.task,
                     call.trial,
+                    call.source_commit,
                     retry["to_attempt"],
-                ]
-            )[:32]
-            return Call(
-                identifier,
-                call.phase,
-                call.task,
-                call.trial,
-                call.source_commit,
-                retry["to_attempt"],
-            )
+                )
+            return call
 
     def cached(self, call: Call, binding: Binding, fingerprint: str):
         """Restore an exact completed observation without paying for it again."""

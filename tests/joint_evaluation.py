@@ -66,6 +66,12 @@ REACCEPT_PHASE = "routing-reaccept"
 REACCEPT_BINDING = "plugin-sonnet5-api"
 ROUTED_PHASES = ("routing", REACCEPT_PHASE)  # both bounded to one model turn
 
+# A schema-3 configuration names exactly one reviewed selection with both
+# source checkouts: the charged-recovery kind admits only
+# recover-and-transition (no credential, child, provider or launch).
+RECOVERY_KIND = "charged-recovery-v4"
+SCHEMA_OF_KIND = {"joint": 1, REACCEPT_KIND: 2, RECOVERY_KIND: 3}
+
 
 def file_hash(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -213,7 +219,8 @@ def checked_config(path, expected, *, recovery=False):
         raise D.BudgetStop("isolated Python with bytecode cache disabled required")
     D._proof(str(path), expected)
     config = json.loads(Path(path).read_text())
-    reaccept = is_reacceptance(config)
+    kind = selection_kind(config)
+    reaccept = kind == REACCEPT_KIND
     required = {
         "schema_version",
         "ledger_path",
@@ -225,8 +232,12 @@ def checked_config(path, expected, *, recovery=False):
         "cli_bin",
         "runtime_read_paths",
         "evidence_root",
-    } | ({"selection"} if reaccept else set())
-    if set(config) != required or config["schema_version"] != (2 if reaccept else 1):
+    } | ({"selection"} if kind != "joint" else set())
+    if (
+        kind not in SCHEMA_OF_KIND
+        or set(config) != required
+        or config["schema_version"] != SCHEMA_OF_KIND[kind]
+    ):
         raise D.BudgetStop("incomplete controller configuration")
     if set(config["sources"]) != ({"plugin"} if reaccept else {"plugin", "floor"}):
         raise D.BudgetStop("reviewed source checkouts required")
@@ -243,6 +254,15 @@ def checked_config(path, expected, *, recovery=False):
                 "routing re-acceptance takes no recovery, Floor or prior-ledger input"
             )
         check_selection(config["selection"])
+    elif kind == RECOVERY_KIND:
+        if (
+            not recovery
+            or set(config["files"]) != proofs | {"recovery_plan"}
+            or config["selection"] != {"kind": RECOVERY_KIND}
+        ):
+            raise D.BudgetStop(
+                "charged recovery configuration admits only recover-and-transition"
+            )
     elif not (proofs | {"prior_ledger", "floor_policy"}) <= set(config["files"]):
         raise D.BudgetStop("mandatory controller proofs missing")
     root = Path(__file__).resolve().parents[1]
@@ -279,7 +299,7 @@ def checked_config(path, expected, *, recovery=False):
     manifest = json.loads(Path(config["files"]["runtime_manifest"]["path"]).read_text())
     if manifest != runtime_manifest():
         raise D.BudgetStop("runtime import surface changed")
-    if not reaccept:
+    if kind == "joint":
         check_floor_policy(config, result)
     if recovery:
         entry = config["files"]["recovery_plan"]
@@ -405,6 +425,18 @@ def check_ledger_eligibility(config, reg):
 
 def is_reacceptance(config):
     return isinstance(config, dict) and config.get("schema_version") == 2
+
+
+def selection_kind(config):
+    """joint (schema 1), routing re-acceptance (2) or a schema-3 selection."""
+    if not isinstance(config, dict):
+        return None
+    if config.get("schema_version") == 2:
+        return REACCEPT_KIND
+    if config.get("schema_version") == 3:
+        selection = config.get("selection")
+        return selection.get("kind") if isinstance(selection, dict) else None
+    return "joint"
 
 
 def check_selection(selection):
