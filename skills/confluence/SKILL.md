@@ -1,6 +1,6 @@
 ---
 name: "confluence"
-description: "Entry point for Confluence Cloud automation through the confluence-as CLI. Load it first for any Confluence request, including administration and access changes, even when details are missing: before asking clarifying questions, declining or answering. Loading it changes nothing; it shows how to look up what exists. Run `confluence-as help` first; find operations with `confluence-as api search` and `confluence-as api describe`. Not for Jira."
+description: "Entry point for Confluence Cloud automation through the confluence-as CLI. Load it first for any Confluence request, including administration and access changes, even when details are missing: before asking clarifying questions, declining or answering. Loading it changes nothing in Confluence; it shows how to look up what exists. Run `confluence-as help` first; find operations with `confluence-as api search` and `confluence-as api describe`. Not for Jira-only requests."
 version: "3.0.0"
 author: "confluence-assistant-skills"
 license: "MIT"
