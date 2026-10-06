@@ -29,6 +29,7 @@ ROOT = Path(J.__file__).resolve().parents[1]
 GOLDEN = yaml.safe_load(
     (ROOT / "skills/confluence/tests/routing_golden.yaml").read_text()
 )["tests"]
+INPUTS = {case["id"]: case["input"] for case in GOLDEN}
 OLD, NEW = "b" * 40, "c" * 40
 SKILL_IDS = {"confluence": "confluence-assistant-skills:confluence", "jira": "jira"}
 ENV_NAMES = (
@@ -111,7 +112,7 @@ def plugin_launcher(ledger, registry, cli, evidence, reacceptance=None, binding=
 def routing(launcher, task, trial, source, prompt=None, attempt=1):
     return launcher.run(
         routing_cmd(launcher.binding),
-        prompt or f"Confluence {task}",
+        INPUTS[task] if prompt is None else prompt,
         call=D.Call(f"uuid-{task}-{trial}", "routing", task, trial, source, attempt),
         detect_line=detect,
         timeout=5,
@@ -170,15 +171,21 @@ def test_reacceptance_trial_gets_fresh_identity_beside_settled_joint_row(tmp_pat
 
 
 @pytest.mark.parametrize(
-    "mutation",
+    ("mutation", "prompt"),
     [
-        {"phase": "sufficiency"},
-        {"phase": "floor-trial"},
-        {"attempt": 2},
-        {"source_commit": OLD},
+        ({"phase": "sufficiency"}, None),
+        ({"phase": "floor-trial"}, None),
+        ({"attempt": 2}, None),
+        ({"source_commit": OLD}, None),
+        ({"task": "outside-golden"}, None),
+        ({"trial": 6}, None),
+        ({}, "Any other prompt text"),
+        ({}, INPUTS["confluence-02"]),
     ],
 )
-def test_reacceptance_refuses_other_phases_retries_and_sources(tmp_path, reg, mutation):
+def test_reacceptance_refuses_anything_but_the_fifty_reviewed_trials(
+    tmp_path, reg, mutation, prompt
+):
     ledger = D.Ledger.create(tmp_path / "ledger.sqlite3", reg)
     binding = reg.binding("plugin-sonnet5-api")
     cli = FakeRoutingCLI(reg, by_product)
@@ -187,8 +194,14 @@ def test_reacceptance_refuses_other_phases_retries_and_sources(tmp_path, reg, mu
     )
     call = replace(D.Call("uuid", "routing", "confluence-01", 1, NEW), **mutation)
     with pytest.raises(D.BudgetStop, match="only its own routing trials"):
-        launcher.run(routing_cmd(binding), "prompt", call=call, timeout=5)
+        launcher.run(
+            routing_cmd(binding),
+            INPUTS["confluence-01"] if prompt is None else prompt,
+            call=call,
+            timeout=5,
+        )
     assert transport.provider.calls == [] and ledger.snapshot()["calls"] == []
+    assert cli.argvs == []
 
 
 def test_reacceptance_refuses_any_other_binding(tmp_path, reg):
@@ -217,7 +230,7 @@ def test_reacceptance_on_three_link_ledger_keeps_history_and_counts_once(third):
         f.path.parent / "re",
         ("rr-1", NEW),
     )
-    outcome = routing(launcher, "jira-01", 5, NEW, prompt="Jira jira-01")
+    outcome = routing(launcher, "jira-01", 5, NEW)
     after = f.ledger.snapshot()
     assert outcome.result == "jira" and len(transport.provider.calls) == 1
     old = {r["call"]["call_id"]: r for r in before["calls"]}
@@ -280,7 +293,11 @@ def test_reacceptance_completion_tally_and_exact_coverage(tmp_path):
 
 
 def test_joint_resume_completion_ignores_reacceptance_rows(tmp_path, reg, monkeypatch):
-    """A later same-packet joint resume (for Floor completion) is not disturbed."""
+    """run_joint's own completion filter never sees re-acceptance rows.
+
+    This checks only the row filter; whether run 2 can still resume after a
+    recovery of its halted ledger is a separate, reviewed recovery question.
+    """
     import pytest as pytest_module
 
     ledger = D.Ledger.create(tmp_path / "ledger.sqlite3", reg)

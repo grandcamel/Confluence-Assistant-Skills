@@ -470,14 +470,34 @@ def reacceptance_summary(config, reg, snapshot):
     }
 
 
-def reacceptance_call(call, binding, run_id, source_commit):
-    """Fresh ledger identity for one first-attempt routing trial of this run."""
+def routing_golden():
+    """The ten reviewed routing prompts of this checkout, in YAML order."""
+    import yaml
+
+    plugin = Path(__file__).resolve().parents[1]
+    golden = yaml.safe_load(
+        (plugin / "skills/confluence/tests/routing_golden.yaml").read_text()
+    )["tests"]
+    if len(golden) != 10 or len({item["id"] for item in golden}) != 10:
+        raise D.BudgetStop("routing inventory differs")
+    return golden
+
+
+def reacceptance_call(call, prompt, binding, run_id, source_commit):
+    """Fresh ledger identity for one first-attempt routing trial of this run.
+
+    Refused before any reservation unless it is one of the 50 reviewed
+    (golden prompt, trial 1-5) pairs on this run's source.
+    """
     call.validate()
+    inputs = {item["id"]: item["input"] for item in routing_golden()}
     if (
         binding.binding_id != REACCEPT_BINDING
         or call.phase != "routing"
         or call.attempt != 1
         or call.source_commit != source_commit
+        or not 1 <= call.trial <= 5
+        or inputs.get(call.task) != prompt
     ):
         raise D.BudgetStop("routing re-acceptance admits only its own routing trials")
     return D.Call(
@@ -715,7 +735,7 @@ class JointLauncher(D.BudgetLauncher):
         if self.reacceptance is None:
             call = self.ledger.retry_call(call, self.binding)
         else:  # No commissioned retry exists in a re-acceptance packet.
-            call = reacceptance_call(call, self.binding, *self.reacceptance)
+            call = reacceptance_call(call, prompt, self.binding, *self.reacceptance)
         destination = (
             Path(self.transport.config["evidence_root"]) / "calls" / call.call_id
         )
@@ -902,15 +922,8 @@ def run_reacceptance(config, transport):
 
 def check_reacceptance_completion(rows, run_id, source_commit):
     """Exactly 50 settled first attempts of this run; tally from sealed outcomes."""
-    import yaml
-
-    plugin = Path(__file__).resolve().parents[1]
-    golden = yaml.safe_load(
-        (plugin / "skills/confluence/tests/routing_golden.yaml").read_text()
-    )["tests"]
+    golden = routing_golden()
     expected = {(item["id"], trial) for item in golden for trial in range(1, 6)}
-    if len(expected) != 50:
-        raise D.BudgetStop("routing inventory differs")
     tally = {
         item["id"]: {"expected": item.get("expected_skill"), "correct": 0}
         for item in golden
