@@ -11,9 +11,11 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 import threading
+import time
 from dataclasses import replace
 from pathlib import Path
 
@@ -68,9 +70,25 @@ ROUTED_PHASES = ("routing", REACCEPT_PHASE)  # both bounded to one model turn
 
 # A schema-3 configuration names exactly one reviewed selection with both
 # source checkouts: the charged-recovery kind admits only
-# recover-and-transition (no credential, child, provider or launch).
+# recover-and-transition (no credential, child, provider or launch); the
+# Floor-resume kind admits only dry-admission/run of the Floor stage.
 RECOVERY_KIND = "charged-recovery-v4"
-SCHEMA_OF_KIND = {"joint": 1, REACCEPT_KIND: 2, RECOVERY_KIND: 3}
+FLOOR_KIND = "floor-resume-v1"
+SCHEMA_OF_KIND = {"joint": 1, REACCEPT_KIND: 2, RECOVERY_KIND: 3, FLOOR_KIND: 3}
+FLOOR_OUTPUT = "floor-resume-153"
+FLOOR_BINDINGS = {
+    "sonnet": "floor-sonnet55-api",
+    "terra": "floor-haiku45-api",
+    "judge": "floor-opus55-api",
+}
+FLOOR_FACTS = tuple(f"G{n:03d}" for n in range(1, 154))
+FLOOR_TRIALS = {
+    (model, fact, trial)
+    for model in ("sonnet", "terra")
+    for fact in FLOOR_FACTS
+    for trial in range(1, 6)
+}
+FLOOR_JUDGES = {(model, fact) for model in ("sonnet", "terra") for fact in FLOOR_FACTS}
 
 
 def file_hash(path):
@@ -263,6 +281,12 @@ def checked_config(path, expected, *, recovery=False):
             raise D.BudgetStop(
                 "charged recovery configuration admits only recover-and-transition"
             )
+    elif kind == FLOOR_KIND:
+        if recovery or set(config["files"]) != proofs | {"floor_policy"}:
+            raise D.BudgetStop(
+                "Floor resume takes no recovery, prior-ledger or plugin-run input"
+            )
+        check_floor_selection(config["selection"])
     elif not (proofs | {"prior_ledger", "floor_policy"}) <= set(config["files"]):
         raise D.BudgetStop("mandatory controller proofs missing")
     root = Path(__file__).resolve().parents[1]
@@ -299,8 +323,13 @@ def checked_config(path, expected, *, recovery=False):
     manifest = json.loads(Path(config["files"]["runtime_manifest"]["path"]).read_text())
     if manifest != runtime_manifest():
         raise D.BudgetStop("runtime import surface changed")
-    if kind == "joint":
-        check_floor_policy(config, result)
+    if kind in ("joint", FLOOR_KIND):
+        policy = check_floor_policy(config, result)
+        if (
+            kind == FLOOR_KIND
+            and policy["run_id"] != config["selection"]["floor_run_id"]
+        ):
+            raise D.BudgetStop("Floor resume run id differs from the reviewed policy")
     if recovery:
         entry = config["files"]["recovery_plan"]
         plan = D._reviewed_recovery_plan(
@@ -318,6 +347,9 @@ def checked_config(path, expected, *, recovery=False):
         # operator's no-other-writer precondition is the guard for that.
         check_quiescent(Path(config["ledger_path"]))
         check_reacceptance_ledger(config, result)
+    elif kind == FLOOR_KIND:
+        check_quiescent(Path(config["ledger_path"]))
+        check_floor_resume_ledger(config, result)
     else:
         check_ledger_eligibility(config, result)
     sandbox = Sandbox(
@@ -336,10 +368,22 @@ def checked_config(path, expected, *, recovery=False):
 
 
 def load_floor(config):
+    """The pinned Floor evaluator, bound to this controller's own D module.
+
+    run_eval.py at the reviewed Floor source commit hard-codes the D module
+    hash it was reviewed with. The Floor source must stay unchanged so its
+    settled trials keep their ledger identities; this controller instead pins
+    D by configuration hash (budget_module_sha256, files.budget). Rebinding the
+    evaluator's two in-memory pins to exactly that module keeps every check it
+    makes (policy, module bytes, interface) bound to one reviewed D.
+    """
     path = Path(config["sources"]["floor"]["path"]) / "tests/floor_eval/run_eval.py"
     spec = importlib.util.spec_from_file_location("joint_floor", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    manifest = D.interface_manifest()
+    module.APPROVED_BUDGET_SHA256 = manifest["module_sha256"]
+    module.APPROVED_INTERFACE_SHA256 = manifest["interface_sha256"]
     return module
 
 
@@ -386,6 +430,7 @@ def check_floor_policy(config, reg):
             "model_id": reg.binding(identity).model,
         }:
             raise D.BudgetStop("Floor role mismatch")
+    return policy
 
 
 def check_ledger_eligibility(config, reg):
@@ -451,6 +496,275 @@ def check_selection(selection):
     D._token(selection["run_id"])
     if "/" in selection["run_id"]:
         raise D.BudgetStop("run id must not contain the task separator")
+
+
+def check_floor_selection(selection):
+    if (
+        not isinstance(selection, dict)
+        or set(selection)
+        != {
+            "kind",
+            "floor_run_id",
+            "plugin_settled_head",
+            "minimum_start_headroom_microdollars",
+        }
+        or selection["kind"] != FLOOR_KIND
+        or not isinstance(selection["plugin_settled_head"], str)
+        or not re.fullmatch(r"[a-f0-9]{40}", selection["plugin_settled_head"])
+        or type(selection["minimum_start_headroom_microdollars"]) is not int
+        or not 0 < selection["minimum_start_headroom_microdollars"] <= D.CAP
+    ):
+        raise D.BudgetStop("unreviewed Floor resume selection")
+    D._token(selection["floor_run_id"])
+    if "/" in selection["floor_run_id"]:
+        raise D.BudgetStop("run id must not contain the task separator")
+
+
+def admission_headroom(snapshot):
+    """Headroom once validated pending settlements are applied.
+
+    A reserved row with a sealed complete receipt (proved by
+    check_ledger_eligibility and the ledger read) settles at that receipt's
+    actual before any launch. Dry admission never reconciles, so it credits
+    the difference instead of refusing a resumable run near its threshold.
+    Every reservation is still checked against the cap when it is made.
+    """
+    pending = 0
+    for row in snapshot["calls"]:
+        if (
+            row["status"] == "reserved"
+            and row["partial_receipt"] is not None
+            and row["outcome"] is not None
+        ):
+            pending += row["reservation"] - D.microdollars(
+                row["partial_receipt"]["actual_usd"]
+            )
+    return snapshot["headroom"] + pending
+
+
+def check_plugin_settled(rows, head):
+    """The joint run's 85 plugin observations are complete on their own head.
+
+    The Floor-only resume never launches a plugin trial; it requires the
+    plugin stage that preceded run 2's Floor stage to be settled already.
+    """
+    plugin = [r for r in rows if r["call"]["phase"] in ("sufficiency", "routing")]
+    check_plugin_completion(plugin)
+    if any(
+        r["status"] == "settled" and r["call"]["source_commit"] != head for r in plugin
+    ):
+        raise D.BudgetStop("plugin observations were settled on another head")
+
+
+def floor_coverage(rows, run_id, source_commit):
+    """Settled logical Floor identities of this run, from the sealed ledger."""
+    trials, judges, charged, attempts, pending = set(), set(), [], 0, 0
+    settled = 0
+    for row in rows:
+        call = row["call"]
+        if not call["phase"].startswith("floor-") or not call["task"].startswith(
+            run_id + "/"
+        ):
+            continue
+        kind = call["phase"][len("floor-") :]
+        parts = call["task"].split("/")
+        if (
+            kind not in ("trial", "judge")
+            or len(parts) != 3
+            or call["source_commit"] != source_commit
+            or row["binding_id"]
+            != FLOOR_BINDINGS["judge" if kind == "judge" else parts[1]]
+        ):
+            raise D.BudgetStop("unexpected Floor observation in the shared ledger")
+        identity = (
+            (parts[1], parts[2], call["trial"])
+            if kind == "trial"
+            else (parts[1], parts[2])
+        )
+        if identity not in (FLOOR_TRIALS if kind == "trial" else FLOOR_JUDGES):
+            raise D.BudgetStop("unexpected Floor observation in the shared ledger")
+        if row["status"] == "charged-uncertain":
+            charged.append(call["call_id"])
+            continue
+        if row["status"] == "reserved":
+            pending += 1  # dry admission only; run reconciles first
+            continue
+        if row["status"] != "settled":
+            raise D.BudgetStop("unresolved Floor observation")
+        attempts += call["attempt"] > 1
+        settled += row["actual"]
+        (trials if kind == "trial" else judges).add(identity)
+    return {
+        "settled_trial_identities": len(trials),
+        "settled_judge_identities": len(judges),
+        "charged_floor_attempts": len(charged),
+        "settled_retry_attempts": attempts,
+        "pending_settlements": pending,
+        "remaining_trials": len(FLOOR_TRIALS - trials),
+        "remaining_judges": len(FLOOR_JUDGES - judges),
+        "settled_floor_microdollars": settled,
+    }
+
+
+def check_floor_resume_ledger(config, reg, *, reconcile=False):
+    """Existing canonical ledger only; never initializes, resets or migrates."""
+    path = Path(config["ledger_path"])
+    if not path.is_file():
+        raise D.BudgetStop("Floor resume requires the existing ledger")
+    check_ledger_eligibility(config, reg)
+    ledger = D.Ledger(path)
+    snapshot = reconcile_existing(ledger) if reconcile else ledger.snapshot()
+    selection = config["selection"]
+    check_plugin_settled(snapshot["calls"], selection["plugin_settled_head"])
+    coverage = floor_coverage(
+        snapshot["calls"], selection["floor_run_id"], config["sources"]["floor"]["head"]
+    )
+    minimum = selection["minimum_start_headroom_microdollars"]
+    largest = max(reg.binding(b).validate() for b in FLOOR_BINDINGS.values())
+    if (
+        snapshot["metadata"]["registry_sha256"] != reg.digest
+        or minimum < largest
+        or admission_headroom(snapshot) < minimum
+    ):
+        raise D.BudgetStop("aggregate headroom below reviewed Floor resume minimum")
+    return ledger, snapshot, coverage
+
+
+def floor_summary(config, reg, snapshot, coverage):
+    selection = config["selection"]
+    return {
+        "selection": FLOOR_KIND,
+        "floor_run_id": selection["floor_run_id"],
+        "floor_source_commit": config["sources"]["floor"]["head"],
+        "plugin_settled_head": selection["plugin_settled_head"],
+        **coverage,
+        "per_call_reservation_microdollars": {
+            role: reg.binding(binding).validate()
+            for role, binding in FLOOR_BINDINGS.items()
+        },
+        "minimum_start_headroom_microdollars": selection[
+            "minimum_start_headroom_microdollars"
+        ],
+        "exposure_microdollars": snapshot["exposure"],
+        "headroom_microdollars": snapshot["headroom"],
+        "admission_headroom_microdollars": admission_headroom(snapshot),
+    }
+
+
+LAST_FLOOR_STOP = []  # the most recent Floor call stop detail, for main()
+
+
+def record_floor_stop(directory, request, attempt, error):
+    """Floor's evaluator reports only a fixed refusal string; keep the detail.
+
+    Writes one sealed JSON per stopped call under the Floor output and one
+    `floor-stop` line on stdout (the operator's run log). No prompt text,
+    locals, traceback or credential: D.stop_detail redacts and bounds it.
+    """
+    entry = {
+        "kind": request["kind"],
+        "fact_id": request["fact_id"],
+        "model": request["model"],
+        "trial": request["trial"],
+        "attempt": attempt,
+        **D.stop_detail(error),
+    }
+    try:
+        directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+        name = "{}-{}-{}-{}-t{}-a{}.json".format(
+            time.time_ns(),
+            request["kind"],
+            request["model"],
+            request["fact_id"],
+            request["trial"],
+            attempt,
+        )
+        seal_json(directory / name, entry)
+        entry["evidence"] = str(directory / name)
+    except OSError:
+        entry["evidence"] = None
+    LAST_FLOOR_STOP[:] = [entry]
+    print("floor-stop " + json.dumps(entry, sort_keys=True), flush=True)
+
+
+def install_floor_adapter(floor, retries, output):
+    """Run the pinned evaluator unchanged, with two reviewed additions.
+
+    1. The one replacement attempt a sealed recovery link commissioned for a
+       charged Floor trial: that trial's first attempt is issued as the
+       commissioned attempt instead (its predecessor is permanently charged
+       and can never replay). The Floor identity formula is unchanged.
+    2. Any exception escaping a Floor call is recorded (record_floor_stop)
+       before the evaluator turns it into its fixed refusal string.
+    """
+    base = floor.FloorBudget
+    commissioned = [item for item in retries if item["retry"]["phase"] == "floor-trial"]
+    stops = output / "controller-stops"
+
+    class ReviewedFloorBudget(base):
+        def call(self, request, command, attempt, evidence, timeout):
+            role = "judge" if request["kind"] == "judge" else request["model"]
+            identity = (
+                self.launchers[role].binding.binding_id,
+                "floor-" + request["kind"],
+                f"{self.policy['run_id']}/{request['model']}/{request['fact_id']}",
+                max(1, request["trial"]),
+            )
+            for item in commissioned:
+                retry = item["retry"]
+                if (
+                    identity
+                    == (
+                        retry["binding_id"],
+                        retry["phase"],
+                        retry["task"],
+                        retry["trial"],
+                    )
+                    and attempt == retry["from_attempt"]
+                    and self.policy["source_commit"] == item["source_head"]
+                ):
+                    attempt = retry["to_attempt"]
+            try:
+                return base.call(self, request, command, attempt, evidence, timeout)
+            except BaseException as error:
+                record_floor_stop(stops, request, attempt, error)
+                raise
+
+    floor.FloorBudget = ReviewedFloorBudget
+
+
+def run_floor_resume(config, transport, ledger):
+    """The Floor stage only: no pytest, plugin, sufficiency or routing call."""
+    selection = config["selection"]
+    LAST_FLOOR_STOP.clear()
+    floor = load_floor(config)
+    output = Path(config["evidence_root"]) / FLOOR_OUTPUT
+    install_floor_adapter(floor, ledger.commissioned_retries(), output)
+    policy = config["files"]["floor_policy"]
+    floor_path = (
+        Path(config["sources"]["floor"]["path"]) / "tests/floor_eval/run_eval.py"
+    )
+    sys.argv = [
+        str(floor_path),
+        "--workers",
+        "1",
+        "--policy",
+        policy["path"],
+        "--policy-sha256",
+        policy["sha256"],
+        "--output",
+        str(output),
+    ]
+    if (output / "manifest.json").exists():
+        sys.argv.append("--resume")
+    finish_floor(floor, transport)
+    snapshot = reconcile_existing(D.Ledger(Path(config["ledger_path"])))
+    coverage = floor_coverage(
+        snapshot["calls"], selection["floor_run_id"], config["sources"]["floor"]["head"]
+    )
+    if coverage["remaining_trials"] or coverage["remaining_judges"]:
+        raise D.BudgetStop("Floor ledger coverage incomplete")
+    return snapshot, coverage
 
 
 def check_quiescent(path):
@@ -815,13 +1129,19 @@ def admission(config, reg, sandbox, provider, ledger):
     if D._ADMITTED_LAUNCHER is not None:
         raise D.BudgetStop("nested controller refused")
     transport = ProductionTransport(config, reg, sandbox, provider)
-    D._ADMITTED_LAUNCHER = JointLauncher(
-        ledger,
-        reg.binding("plugin-sonnet5-api"),
-        transport,
-        (config["selection"]["run_id"], config["sources"]["plugin"]["head"])
-        if is_reacceptance(config)
-        else None,
+    # The Floor resume launches only through the evaluator's own launchers on
+    # this transport; no plugin harness launcher is admitted at all.
+    D._ADMITTED_LAUNCHER = (
+        None
+        if selection_kind(config) == FLOOR_KIND
+        else JointLauncher(
+            ledger,
+            reg.binding("plugin-sonnet5-api"),
+            transport,
+            (config["selection"]["run_id"], config["sources"]["plugin"]["head"])
+            if is_reacceptance(config)
+            else None,
+        )
     )
     try:
         yield transport
@@ -871,9 +1191,7 @@ def run_joint(config, transport):
     floor_path = (
         Path(config["sources"]["floor"]["path"]) / "tests/floor_eval/run_eval.py"
     )
-    spec = importlib.util.spec_from_file_location("joint_floor", floor_path)
-    floor = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(floor)
+    floor = load_floor(config)
     policy = config["files"]["floor_policy"]
     sys.argv = [
         str(floor_path),
@@ -1048,8 +1366,11 @@ def main():
             else checked_config(args.config, args.config_sha256)
         )
         reaccept = is_reacceptance(config)
+        floor_only = selection_kind(config) == FLOOR_KIND
         if reaccept and args.mode not in ("dry-admission", "run"):
             raise D.BudgetStop("routing re-acceptance admits only dry-admission/run")
+        if floor_only and args.mode not in ("dry-admission", "run"):
+            raise D.BudgetStop("Floor resume admits only dry-admission/run")
         if recovering:
             if not CANONICAL.is_file():
                 raise D.BudgetStop("recovery requires existing canonical ledger")
@@ -1080,6 +1401,9 @@ def main():
             if reaccept:
                 _, snapshot = check_reacceptance_ledger(config, reg)
                 admitted.update(reacceptance_summary(config, reg, snapshot))
+            if floor_only:
+                _, snapshot, coverage = check_floor_resume_ledger(config, reg)
+                admitted.update(floor_summary(config, reg, snapshot, coverage))
             print(json.dumps(admitted))
             return 0
         provider = Provider()
@@ -1088,11 +1412,12 @@ def main():
         CANONICAL.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
         with CANONICAL.with_suffix(".joint-lock").open("a") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            ledger = (
-                check_reacceptance_ledger(config, reg, reconcile=True)[0]
-                if reaccept
-                else open_ledger(config, reg)
-            )
+            if reaccept:
+                ledger = check_reacceptance_ledger(config, reg, reconcile=True)[0]
+            elif floor_only:
+                ledger = check_floor_resume_ledger(config, reg, reconcile=True)[0]
+            else:
+                ledger = open_ledger(config, reg)
             with admission(config, reg, sandbox, provider, ledger) as transport:
                 if args.mode == "probe":
                     binding = reg.binding("floor-haiku45-api")
@@ -1114,6 +1439,8 @@ def main():
                     )
                 elif reaccept:
                     passed, tally, settled = run_reacceptance(config, transport)
+                elif floor_only:
+                    final, coverage = run_floor_resume(config, transport, ledger)
                 else:
                     run_joint(config, transport)
             if reaccept:
@@ -1129,6 +1456,16 @@ def main():
                     )
                 )
                 return 0 if passed else 1
+            if floor_only:
+                print(
+                    json.dumps(
+                        {
+                            "status": "FLOOR_RESUME_COMPLETE",
+                            **floor_summary(config, reg, final, coverage),
+                        }
+                    )
+                )
+                return 0
             print(
                 json.dumps(
                     {
@@ -1148,16 +1485,17 @@ def main():
             )
         )
         return 2
-    except (D.BudgetStop, OSError, KeyError, TypeError, ValueError):
-        # No exception body/locals: a dependency may retain a credential-bearing request.
-        print(
-            json.dumps(
-                {
-                    "status": "STOPPED_INCOMPLETE",
-                    "detail": "admission/accounting gate refused; retain all evidence and reservations",
-                }
-            )
-        )
+    except (D.BudgetStop, OSError, KeyError, TypeError, ValueError) as error:
+        # No exception body/locals: a dependency may retain a credential-bearing
+        # request. Only the class and a bounded, redacted message are printed.
+        stopped = {
+            "status": "STOPPED_INCOMPLETE",
+            "detail": "admission/accounting gate refused; retain all evidence and reservations",
+            "stop": D.stop_detail(error),
+        }
+        if LAST_FLOOR_STOP:
+            stopped["floor_stop"] = LAST_FLOOR_STOP[0]
+        print(json.dumps(stopped))
         return 2
 
 
