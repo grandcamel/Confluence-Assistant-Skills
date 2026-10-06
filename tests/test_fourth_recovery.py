@@ -563,6 +563,14 @@ def test_commissioned_retries_survive_the_fourth_link(fourth):
             [links[2][2], plugin.binding_id, "sufficiency", "read-page", 1, 2]
         )[:32]
     )
+    # Standards r2 finding 4: the commissioned identity on another source
+    # head, or from another attempt, is refused rather than mapped.
+    for call in (
+        D.Call("fresh-uuid", "sufficiency", "read-page", 1, "d" * 40),
+        D.Call("fresh-uuid", "sufficiency", "read-page", 1, PLUGIN_HEAD, 2),
+    ):
+        with pytest.raises(D.BudgetStop, match="unreviewed retry/source refused"):
+            f.ledger.retry_call(call, plugin)
     # The Floor replacement is reservable as attempt 2 of the charged trial.
     retry = floor_call("sonnet", "G042", 4, attempt=2)
     outcome = floor_run(f.sonnet, retry)

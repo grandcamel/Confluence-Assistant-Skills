@@ -250,6 +250,28 @@ def test_stop_detail_keeps_only_bounded_plain_reviewed_text():
     assert near["message"] == D.SUPPRESSED_MESSAGE and "cause" not in near
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "see http://fixture.invalid/path",  # '://'
+        "Basic dXNlcjpwYXNz",  # basic
+        "Bearer fixture-token",  # bearer
+        "key sk-ant-fixture",  # sk-
+        "token eyJhbGciOiJub25lIn0",  # eyj (a JWT header)
+        "opaque " + "A1b2C3d4" * 4,  # a 32-character opaque run
+    ],
+)
+def test_each_credential_shape_alone_suppresses_reviewed_text(text):
+    """Standards r2 finding 1: every alternative of _CREDENTIAL_SHAPE is the
+    only reason its text is refused (each text is otherwise plain prose)."""
+    assert D._REVIEWED_TEXT.fullmatch(text)
+    assert not D._reviewed_text(text)
+    assert D.stop_detail(D.BudgetStop(text))["message"] == D.SUPPRESSED_MESSAGE
+    shortened = text[:-1] if text.startswith("opaque ") else None
+    if shortened:  # 31 characters is not an opaque run
+        assert D._reviewed_text(shortened)
+
+
 def test_stop_detail_never_masks_a_broken_exception():
     class Broken(Exception):
         def __str__(self):
@@ -340,6 +362,45 @@ def test_every_stop_message_is_reviewed_literal_text():
     with pytest.raises(D.BudgetStop) as raised:
         D.check_host_headroom(lambda: (2000, 2784))
     assert D.stop_detail(raised.value)["message"] == guard
+
+
+def test_stop_classes_are_the_whole_reviewed_subclass_closure():
+    """Standards r2 finding 2: every BudgetStop subclass inherits the trusted
+    reviewed_message, so STOP_CLASSES (whose constructions the literal-text
+    test examines) must be the whole subclass closure: computed from the class
+    definitions of the reviewed modules and from the imported classes."""
+    import ast
+    import importlib
+
+    root = Path(D.__file__).resolve().parents[1]
+    classes = []
+    for relative in REVIEWED_MODULES:
+        for node in ast.walk(ast.parse((root / relative).read_text())):
+            if isinstance(node, ast.ClassDef):
+                bases = {getattr(b, "attr", getattr(b, "id", None)) for b in node.bases}
+                classes.append((node.name, bases))
+    closure = {"BudgetStop"}
+    while True:
+        grown = closure | {name for name, bases in classes if bases & closure}
+        if grown == closure:
+            break
+        closure = grown
+    assert closure == STOP_CLASSES
+
+    def subclasses(cls):
+        for sub in cls.__subclasses__():
+            yield sub
+            yield from subclasses(sub)
+
+    modules = {
+        "tests." + Path(relative).stem
+        for relative in REVIEWED_MODULES
+        if relative.startswith("tests/")
+    }
+    for module in modules:
+        importlib.import_module(module)
+    defined = {c.__name__ for c in subclasses(D.BudgetStop) if c.__module__ in modules}
+    assert defined | {"BudgetStop"} == STOP_CLASSES
 
 
 def test_uncertain_refuses_a_malformed_stop_detail(tmp_path, reg):
