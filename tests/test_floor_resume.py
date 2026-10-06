@@ -36,6 +36,7 @@ from tests.test_third_recovery import third as third
 FACTS = ("G001", "G042")
 TRIALS = {(m, f, t) for m in ("sonnet", "terra") for f in FACTS for t in range(1, 6)}
 JUDGES = {(m, f) for m in ("sonnet", "terra") for f in FACTS}
+REAL_CHECK_PLUGIN_SETTLED = J.check_plugin_settled  # before any fixture stub
 
 
 class IsolatedSys(SimpleNamespace):
@@ -695,3 +696,160 @@ def test_admission_headroom_credits_validated_pending_settlements():
         ],
     }
     assert J.admission_headroom(snapshot) == 3_079_520 + 3_020_480 - 34_100
+
+
+def test_floor_inventory_is_153_facts_two_models_five_trials():
+    """Unpatched: FLOOR_RESUME_COMPLETE means all 1,530 trials and 306 judges."""
+    assert tuple(f"G{n:03d}" for n in range(1, 154)) == J.FLOOR_FACTS
+    assert len(J.FLOOR_TRIALS) == 1530 and len(J.FLOOR_JUDGES) == 306
+    assert {t[2] for t in J.FLOOR_TRIALS} == {1, 2, 3, 4, 5}
+    assert {(m, f) for m, f, _ in J.FLOOR_TRIALS} == J.FLOOR_JUDGES
+    assert {m for m, _ in J.FLOOR_JUDGES} == {"sonnet", "terra"}
+    assert {f for _, f in J.FLOOR_JUDGES} == set(J.FLOOR_FACTS)
+    assert set(J.FLOOR_BINDINGS) == {"sonnet", "terra", "judge"}
+
+
+def plugin_inventory():
+    import yaml
+
+    root = Path(J.__file__).parents[1]
+    return [
+        (phase, task["id"], trial)
+        for phase, path, key in (
+            ("sufficiency", root / "tests/e2e/test_cases.yaml", "tasks"),
+            ("routing", root / "skills/confluence/tests/routing_golden.yaml", "tests"),
+        )
+        for task in yaml.safe_load(path.read_text())[key]
+        for trial in range(1, 6)
+    ]
+
+
+def settle_plugin_stage(f, *, missing=None, foreign=None):
+    """Settle the joint plugin stage through the real launcher and transport
+    (fake CLI and provider): read-page trial 1 as link 3's commissioned
+    attempt 2, every other observation as attempt 1 on the plugin head."""
+    transport = J.ProductionTransport(
+        {"files": {}, "evidence_root": str(f.path.parent / "plugin-evidence")},
+        f.new,
+        T.FakeOAuthCLI(f.new),
+        T.FakeProvider(),
+    )
+    launcher = J.JointLauncher(f.ledger, f.new.binding("plugin-sonnet5-api"), transport)
+    for logical in plugin_inventory():
+        if logical == missing:
+            continue
+        launcher.run(
+            ["claude", "--print", "--model", launcher.binding.model],
+            "Plugin observation fixture.",
+            call=D.Call(
+                D._digest(["plugin-fixture", *logical])[:32],
+                logical[0],
+                logical[1],
+                logical[2],
+                "d" * 40 if logical == foreign else PLUGIN_HEAD,
+            ),
+            timeout=5,
+        )
+    return len(transport.provider.calls)
+
+
+LAST_ROUTING = ("routing", "neither-02", 5)
+
+
+@pytest.fixture
+def plugin_gate(floor_packet, monkeypatch):
+    """The fixture packet with the real plugin-stage gate (no stub)."""
+    import socketserver
+
+    serve = socketserver.BaseServer.serve_forever  # 85 fake trials: short poll
+    monkeypatch.setattr(
+        socketserver.BaseServer,
+        "serve_forever",
+        lambda self, poll_interval=0.01: serve(self, poll_interval),
+    )
+    monkeypatch.setattr(J, "check_plugin_settled", REAL_CHECK_PLUGIN_SETTLED)
+    assert LAST_ROUTING in plugin_inventory() and len(plugin_inventory()) == 85
+    return floor_packet
+
+
+def refuses_both_modes(p, capsys, reason):
+    before = sha(p.f.ledger.path)
+    for mode in ("dry-admission", "run"):
+        assert p.main(mode) == 2
+        stopped = json.loads(capsys.readouterr().out)
+        assert stopped["status"] == "STOPPED_INCOMPLETE"
+        assert reason in stopped["stop"]["message"]
+    assert provider_calls(p) == 0 and p.cli.argvs == []
+    assert sha(p.f.ledger.path) == before
+
+
+def test_floor_resume_refuses_an_incomplete_plugin_stage(plugin_gate, capsys):
+    """Standards r1 finding 1(a): one plugin observation missing refuses both
+    modes; the complete stage on its own head is then admitted."""
+    p = plugin_gate
+    assert settle_plugin_stage(p.f, missing=LAST_ROUTING) == 84
+    refuses_both_modes(p, capsys, "plugin logical trial coverage differs")
+    settle_plugin_stage(p.f)  # 84 replays from the ledger plus the missing one
+    assert p.main("dry-admission") == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "DRY_ADMITTED"
+
+
+def test_floor_resume_refuses_a_plugin_stage_settled_on_another_head(
+    plugin_gate, capsys
+):
+    p = plugin_gate
+    assert settle_plugin_stage(p.f, foreign=LAST_ROUTING) == 85
+    refuses_both_modes(p, capsys, "plugin observations were settled on another head")
+
+
+@pytest.mark.parametrize("excess", [0, 1])
+def test_floor_start_minimum_boundary_in_both_modes(floor_packet, capsys, excess):
+    """Standards r1 finding 1(b): a start minimum equal to the admission
+    headroom is admitted in both modes; one microdollar more refuses both,
+    before any provider call and with the ledger bytes unchanged."""
+    p = floor_packet
+    headroom = J.admission_headroom(p.f.ledger.snapshot())
+    assert headroom >= 4_040_961
+    p.config["selection"]["minimum_start_headroom_microdollars"] = headroom + excess
+    if excess:
+        refuses_both_modes(p, capsys, "below reviewed Floor resume minimum")
+        return
+    before = sha(p.f.ledger.path)
+    assert p.main("dry-admission") == 0
+    dry = json.loads(capsys.readouterr().out)
+    assert dry["admission_headroom_microdollars"] == headroom
+    assert sha(p.f.ledger.path) == before
+    assert p.main("run") == 0
+    final = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert final["status"] == "FLOOR_RESUME_COMPLETE"
+
+
+def test_no_exception_text_reaches_any_floor_or_controller_sink(floor_packet, capsys):
+    """Codex risk r1 finding 2, every sink a Floor call stop reaches: ledger
+    row, launcher-stop.json, the Floor sidecar, the floor-stop log line and
+    the final STOPPED_INCOMPLETE line."""
+    p = floor_packet
+    secret = "Basic ZmFrZXVzZXI6ZmFrZXBhc3M="
+    run = p.cli.run
+
+    def echoing(argv, **kwargs):
+        if len(p.cli.argvs) == 2:
+            raise ValueError(f"headers [('Authorization', '{secret}')]")
+        return run(argv, **kwargs)
+
+    p.cli.run = echoing
+    assert p.main("run") == 2
+    printed = capsys.readouterr().out
+    stopped = json.loads(printed.strip().splitlines()[-1])
+    assert stopped["floor_stop"]["exception_type"] == "ValueError"
+    assert stopped["floor_stop"]["message"] == D.SUPPRESSED_MESSAGE
+    (row,) = [r for r in p.f.ledger.snapshot()["calls"] if r["status"] == "uncertain"]
+    assert row["stop_detail"]["message"] == D.SUPPRESSED_MESSAGE
+    durable = printed.encode() + p.f.ledger.path.read_bytes()
+    for path in [*p.output.rglob("*"), *(p.output.parent).rglob("launcher-stop*")]:
+        if path.is_file():
+            durable += path.read_bytes()
+    assert (p.output / "controller-stops").is_dir()
+    assert Path(row["stop_detail"]["evidence"]).is_file()
+    for fragment in ("ZmFrZXVzZXI6ZmFrZXBhc3M", "Authorization"):
+        assert fragment.encode() not in durable

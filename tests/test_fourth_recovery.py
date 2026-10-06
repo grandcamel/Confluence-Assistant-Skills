@@ -349,7 +349,7 @@ def test_fourth_link_refuses_a_target_that_is_not_the_commissioned_trial(fourth)
 def test_four_link_read_refuses_any_tampered_history(fourth, kind):
     f = fourth
     run_recovery(f)
-    guards = D.RECOVERY_TRIGGERS | D.SETTLED_TRIGGERS
+    guards = D.recovery_guards(4)
     with sqlite3.connect(f.ledger.path) as db:
         for name in guards:
             db.execute(f"DROP TRIGGER {name}")
@@ -387,6 +387,98 @@ def test_four_link_read_refuses_any_tampered_history(fourth, kind):
             db.execute(sql)
     with pytest.raises(D.BudgetStop):
         f.ledger.snapshot()
+
+
+def link4_settlement(f):
+    """A row only link 4 seals: settled after link 3, before run 2's halt."""
+    call = floor_call("sonnet", "G042", 3)
+    with sqlite3.connect(f.ledger.path) as db:
+        raw = db.execute(
+            "SELECT id, identity, payload FROM calls WHERE id=?", (call.call_id,)
+        ).fetchone()
+    link3 = json.loads(f.fourth_before["registry_transitions"][2][1])
+    assert call.call_id not in {i["call_id"] for i in link3["expected_calls"]}
+    return call, raw
+
+
+def test_link4_guards_refuse_deleting_or_rewriting_a_sealed_settlement(fourth):
+    """Codex risk r1 finding 1: link 4's 498 additional settlements were not
+    guarded. Its own additive SQL guards now refuse every write to them."""
+    f = fourth
+    run_recovery(f)
+    _, (row_id, identity, payload) = link4_settlement(f)
+    before = sha(f.ledger.path)
+    rewritten = json.dumps({**json.loads(payload), "terminal_at_ns": 1})
+    for sql, args in (
+        ("DELETE FROM calls WHERE id=?", (row_id,)),
+        ("UPDATE calls SET payload=? WHERE id=?", (rewritten, row_id)),
+        ("INSERT OR REPLACE INTO calls VALUES (?, ?, ?)", (row_id, identity, payload)),
+        ("INSERT INTO calls VALUES (?, ?, ?)", ("other-id", identity, payload)),
+    ):
+        with (
+            sqlite3.connect(f.ledger.path) as db,
+            pytest.raises(sqlite3.IntegrityError, match="historical settlement"),
+        ):
+            db.execute(sql, args)
+    assert sha(f.ledger.path) == before
+    with sqlite3.connect(f.ledger.path) as db:
+        names = {
+            n
+            for (n,) in db.execute(
+                "SELECT name FROM sqlite_master WHERE type='trigger'"
+            )
+        }
+    assert names == set(D.recovery_guards(4)) and len(names) == 15
+
+
+@pytest.mark.parametrize("kind", ["delete", "valid-field"])
+def test_link4_read_refuses_a_deleted_or_rewritten_sealed_settlement(fourth, kind):
+    """With every guard bypassed, the read itself still enforces each sealed
+    link-4 settlement's existence and exact bytes: no lower exposure, no cache
+    miss and no new reservation for the erased identity."""
+    f = fourth
+    run_recovery(f)
+    exposure = f.ledger.snapshot()["exposure"]
+    call, (row_id, identity, payload) = link4_settlement(f)
+    guards = D.recovery_guards(4)
+    with sqlite3.connect(f.ledger.path) as db:
+        for name in guards:
+            db.execute(f"DROP TRIGGER {name}")
+        if kind == "valid-field":
+            data = json.loads(payload)
+            data["terminal_at_ns"] += 1  # still a valid settled row
+            db.execute(
+                "UPDATE calls SET payload=? WHERE id=?", (json.dumps(data), row_id)
+            )
+        else:
+            db.execute("DELETE FROM calls WHERE id=?", (row_id,))
+        for sql in guards.values():
+            db.execute(sql)
+    before = sha(f.ledger.path)
+    binding = f.new.binding("floor-sonnet55-api")
+    message = (
+        "protected original call bytes changed"
+        if kind == "valid-field"
+        else "sealed historical settlement missing"
+    )
+    for operation in (
+        f.ledger.snapshot,
+        lambda: f.ledger.cached(call, binding, "0" * 64),
+        lambda: f.ledger.reserve(call, binding),
+        lambda: floor_run(f.sonnet, call),
+    ):
+        with pytest.raises(D.BudgetStop, match=message):
+            operation()
+    assert sha(f.ledger.path) == before
+    # Restoring the exact sealed row restores the exact conserved state.
+    with sqlite3.connect(f.ledger.path) as db:
+        for name in guards:
+            db.execute(f"DROP TRIGGER {name}")
+        db.execute("DELETE FROM calls WHERE id=?", (row_id,))
+        db.execute("INSERT INTO calls VALUES (?, ?, ?)", (row_id, identity, payload))
+        for sql in guards.values():
+            db.execute(sql)
+    assert f.ledger.snapshot()["exposure"] == exposure
 
 
 @pytest.mark.parametrize("point", ["mid-charge", "mid-metadata", "after-commit"])
@@ -567,7 +659,7 @@ def test_recovery_configuration_runs_only_recover_and_transition(
         assert J.main() == 2
         assert json.loads(capsys.readouterr().out)["status"] == "STOPPED_INCOMPLETE"
     assert p.f.ledger.snapshot()["metadata"]["halted"] is True
-    presence.clear() if (presence := p.presence) else None
+    p.presence.clear()
     monkeypatch.setattr(
         sys,
         "argv",

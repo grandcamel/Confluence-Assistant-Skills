@@ -30,7 +30,14 @@ SHA = re.compile(r"[a-f0-9]{64}\Z")
 
 
 class BudgetStop(RuntimeError):
-    """Acceptance is incomplete, never a model-scoring failure or a skip."""
+    """Acceptance is incomplete, never a model-scoring failure or a skip.
+
+    Its message, and every reviewed subclass's, is literal controller text
+    (never an upstream body, header, path or credential); a test pins that
+    for every construction site. Only these messages reach stop evidence.
+    """
+
+    reviewed_message = True
 
 
 def microdollars(value: str) -> int:
@@ -79,43 +86,72 @@ def _proof(path: str, digest: str) -> None:
 
 
 STOP_MESSAGE_LIMIT = 300
-_ECHO = re.compile(
-    r"(?i)([{}]|request\s+(body|headers?)\s*:|"
-    r"\b(authorization|x-api-key|api[_-]?key|cookie|set-cookie|token|secret|password)\s*[:=])"
+SUPPRESSED_MESSAGE = "exception text suppressed: not a reviewed controller message"
+# A reviewed controller message is plain prose: no quotes, brackets, braces,
+# '@', '?', '&' or '#', so no header tuple, URL query, userinfo or JSON echo.
+_REVIEWED_TEXT = re.compile(r"[A-Za-z0-9 ,;:()/%.'$=<>_+-]{1,300}\Z")
+# Defence in depth even for reviewed classes: credential and URL shapes.
+_CREDENTIAL_SHAPE = re.compile(
+    r"(?i)(://|(?<![A-Za-z0-9])(basic|bearer|sk-|eyj)|[A-Za-z0-9+=_]{32,})"
 )
-_SECRETS = (
-    (re.compile(r"(?i)\bbearer\s+\S+"), "Bearer <REDACTED>"),
-    (re.compile(r"(?i)\bsk-(?:ant-)?[a-z0-9_-]+"), "<REDACTED>"),
-    (re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+"), "<REDACTED>"),
-    # Long opaque runs (OAuth/API tokens, nonces, digests); '/' is excluded so
-    # ordinary file paths survive.
-    (re.compile(r"[A-Za-z0-9+=_-]{32,}"), "<REDACTED>"),
-)
+# Trusted classifications derive from errno or exact interpreter text only.
+RESOURCE_ERRNOS = {
+    "EAGAIN": "process-or-thread-limit",
+    "ENOMEM": "memory-exhaustion",
+    "EMFILE": "file-descriptor-limit",
+    "ENFILE": "file-descriptor-limit",
+    "ENOSPC": "disk-full",
+}
+INTERPRETER_MESSAGES = {"can't start new thread": "process-or-thread-limit"}
+
+
+def _reviewed_text(text) -> bool:
+    return (
+        isinstance(text, str)
+        and bool(_REVIEWED_TEXT.fullmatch(text))
+        and not _CREDENTIAL_SHAPE.search(text)
+    )
 
 
 def stop_detail(error: BaseException) -> dict:
-    """Exception class and a bounded, redacted message for stop evidence.
+    """Exception class and only reviewed text for durable stop evidence.
 
-    Never locals, a traceback, request/headers or an exception body: echo-shaped
-    text is replaced wholesale, credential-shaped runs are redacted, control
-    characters removed and the result capped. OSError keeps its errno name.
+    Exception text is suppressed by default: a dependency's message can carry
+    a request, header, URL userinfo, path or credential in any format. Kept
+    are only (1) a BudgetStop-family message (literal controller text, pinned
+    by a test) that is plain prose and credential-free, (2) an OSError's errno
+    name and the C library's description of that errno (never its filename or
+    message), and (3) exact interpreter texts with a trusted cause. Never
+    locals, a traceback, a request or an exception body.
     """
+    name = re.sub(r"[^A-Za-z0-9_]", "_", type(error).__name__)[:80] or "Exception"
     try:
         text = str(error)
     except Exception:  # A broken __str__ must not mask the original stop.
-        text = ""
-    if _ECHO.search(text):
-        text = "<REDACTED REQUEST OR CREDENTIAL-SHAPED CONTENT>"
-    else:
-        for pattern, replacement in _SECRETS:
-            text = pattern.sub(replacement, text)
-        text = re.sub(r"[\x00-\x1f\x7f]", " ", text)
-    if len(text) > STOP_MESSAGE_LIMIT:
-        text = text[:STOP_MESSAGE_LIMIT] + "<TRUNCATED>"
-    detail = {"exception_type": type(error).__name__[:80], "message": text}
-    code = getattr(error, "errno", None) if isinstance(error, OSError) else None
-    if type(code) is int:
-        detail["errno"] = errno.errorcode.get(code, str(code))
+        text = None
+    detail = {"exception_type": name, "message": SUPPRESSED_MESSAGE}
+    if text == "":
+        detail["message"] = ""
+    if getattr(type(error), "reviewed_message", False) is True:
+        if _reviewed_text(text):
+            detail["message"] = text
+    elif isinstance(error, OSError):
+        code = error.errno
+        if type(code) is int and code in errno.errorcode:
+            detail["errno"] = errno.errorcode[code]
+            described = os.strerror(code)
+            detail["message"] = (
+                described if _reviewed_text(described) else SUPPRESSED_MESSAGE
+            )
+            if detail["errno"] in RESOURCE_ERRNOS:
+                detail["cause"] = RESOURCE_ERRNOS[detail["errno"]]
+    elif type(error) is RuntimeError and text in INTERPRETER_MESSAGES:
+        detail["message"] = text
+        detail["cause"] = INTERPRETER_MESSAGES[text]
+    elif isinstance(error, MemoryError):
+        detail["cause"] = "memory-exhaustion"
+    elif isinstance(error, KeyboardInterrupt):
+        detail["cause"] = "interrupt-signal"
     return detail
 
 
@@ -703,6 +739,25 @@ SETTLED_TRIGGERS = {
         ("delete", "c.id=OLD.id"),
     )
 }
+# Link 4 seals every settled row of run 2's halted ledger. The same three
+# guards, additive and derived from link 4's own sealed inventory, are created
+# by link 4 only; link 3's guards and every earlier definition stay as they are.
+SETTLED_TRIGGERS_LINK4 = {
+    name.replace("historical_settled_", "historical_settled_link4_"): sql.replace(
+        "historical_settled_", "historical_settled_link4_"
+    ).replace("t.seq=3", "t.seq=4")
+    for name, sql in SETTLED_TRIGGERS.items()
+}
+
+
+def recovery_guards(links: int) -> dict:
+    """The exact trigger definitions a ledger with this many links carries."""
+    return (
+        RECOVERY_TRIGGERS
+        | (SETTLED_TRIGGERS if links >= 3 else {})
+        | (SETTLED_TRIGGERS_LINK4 if links >= 4 else {})
+    )
+
 
 # Exactly four owner-commissioned links. Each plan schema version is its link's
 # sequence; links 3 and 4 each admit one named replacement attempt only.
@@ -1364,7 +1419,10 @@ class Ledger:
                     "recovery_record_sha256": protection["transition_sha256"],
                 }
             records.append(row)
-        if set(protected) - {row["call"]["call_id"] for row in records}:
+        missing = set(protected) - {row["call"]["call_id"] for row in records}
+        if any(protected[i].get("kind") == "settled" for i in missing):
+            raise BudgetStop("sealed historical settlement missing")
+        if missing:
             raise BudgetStop("orphan charged-uncertain mapping")
         if exposure > CAP:
             raise BudgetStop("ledger exceeds aggregate cap")
@@ -1399,10 +1457,7 @@ class Ledger:
                 "SELECT call_id, payload_sha256, amount, transition_sha256 FROM charged_uncertain ORDER BY call_id"
             )
         )
-        expected_guards = RECOVERY_TRIGGERS | (
-            SETTLED_TRIGGERS if len(transitions) >= 3 else {}
-        )
-        if triggers != expected_guards:
+        if triggers != recovery_guards(len(transitions)):
             raise BudgetStop("immutable recovery guards differ")
         if not transitions:
             if meta["transition_head"] is not None or charges:
@@ -1472,24 +1527,37 @@ class Ledger:
                         )
                     ):
                         raise BudgetStop("historical inventory differs")
-                if sequence == 3:
-                    item = next(
-                        i
-                        for i in plan["expected_calls"]
-                        if i["accounting_status"] == "settled"
+                if sequence >= 3:
+                    # Every settlement a link 3+ inventory seals stays exactly
+                    # that row (identity and payload bytes, settled) on every
+                    # later read; link 3 seals one, link 4 every settled row.
+                    # A row sealed by two links must agree and keeps the
+                    # registry of the link that first sealed it.
+                    sealed_registry = Registry.from_dict(
+                        json.loads(record["old_metadata_payload"])["registry"]
                     )
-                    if item["call_id"] in protected:
-                        raise BudgetStop("settlement conflicts with permanent charge")
-                    preserved_settled[item["call_id"]] = {
-                        **item,
-                        "kind": "settled",
-                        "registry": Registry.from_dict(
-                            json.loads(record["old_metadata_payload"])["registry"]
-                        ),
-                    }
+                    for item in plan["expected_calls"]:
+                        if item["accounting_status"] != "settled":
+                            continue
+                        if item["call_id"] in protected:
+                            raise BudgetStop(
+                                "settlement conflicts with permanent charge"
+                            )
+                        known = preserved_settled.get(item["call_id"])
+                        if known is not None:
+                            if any(item[k] != known[k] for k in item):
+                                raise BudgetStop("historical settlements differ")
+                            continue
+                        preserved_settled[item["call_id"]] = {
+                            **item,
+                            "kind": "settled",
+                            "registry": sealed_registry,
+                        }
             call = plan["call"]
             if call["call_id"] in protected:
                 raise BudgetStop("duplicate permanent charge")
+            if call["call_id"] in preserved_settled:
+                raise BudgetStop("settlement conflicts with permanent charge")
             expected_charges.append(
                 {
                     "call_id": call["call_id"],
@@ -1707,6 +1775,9 @@ class Ledger:
             )
             if plan["schema_version"] == 3:
                 for sql in SETTLED_TRIGGERS.values():
+                    db.execute(sql)
+            if plan["schema_version"] == 4:
+                for sql in SETTLED_TRIGGERS_LINK4.values():
                     db.execute(sql)
             updated = {
                 **meta,
@@ -2392,14 +2463,17 @@ class BudgetLauncher:
                     self.ledger.reconcile(outcome.receipt)
                 return outcome
             except BaseException as error:
-                # Record what stopped the call (class, errno, redacted message)
-                # in its evidence and on its ledger row; the original exception
-                # is always re-raised, never replaced.
+                # Record what stopped the call (class, errno, reviewed text
+                # only) in its evidence and on its ledger row, then re-raise
+                # the original exception. A detail the ledger refuses never
+                # leaves the row reserved and unhalted: the plain interrupted
+                # halt is written instead. Only a ledger that cannot be written
+                # at all propagates its own stop (the reservation stays counted).
                 detail = stop_detail(error)
                 evidence = _seal_stop_evidence(
                     kwargs.get("evidence_destination"), call, detail
                 )
-                if evidence is not None:
+                if evidence is not None and len(evidence) <= 2 * STOP_MESSAGE_LIMIT:
                     detail["evidence"] = evidence
                 # Reconciliation may already have halted or settled the row.
                 snapshot = self.ledger.snapshot()
@@ -2407,9 +2481,12 @@ class BudgetLauncher:
                     r for r in snapshot["calls"] if r["call"]["call_id"] == call.call_id
                 )
                 if row["status"] == "reserved":
-                    self.ledger.uncertain(
-                        call.call_id, "interrupted", halt=True, detail=detail
-                    )
+                    try:
+                        self.ledger.uncertain(
+                            call.call_id, "interrupted", halt=True, detail=detail
+                        )
+                    except BudgetStop:
+                        self.ledger.uncertain(call.call_id, "interrupted", halt=True)
                 raise
 
     def replay(self, command: str, **kwargs):
