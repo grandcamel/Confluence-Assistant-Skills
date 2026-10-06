@@ -834,6 +834,221 @@ def test_charged_trial_spends_its_run_id_before_any_reservation(
     assert len(cli.argvs) == 3 and sha(packet.ledger.path) == before
 
 
+class Killed(BaseException):
+    """A hard kill (SIGKILL, power loss): no handler records anything after it.
+
+    A BaseException, so main()'s STOPPED_* handlers never see it; the ledger
+    guard below makes the launcher's own cleanup write nothing, as when the
+    process is gone.
+    """
+
+
+LEDGER_ACCESS = (
+    "snapshot",
+    "reserve",
+    "cached",
+    "record_outcome",
+    "uncertain",
+    "reconcile",
+)
+
+
+def kill_at_outcome(monkeypatch, n, how):
+    """Kill the process at the n-th trial's outcome; returns the restart.
+
+    how="sealed": after the ledger sealed the complete outcome and receipt,
+    before settlement (the crash window `run` reconciles). how="in-flight":
+    before any outcome was sealed. how="timed-out": after sealing an outcome
+    flagged timed out (ProductionTransport never builds one; this pins the
+    eligibility rule the packet's read-only run-id check mirrors).
+    """
+    originals = {name: getattr(D.Ledger, name) for name in LEDGER_ACCESS}
+    state = {"outcomes": 0, "dead": False}
+
+    def guarded(name):
+        def method(self, *args, **kwargs):
+            if state["dead"]:
+                raise Killed
+            return originals[name](self, *args, **kwargs)
+
+        return method
+
+    def record_outcome(self, call_id, outcome):
+        if state["dead"]:
+            raise Killed
+        state["outcomes"] += 1
+        if state["outcomes"] < n:
+            return originals["record_outcome"](self, call_id, outcome)
+        state["dead"] = True
+        if how == "in-flight":
+            raise Killed
+        if how == "timed-out":
+            outcome = replace(outcome, timed_out=True)
+        originals["record_outcome"](self, call_id, outcome)
+        raise Killed
+
+    for name in LEDGER_ACCESS:
+        monkeypatch.setattr(D.Ledger, name, guarded(name))
+    monkeypatch.setattr(D.Ledger, "record_outcome", record_outcome)
+
+    def restart():
+        for name, method in originals.items():
+            monkeypatch.setattr(D.Ledger, name, method)
+
+    return restart
+
+
+@pytest.fixture
+def driven(packet, reg, monkeypatch, tmp_path):
+    """main() in this process: real controller, broker and ledger; fake CLI,
+    provider and pytest, which runs the 50 golden trials in YAML order."""
+    import pytest as pytest_module
+
+    cli = FakeRoutingCLI(reg, by_product)
+    cli.check = lambda: None
+    providers = []
+
+    class Provider(T.FakeProvider):
+        def __init__(self):
+            super().__init__()
+            providers.append(self)
+
+        def available(self, binding):
+            binding.validate()
+
+    def fake_pytest_main(args):
+        launcher = D.require_launcher()
+        failed = 0
+        for case in GOLDEN:
+            correct = 0
+            for trial in range(1, 6):
+                outcome = launcher.run(
+                    routing_cmd(launcher.binding),
+                    case["input"],
+                    call=D.harness_call("routing", case["id"], trial),
+                    detect_line=detect,
+                    timeout=5,
+                )
+                correct += outcome.result == case.get("expected_skill")
+            failed += correct < 4
+        return 1 if failed else 0
+
+    monkeypatch.setattr(J, "Sandbox", lambda *args, **kwargs: cli)
+    monkeypatch.setattr(J, "Provider", Provider)
+    monkeypatch.setattr(pytest_module, "main", fake_pytest_main)
+    for name in ENV_NAMES:
+        monkeypatch.setenv(name, "restored-after-test")
+    monkeypatch.chdir(tmp_path)
+
+    def main(mode):
+        path, digest = packet.write(packet.config)
+        argv = ["joint", "--config", str(path), "--config-sha256", digest, mode]
+        monkeypatch.setattr(sys, "argv", argv)
+        return J.main()
+
+    return SimpleNamespace(
+        cli=cli, providers=providers, main=main, ledger=packet.ledger
+    )
+
+
+KILLED_TRIAL = 7  # confluence-02 trial 2, past the first prompt boundary
+
+
+def test_killed_run_settles_its_sealed_receipt_and_resumes_without_paying_again(
+    driven, reg, monkeypatch, capsys
+):
+    """A kill between sealing a trial's outcome and settling it leaves that
+    trial reserved with a complete receipt. The run id is not spent: the same
+    packet's dry admission admits it, and `run` settles it from the recorded
+    receipt and dispatches only the trials never started."""
+    restart = kill_at_outcome(monkeypatch, KILLED_TRIAL, "sealed")
+    with pytest.raises(Killed):
+        driven.main("run")
+    restart()
+    snapshot = driven.ledger.snapshot()
+    (pending,) = [r for r in snapshot["calls"] if r["status"] != "settled"]
+    assert pending["status"] == "reserved" and len(snapshot["calls"]) == KILLED_TRIAL
+    assert pending["partial_receipt"] and pending["outcome"]
+    assert not snapshot["metadata"]["halted"]
+    assert len(driven.cli.argvs) == len(driven.providers[0].calls) == KILLED_TRIAL
+    binding = reg.binding(J.REACCEPT_BINDING)
+    receipt_actual = D.Settlement(**pending["partial_receipt"]).validate(
+        D.Call(**pending["call"]), binding
+    )
+    settled = sum(r["actual"] for r in snapshot["calls"] if r["status"] == "settled")
+
+    before = sha(driven.ledger.path)
+    assert driven.main("dry-admission") == 0
+    dry = json.loads(capsys.readouterr().out)
+    assert dry["status"] == "DRY_ADMITTED" and dry["run_id"] == "rr-1"
+    # Dry never reconciles: the killed trial still holds its full reservation.
+    assert dry["exposure_microdollars"] == settled + binding.validate()
+    assert sha(driven.ledger.path) == before and len(driven.providers) == 1
+
+    assert driven.main("run") == 0
+    final = json.loads(capsys.readouterr().out)
+    assert final["status"] == "ROUTING_REACCEPTANCE_COMPLETE"
+    assert final["routing_threshold"] == "PASSED"
+    # Only the trials never started were dispatched again: 50 in all.
+    assert len(driven.providers[1].calls) == 50 - KILLED_TRIAL
+    assert len(driven.cli.argvs) == 50
+    snapshot = driven.ledger.snapshot()
+    (resumed,) = [
+        r
+        for r in snapshot["calls"]
+        if r["call"]["call_id"] == pending["call"]["call_id"]
+    ]
+    assert resumed["status"] == "settled"
+    assert resumed["receipt"] == pending["partial_receipt"]
+    assert resumed["actual"] == receipt_actual
+    assert len(snapshot["calls"]) == 50
+    assert {r["status"] for r in snapshot["calls"]} == {"settled"}
+    assert final["settled_microdollars"] == snapshot["exposure"]
+    assert snapshot["exposure"] == sum(r["actual"] for r in snapshot["calls"])
+
+
+@pytest.mark.parametrize("how", ["in-flight", "timed-out", "failed-call"])
+def test_trial_without_a_settleable_receipt_blocks_both_modes(
+    driven, monkeypatch, capsys, how
+):
+    """Killed before its outcome was sealed, sealed as timed out, or failed
+    and halted: the trial keeps its full reservation and both modes refuse
+    before any provider or dispatch, with the ledger bytes unchanged."""
+    if how == "failed-call":
+        # Any failure inside a call (here: no native usage report) leaves it
+        # uncertain and halts the ledger; main() records STOPPED_INCOMPLETE.
+        run = driven.cli.run
+
+        def failing(argv, **kwargs):
+            if len(driven.cli.argvs) == KILLED_TRIAL - 1:
+                driven.cli.report_mode = "missing"
+            return run(argv, **kwargs)
+
+        monkeypatch.setattr(driven.cli, "run", failing)
+        assert driven.main("run") == 2
+        assert json.loads(capsys.readouterr().out)["status"] == "STOPPED_INCOMPLETE"
+    else:
+        restart = kill_at_outcome(monkeypatch, KILLED_TRIAL, how)
+        with pytest.raises(Killed):
+            driven.main("run")
+        restart()
+    snapshot = driven.ledger.snapshot()
+    (stopped,) = [r for r in snapshot["calls"] if r["status"] != "settled"]
+    assert len(snapshot["calls"]) == len(driven.cli.argvs) == KILLED_TRIAL
+    assert snapshot["metadata"]["halted"] is (how == "failed-call")
+    assert stopped["status"] == ("uncertain" if how == "failed-call" else "reserved")
+    if how == "in-flight":
+        assert stopped["outcome"] is None and stopped["partial_receipt"] is None
+    if how == "timed-out":
+        assert stopped["outcome"] and stopped["partial_receipt"]
+    before = sha(driven.ledger.path)
+    for mode in ("dry-admission", "run"):
+        assert driven.main(mode) == 2
+        assert json.loads(capsys.readouterr().out)["status"] == "STOPPED_INCOMPLETE"
+    assert len(driven.providers) == 1 and len(driven.cli.argvs) == KILLED_TRIAL
+    assert sha(driven.ledger.path) == before
+
+
 DRIVER = '''\
 """One real pytest.main per process: test_routing.py keeps module trial counters."""
 import json
