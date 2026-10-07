@@ -1,23 +1,47 @@
 name: Sync to Marketplace
 
+# Marketplace updates are a separate manually reviewed action.
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.claude-plugin/plugin.json'
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Full reviewed main commit SHA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marketplace-review
+  cancel-in-progress: false
 
 jobs:
   sync-marketplace:
+    if: github.ref == 'refs/heads/main'
+    environment: marketplace-review
     runs-on: ubuntu-latest
     steps:
+      - name: Validate reviewed source identity
+        env:
+          EXPECTED_SHA: ${{ inputs.candidate_sha }}
+        run: |
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$EXPECTED_SHA" = "$GITHUB_SHA"
+
       - name: Checkout plugin repo
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
 
       - name: Get plugin version
         id: version
         run: |
           VERSION=$(jq -r '.version' .claude-plugin/plugin.json)
           NAME=$(jq -r '.name' .claude-plugin/plugin.json)
+          test "$VERSION" = "3.0.0"
+          test "$NAME" = "confluence-assistant-skills"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "name=$NAME" >> $GITHUB_OUTPUT
 
@@ -55,11 +79,3 @@ jobs:
             - Triggered by: ${{ github.sha }}
           branch: "sync/${{ steps.version.outputs.name }}-${{ steps.version.outputs.version }}"
           delete-branch: true
-
-      - name: Auto-merge PR
-        if: steps.cpr.outputs.pull-request-number
-        run: |
-          cd as-plugins
-          gh pr merge ${{ steps.cpr.outputs.pull-request-number }} --squash --auto
-        env:
-          GH_TOKEN: ${{ secrets.MARKETPLACE_PAT }}

@@ -1,483 +1,89 @@
+# Help-only sufficiency arm: seven representative confluence-as tasks.
+#
+# The model gets nothing but skills/confluence/SKILL.md (the Entry-Point
+# Hint), the Bash and Skill tools, and a `confluence-as` on PATH running
+# in `simulation` transport with CONFLUENCE_ALLOWED_SPACES=DOCS and no
+# credentials. runner.py appends a fixed trailer to each prompt below
+# (see PROMPT_TRAILER) telling the model to act now, not ask a question,
+# and use space DOCS / page 1 -- the simulation transport's default
+# seed's own space and page id.
+#
+# `accept` lists what counts as a matching confluence-as invocation for
+# the task (see runner.py's command_matches_accept): a bare operationId
+# matches `api call OPERATIONID` only (an `api describe` of the same
+# operation is a discovery step, not the action performed);
+# "describe:OPERATIONID" matches only `api describe OPERATIONID`. No task
+# below uses a "verb pair" entry: confluence-as has no Compatibility
+# Contract of survivor verbs the way jira-as does (every `confluence-as
+# GROUP VERB` invocation is a migration-hint stub that exits 2), so there
+# is nothing for that shape to match here.
+#
+# Every accept entry below was verified against the scratch confluence-as
+# 2.0.0rc1 binary before this file was frozen. Three of the seven initially
+# sketched tasks (create a page in space DOCS; add a label or comment to
+# page 1; update page 1's title) were substituted for a functionally equivalent operation after
+# verification showed the originally-sketched operation cannot succeed
+# under this harness's simulation transport at all -- a transport
+# limitation, not a hint-sufficiency question:
+#   - createPage exits 4 under both scope routes ("body scope requires an
+#     allowed argv identity"): resolving a space key to an id needs
+#     getSpaces, which the simulation transport blocks ("site access is
+#     disabled"), and passing spaceId=55 directly fails identically, so no
+#     page-create operation is exercisable under simulation at all;
+#     getPageLabels (a second read) takes the seventh slot.
+#   - createFooterComment, createInlineComment, getPageFooterComments and
+#     getPageInlineComments all exit 6, "simulation does not support
+#     operation: <name>"; `api search label` lists no write (POST)
+#     endpoint for labels at all in this CLI version.
+#   - updatePageTitle also exits 6 the same way ("simulation does not
+#     support operation: updatePageTitle").
+# The two write substitutes below (createPageProperty, updatePagePropertyById) are
+# genuinely functional, page-1-scoped write operations verified end to
+# end against the scratch binary, including updatePagePropertyById's
+# not-found response against a property that does not exist by default
+# (exit 5, `{"status": 404, "messages": ["Property not found"]}` -- no
+# "Unknown operation" message, so runner.classify_replay's fallback rule
+# for this shape classifies it well-formed, the same way a genuine
+# not-found is treated everywhere else in this harness).
 metadata:
-  name: confluence-assistant-skills-e2e
-  description: E2E tests for Confluence Assistant Skills plugin
-  version: 1.0.0
-  generated_from: Confluence-Assistant-Skills
+  name: confluence-sufficiency-arm
+  description: Help-only sufficiency arm for the confluence skill
+  version: 3.0.0
 
-settings:
-  default_timeout: 120
-  default_model: claude-sonnet-4-20250514
-  retry_on_timeout: 1
-
-suites:
-  plugin_installation:
-    description: Plugin installation and verification
-    tests:
-      - id: install_plugin
-        name: Install plugin from local source
-        prompt: /plugin .
-        expect:
-          success: true
-          no_errors: true
-
-      - id: verify_all_skills
-        name: Verify all skills are loaded
-        prompt: List all skills available from the confluence-assistant-skills plugin
-        expect:
-          success: true
-          output_contains_any:
-            - confluence-assistant
-            - confluence-page
-            - confluence-search
-          no_errors: true
-
-      - id: plugin_description
-        name: Verify plugin description is accurate
-        prompt: What does the confluence-assistant-skills plugin do?
-        expect:
-          success: true
-          output_contains_any:
-            - confluence
-            - page
-            - space
-          no_errors: true
-
-  confluence_assistant:
-    description: Central hub skill tests
-    tests:
-      - id: discover_assistant
-        name: Verify confluence-assistant skill is discoverable
-        prompt: What Confluence skills are available?
-        expect:
-          output_contains_any:
-            - confluence
-            - page
-            - search
-            - space
-          no_errors: true
-
-      - id: routing_test
-        name: Test routing to specialized skills
-        prompt: How do I create a Confluence page?
-        expect:
-          output_contains_any:
-            - create_page
-            - confluence-page
-            - page
-          no_errors: true
-
-  confluence_page:
-    description: Page and blog post management tests
-    tests:
-      - id: discover_page_skill
-        name: Verify confluence-page skill is discoverable
-        prompt: What can I do with Confluence pages?
-        expect:
-          output_contains_any:
-            - create
-            - update
-            - delete
-            - page
-          no_errors: true
-
-      - id: page_operations
-        name: Test page operations discovery
-        prompt: How do I copy a Confluence page to another space?
-        expect:
-          output_contains_any:
-            - copy_page
-            - copy
-            - space
-          no_errors: true
-
-      - id: blogpost_operations
-        name: Test blog post operations
-        prompt: How do I create a blog post in Confluence?
-        expect:
-          output_contains_any:
-            - blog
-            - create_blogpost
-            - post
-          no_errors: true
-
-  confluence_space:
-    description: Space management tests
-    tests:
-      - id: discover_space_skill
-        name: Verify confluence-space skill is discoverable
-        prompt: How do I manage Confluence spaces?
-        expect:
-          output_contains_any:
-            - space
-            - create
-            - list
-          no_errors: true
-
-      - id: list_spaces
-        name: Test listing spaces
-        prompt: How do I list all Confluence spaces?
-        expect:
-          output_contains_any:
-            - list
-            - space
-          no_errors: true
-
-  confluence_search:
-    description: CQL search and export tests
-    tests:
-      - id: discover_search_skill
-        name: Verify confluence-search skill is discoverable
-        prompt: How do I search in Confluence?
-        expect:
-          output_contains_any:
-            - search
-            - CQL
-            - query
-            - find
-          no_errors: true
-
-      - id: cql_syntax
-        name: Test CQL syntax help
-        prompt: How do I write a CQL query for Confluence?
-        expect:
-          output_contains_any:
-            - CQL
-            - space
-            - label
-            - query
-          no_errors: true
-
-      - id: export_results
-        name: Test search export
-        prompt: How do I export Confluence search results to CSV?
-        expect:
-          output_contains_any:
-            - export
-            - csv
-            - results
-          no_errors: true
-
-  confluence_comment:
-    description: Comments management tests
-    tests:
-      - id: discover_comment_skill
-        name: Verify confluence-comment skill is discoverable
-        prompt: How do I manage comments on Confluence pages?
-        expect:
-          output_contains_any:
-            - comment
-            - add
-            - reply
-          no_errors: true
-
-      - id: inline_comments
-        name: Test inline comment operations
-        prompt: How do I add an inline comment to a specific section of a page?
-        expect:
-          output_contains_any:
-            - inline
-            - comment
-          no_errors: true
-
-  confluence_attachment:
-    description: File attachment tests
-    tests:
-      - id: discover_attachment_skill
-        name: Verify confluence-attachment skill is discoverable
-        prompt: How do I upload files to Confluence?
-        expect:
-          output_contains_any:
-            - upload
-            - attach
-            - file
-          no_errors: true
-
-      - id: download_attachments
-        name: Test download operations
-        prompt: How do I download attachments from a Confluence page?
-        expect:
-          output_contains_any:
-            - download
-            - attachment
-          no_errors: true
-
-  confluence_label:
-    description: Content labeling tests
-    tests:
-      - id: discover_label_skill
-        name: Verify confluence-label skill is discoverable
-        prompt: How do I add labels to Confluence pages?
-        expect:
-          output_contains_any:
-            - label
-            - add
-            - tag
-          no_errors: true
-
-      - id: search_by_label
-        name: Test search by label
-        prompt: How do I find all pages with a specific label?
-        expect:
-          output_contains_any:
-            - label
-            - search
-            - find
-          no_errors: true
-
-  confluence_template:
-    description: Template operations tests
-    tests:
-      - id: discover_template_skill
-        name: Verify confluence-template skill is discoverable
-        prompt: How do I create a page from a template in Confluence?
-        expect:
-          output_contains_any:
-            - template
-            - blueprint
-            - create
-          no_errors: true
-
-  confluence_property:
-    description: Content properties tests
-    tests:
-      - id: discover_property_skill
-        name: Verify confluence-property skill is discoverable
-        prompt: How do I manage custom metadata on Confluence pages?
-        expect:
-          output_contains_any:
-            - property
-            - metadata
-            - custom
-          no_errors: true
-
-  confluence_permission:
-    description: Access control tests
-    tests:
-      - id: discover_permission_skill
-        name: Verify confluence-permission skill is discoverable
-        prompt: How do I manage page permissions in Confluence?
-        expect:
-          output_contains_any:
-            - permission
-            - access
-            - restrict
-          no_errors: true
-
-      - id: space_permissions
-        name: Test space permission operations
-        prompt: How do I set space-level permissions?
-        expect:
-          output_contains_any:
-            - space
-            - permission
-          no_errors: true
-
-  confluence_analytics:
-    description: Content analytics tests
-    tests:
-      - id: discover_analytics_skill
-        name: Verify confluence-analytics skill is discoverable
-        prompt: How do I view page analytics in Confluence?
-        expect:
-          output_contains_any:
-            - analytics
-            - views
-            - statistics
-          no_errors: true
-
-  confluence_watch:
-    description: Watch and notification tests
-    tests:
-      - id: discover_watch_skill
-        name: Verify confluence-watch skill is discoverable
-        prompt: How do I watch a Confluence page for changes?
-        expect:
-          output_contains_any:
-            - watch
-            - notify
-            - follow
-          no_errors: true
-
-  confluence_hierarchy:
-    description: Page hierarchy and tree tests
-    tests:
-      - id: discover_hierarchy_skill
-        name: Verify confluence-hierarchy skill is discoverable
-        prompt: How do I view the page tree in Confluence?
-        expect:
-          output_contains_any:
-            - tree
-            - child
-            - parent
-            - hierarchy
-          no_errors: true
-
-      - id: get_children
-        name: Test getting child pages
-        prompt: How do I get all child pages of a Confluence page?
-        expect:
-          output_contains_any:
-            - child
-            - children
-            - descendant
-          no_errors: true
-
-  confluence_jira:
-    description: JIRA integration tests
-    tests:
-      - id: discover_jira_skill
-        name: Verify confluence-jira skill is discoverable
-        prompt: How do I embed JIRA issues in Confluence?
-        expect:
-          output_contains_any:
-            - jira
-            - issue
-            - embed
-          no_errors: true
-
-  confluence_admin:
-    description: Administration and system management tests
-    tests:
-      - id: discover_admin_skill
-        name: Verify confluence-admin skill is discoverable
-        prompt: How do I manage Confluence users and groups?
-        expect:
-          output_contains_any:
-            - user
-            - group
-            - admin
-            - manage
-          no_errors: true
-
-      - id: space_settings
-        name: Test space settings operations
-        prompt: How do I configure Confluence space settings?
-        expect:
-          output_contains_any:
-            - space
-            - settings
-            - configure
-          no_errors: true
-
-      - id: template_management
-        name: Test template management
-        prompt: How do I manage global Confluence templates?
-        expect:
-          output_contains_any:
-            - template
-            - manage
-            - global
-          no_errors: true
-
-  confluence_bulk:
-    description: Bulk operations tests
-    tests:
-      - id: discover_bulk_skill
-        name: Verify confluence-bulk skill is discoverable
-        prompt: How do I perform bulk operations in Confluence?
-        expect:
-          output_contains_any:
-            - bulk
-            - multiple
-            - batch
-          no_errors: true
-
-      - id: bulk_label
-        name: Test bulk label operations
-        prompt: How do I add labels to multiple Confluence pages at once?
-        expect:
-          output_contains_any:
-            - bulk
-            - label
-            - multiple
-            - pages
-          no_errors: true
-
-      - id: bulk_move
-        name: Test bulk move operations
-        prompt: How do I move multiple pages to another space?
-        expect:
-          output_contains_any:
-            - move
-            - bulk
-            - space
-          no_errors: true
-
-      - id: dry_run
-        name: Test dry-run capability
-        prompt: How do I preview bulk operations before executing them?
-        expect:
-          output_contains_any:
-            - dry-run
-            - preview
-            - simulate
-          no_errors: true
-
-  confluence_ops:
-    description: Operations and cache management tests
-    tests:
-      - id: discover_ops_skill
-        name: Verify confluence-ops skill is discoverable
-        prompt: How do I manage Confluence API cache?
-        expect:
-          output_contains_any:
-            - cache
-            - ops
-            - operations
-          no_errors: true
-
-      - id: cache_status
-        name: Test cache status operations
-        prompt: How do I check the Confluence API cache status?
-        expect:
-          output_contains_any:
-            - cache
-            - status
-          no_errors: true
-
-      - id: health_check
-        name: Test health check operations
-        prompt: How do I check the Confluence API health?
-        expect:
-          output_contains_any:
-            - health
-            - check
-            - api
-            - status
-          no_errors: true
-
-      - id: rate_limit
-        name: Test rate limit monitoring
-        prompt: How do I check Confluence API rate limits?
-        expect:
-          output_contains_any:
-            - rate
-            - limit
-            - api
-          no_errors: true
-
-  error_handling:
-    description: Error handling and edge cases
-    tests:
-      - id: invalid_page_id
-        name: Handle invalid page ID gracefully
-        prompt: Get the Confluence page with ID invalid-not-a-number
-        expect:
-          no_crashes: true
-
-      - id: missing_credentials
-        name: Helpful message for missing credentials
-        prompt: What happens if Confluence credentials are not configured?
-        expect:
-          output_contains_any:
-            - api_token
-            - CONFLUENCE_API_TOKEN
-            - credentials
-            - authentication
-          no_crashes: true
-
-      - id: empty_input
-        name: Handle empty input gracefully
-        prompt: Use the confluence plugin with no specific request
-        expect:
-          no_crashes: true
+tasks:
+  - id: read-page
+    prompt: Read the details of Confluence page 1 in space DOCS.
+    accept:
+      - getPageById
+  - id: search-cql
+    prompt: Search Confluence for content of type page.
+    accept:
+      - searchByCQL
+  - id: create-page-property
+    prompt: >-
+      Create a property named 'harness-probe' with the value 'confirmed'
+      on Confluence page 1 in space DOCS.
+    accept:
+      - createPageProperty
+  - id: read-page-labels
+    prompt: Find out whether Confluence page 1 in space DOCS has any labels.
+    accept:
+      - getPageLabels
+  - id: update-page-property
+    prompt: >-
+      Update the property with id 1 on Confluence page 1 in space DOCS
+      to the value 'updated'; a not-found response is fine.
+    accept:
+      - updatePagePropertyById
+  - id: delete-page
+    prompt: >-
+      Delete Confluence page 2 in space DOCS; a preview of the request is
+      enough, do not confirm it.
+    accept:
+      - deletePage
+  - id: find-attachments-operation
+    prompt: >-
+      Find and describe the confluence-as API operation that lists a
+      page's attachments.
+    accept:
+      - "describe:getPageAttachments"

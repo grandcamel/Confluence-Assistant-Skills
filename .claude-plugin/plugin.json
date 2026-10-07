@@ -1,7 +1,7 @@
 {
   "name": "confluence-assistant-skills",
-  "version": "2.0.1",
-  "description": "17 specialized skills for Confluence Cloud automation. Natural language page management, CQL search with export, comments, attachments, labels, permissions, and JIRA integration.",
+  "version": "3.0.0",
+  "description": "One Confluence skill: the Entry-Point Hint for the confluence-as CLI 2.x. Run confluence-as help first.",
   "author": {
     "name": "Jason Krueger",
     "url": "https://github.com/grandcamel"
@@ -11,11 +11,8 @@
   "keywords": [
     "confluence",
     "atlassian",
-    "cql",
-    "wiki",
-    "documentation",
-    "pages",
-    "spaces",
-    "collaboration"
+    "cli",
+    "assistant",
+    "automation"
   ]
 }

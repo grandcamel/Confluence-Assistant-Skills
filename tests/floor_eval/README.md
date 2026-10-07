@@ -24,10 +24,10 @@ establish the required full 153-fact baseline. The checked-in inventory carries
 source excerpts; the sibling Confluence checkout is needed for citation
 re-auditing, not for model execution.
 
-Run before every plugin release and after floor-model/judge changes in the
-organization's `docs/agents/standing/fleet-posture.json`, updating the shared
+Run before every plugin release and after a fleet-wide change to the
+floor models or judge, updating the shared
 `commands.json` for the new models. The release checklist is in the
-[repository README](../../README.md#before-each-plugin-release). This is a
+[development guide](../../CLAUDE.md#before-each-plugin-release). This is a
 manual host-triggered check, never a model job in GitHub Actions. All raw
 responses, recovery receipts and reports live under the chosen output path;
 archive them and review disagreements/source issues/stale candidates before

@@ -10,6 +10,16 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+env:
+  CORE_WHEEL: "https://files.pythonhosted.org/packages/9c/ed/544ab9a6038e66dfea45cd6db097d05afc82f879fbdf28835e8de310e238/as_engine-0.1.2-py3-none-any.whl#sha256=ac4cb0b07effbecff812652a33aea54b036971e883d3fe349428c6d723d90d83"
+  CLI_WHEEL_URL: ${{ vars.CONFLUENCE_CLI_WHEEL_URL }}
+  CLI_WHEEL_SHA256: ${{ vars.CONFLUENCE_CLI_WHEEL_SHA256 }}
+  E2E_SUFFICIENCY: "0"
+  PYTEST_ADDOPTS: ""
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -31,7 +41,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install ruff
-        run: pip install ruff
+        run: pip install ruff==0.16.10
 
       - name: Run ruff linter
         run: ruff check . --output-format=github
@@ -59,7 +69,10 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install mypy types-requests types-click
-          pip install -e ".[dev]"
+          python tests/release_checks.py fetch-wheel .artifacts
+          pip install "$CORE_WHEEL" .artifacts/*.whl
+          python tests/release_checks.py verify-core
+          pip install --no-deps -e .
 
       - name: Run mypy on source
         run: |
@@ -151,34 +164,28 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install confluence-as pytest pytest-asyncio pytest-cov
-          pip install -e .
+          pip install pytest pytest-asyncio pytest-cov pyyaml
+          pip install anthropic==1.11.0 docstring-parser==0.18.0 jiter==0.17.0 sniffio==1.3.1
+          python tests/release_checks.py fetch-wheel .artifacts
+          pip install "$CORE_WHEEL" .artifacts/*.whl
+          python tests/release_checks.py verify-core
+          pip install --no-deps -e .
+
+      - name: Check installed dependencies
+        run: pip check
+
+      - name: Collect paid modules without launching
+        run: python -m pytest --collect-only -q skills/confluence/tests/test_routing.py tests/e2e/test_plugin_e2e.py
+
+      - name: Inspect release packaging
+        run: |
+          python tests/release_checks.py archive dist/confluence-assistant-skills-3.0.0.tar.gz
+          python tests/release_checks.py summary dist/confluence-assistant-skills-3.0.0.tar.gz >> "$GITHUB_STEP_SUMMARY"
+          python tests/release_checks.py notes notes/release-notes.md
 
       - name: Run unit tests
         run: |
-          # Run tests per skill to avoid conftest.py conflicts
-          for skill_dir in skills/*/tests/; do
-            if [ -d "$skill_dir" ]; then
-              skill_name=$(basename $(dirname $skill_dir))
-              # Check if there are actual test files (not just conftest.py)
-              test_count=$(find "$skill_dir" -maxdepth 1 -name "test_*.py" | wc -l)
-              if [ "$test_count" -gt 0 ]; then
-                echo "Testing $skill_name ($test_count test files)..."
-                python -m pytest "$skill_dir" -v \
-                  -m "not slow" \
-                  || exit 1
-              else
-                echo "Skipping $skill_name (no test files)"
-              fi
-            fi
-          done
-
-      - name: Run CLI tests
-        run: |
-          if [ -d "tests" ]; then
-            python -m pytest tests -v -m "not slow" || true
-          fi
-        continue-on-error: true
+          python -m pytest -q --deselect skills/confluence/tests/test_routing.py --deselect tests/e2e/test_plugin_e2e.py
 
   # ==========================================================================
   # Pre-commit Hooks Validation
@@ -243,8 +250,8 @@ jobs:
     steps:
       - name: Check required jobs
         run: |
-          if [[ "${{ needs.lint.result }}" == "failure" ]] || \
-             [[ "${{ needs.test.result }}" == "failure" ]]; then
+          if [[ "${{ needs.lint.result }}" != "success" ]] || \
+             [[ "${{ needs.test.result }}" != "success" ]]; then
             echo "Required checks failed"
             exit 1
           fi

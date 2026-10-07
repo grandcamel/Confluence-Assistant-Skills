@@ -5,6 +5,93 @@ All notable changes to the Confluence Assistant Skills project will be documente
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-10-07
+
+### ⚠ BREAKING CHANGES
+
+* The `confluence-assistant` hub skill and the sixteen domain skills
+  (`confluence-admin`, `confluence-analytics`, `confluence-attachment`,
+  `confluence-bulk`, `confluence-comment`, `confluence-hierarchy`,
+  `confluence-jira`, `confluence-label`, `confluence-ops`,
+  `confluence-page`, `confluence-permission`, `confluence-property`,
+  `confluence-search`, `confluence-space`, `confluence-template`,
+  `confluence-watch`), their references and shared hub-era docs and
+  config, are removed.
+* The `browse-skills` and `skill-info` commands, premised on browsing
+  many skills, are removed; `confluence-assistant-setup` is removed too
+  (nothing was left of it once every confluence-as flag and environment
+  variable name it walked through was scrubbed).
+* One `confluence` skill now carries the Entry-Point Hint: run
+  `confluence-as help` first; find operations with `confluence-as api
+  search`/`api describe`; the CLI's own help is the source of truth.
+* Requires `confluence-as>=2,<3`. confluence-as 1.x is not supported:
+  the plugin declares that range, the skill names it, and CI and release
+  validation install only the reviewed 2.x wheel whose SHA-256 is bound
+  in repository variables.
+* The end-to-end harness is now the help-only sufficiency arm
+  (`tests/e2e/`), and the routing test is now the two-skill routing check
+  (`skills/confluence/tests/test_routing.py`); both are host-run, not CI.
+* The dormant `e2e-tests.yml` GitHub Actions workflow, and the Docker
+  image it built, are removed.
+* The `docker-publish.yml` workflow, which pushed that image to GHCR on
+  every published release, on manual dispatch, and on main pushes that
+  changed `docker/e2e/`, `requirements-e2e.txt` or the workflow itself,
+  is removed, along with `requirements-e2e.txt`.
+* The old developer scripts under `scripts/` (`run-e2e-tests.sh`,
+  `run_live_tests.sh`, `run_single_test.sh`, `run_tests.sh`,
+  `setup-env.sh`, `sync-version.sh`, `update_skill_md.py`), the sample
+  `.claude/settings.json` profile file, the root `conftest.py` and the
+  archived hub-era notes under `docs/archived/` are removed.
+
+### Release process
+
+* Releases are manual and bound to a reviewed commit. release-please no
+  longer runs on pushes to main. `release.yml` runs only by dispatch on
+  main, with the full reviewed `candidate_sha`, which must equal the
+  dispatched commit. The default `publish=false` only validates;
+  `publish=true` plus approval of the `plugin-release` environment
+  creates the `v3.0.0` tag atomically and publishes the validated
+  archive, and never replaces an existing tag or release.
+* The release archive is reproducible and holds only
+  `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`,
+  `skills/confluence/SKILL.md`, `README.md`, `VERSION` and `LICENSE`.
+  The validation job writes the archive's SHA-256 and every member's
+  SHA-256 to its job summary for the approver, and the GitHub release
+  notes are this changelog section.
+* `release-please-config.json` and `.release-please-manifest.json` stay
+  as history (the manifest is still a checked version site), but no
+  workflow uses them.
+* `sync-marketplace.yml` no longer runs when `plugin.json` changes on
+  main. It runs only by dispatch with the reviewed `candidate_sha`,
+  behind the `marketplace-review` environment, and opens a pull request
+  in the marketplace repository for review.
+* CI and release validation pin ruff to 0.16.10 and install the pinned
+  Anthropic SDK that the offline evaluation-controller tests import.
+
+### Features
+
+* **confluence:** one skill holding the Entry-Point Hint replaces the
+  hub and sixteen domain skills (JAS-54, JAS-31)
+
+### Safety
+
+* **confluence:** before any write, the skill has the agent read the
+  Risk line in `confluence-as api describe OPERATION`. In confluence-as
+  2.0.0 only operations marked destructive or irreversible preview
+  first; any other write sends at once, so the agent confirms it with
+  the user before sending.
+* **confluence:** the skill declares no `allowed-tools`, so loading it
+  pre-approves no tool and Bash calls keep their normal permission
+  prompts.
+
+### Tests
+
+* **confluence:** add a two-skill (confluence vs. a non-shipped
+  jira-stub fixture) inter-plugin routing check
+* **e2e:** rewrite the end-to-end harness as the help-only sufficiency
+  arm: the model gets only the Entry-Point Hint, the Bash tool, and
+  `confluence-as` in simulation transport with no credentials
+
 ## [2.0.1] - 2026-08-19
 
 ### Changed
