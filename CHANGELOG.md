@@ -80,6 +80,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   2.0.0 only operations marked destructive or irreversible preview
   first; any other write sends at once, so the agent confirms it with
   the user before sending.
+* **confluence:** the skill declares no `allowed-tools`, so loading it
+  pre-approves no tool and Bash calls keep their normal permission
+  prompts.
 
 ### Tests
 

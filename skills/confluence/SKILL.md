@@ -4,7 +4,6 @@ description: "Entry point for Confluence Cloud automation through the confluence
 version: "3.0.0"
 author: "confluence-assistant-skills"
 license: "MIT"
-allowed-tools: ["Bash", "Read"]
 ---
 
 # Confluence
