@@ -119,6 +119,9 @@ builds. The release notes are the `CHANGELOG.md` 3.0.0 section.
 Dispatch `sync-marketplace.yml` separately with the full reviewed
 `candidate_sha` and approve the `marketplace-review` environment. It creates
 an update PR in `as-plugins` for human review and never auto-merges it.
+It rewrites only the entry's `version`. When that entry pins `source.sha`,
+the same PR must also set `source.sha` to the reviewed commit; otherwise the
+entry names the new version while installs still check out the old commit.
 A changed product description still needs a separately reviewed update.
 Release and marketplace dispatches do not authorize promotion.
 

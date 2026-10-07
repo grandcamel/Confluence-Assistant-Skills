@@ -34,8 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * The dormant `e2e-tests.yml` GitHub Actions workflow, and the Docker
   image it built, are removed.
 * The `docker-publish.yml` workflow, which pushed that image to GHCR on
-  main pushes and on every published release, is removed, along with
-  `requirements-e2e.txt`.
+  every published release, on manual dispatch, and on main pushes that
+  changed `docker/e2e/`, `requirements-e2e.txt` or the workflow itself,
+  is removed, along with `requirements-e2e.txt`.
 * The old developer scripts under `scripts/` (`run-e2e-tests.sh`,
   `run_live_tests.sh`, `run_single_test.sh`, `run_tests.sh`,
   `setup-env.sh`, `sync-version.sh`, `update_skill_md.py`), the sample
@@ -78,9 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Risk line in `confluence-as api describe OPERATION`. In confluence-as
   2.0.0 only operations marked destructive or irreversible preview
   first; any other write sends at once, so the agent confirms it with
-  the user before sending. This corrects the release candidate's
-  wording, which said every call that changes or removes content
-  previews first.
+  the user before sending.
 
 ### Tests
 
