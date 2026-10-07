@@ -9,6 +9,7 @@ No external dependencies beyond pytest and pyyaml (already installed for
 the offline suite): no confluence-as CLI, no Claude Code, no network.
 """
 
+import hashlib
 import json
 import re
 import subprocess
@@ -338,19 +339,57 @@ def test_no_confluence_concept_word_outside_exempt_files():
 _JAS_TICKET_RE = re.compile(r"\bJAS-\d+\b")
 _GC_TICKET_RE = re.compile(r"\bGC-\d+\b")
 
-# Built from fragments at runtime so this public repository never carries
-# the literal strings it forbids (the sibling plugin's review made the same
-# call): the joined values are the organization's sandbox key, maintainer
-# handle, private repository name, two host-wrapper names and its
-# Atlassian host.
-_INSTANCE_FACT_LITERAL_PATTERNS = [
-    "".join(("S", "B", "X")),
-    "".join(("jason", "krue")),
-    "".join(("grand-", "camel-", "platform")),
-    "".join(("jira-", "dev-", "host")),
-    "".join(("confluence-", "dev-", "host")),
-    "".join(("jason", "krue", ".atlassian.net")),
-]
+# SHA-256 digests of the lower-cased UTF-8 values of the organization's
+# sandbox key, maintainer handle, private repository name, two host-wrapper
+# names and Atlassian host, keyed by value length. The source holds only
+# these digests, never the values or pieces of them. A digest keeps a value
+# out of sight, not secret: a short value can be guessed and hashed, and
+# none of these is a credential. No value contains whitespace, so every
+# occurrence lies inside one run of non-whitespace characters, and hashing
+# each window of a listed length in every such run finds it at any position
+# and in any letter case.
+_INSTANCE_FACT_DIGESTS_BY_LENGTH = {
+    3: frozenset({"c98a5865f0e7eee4c5f77ccbc5cb81117c168e28333f6273c1d3b17f9bcff0d4"}),
+    9: frozenset({"cfda4dfd4a7fa99804290232c963ad0c8f309415debe4ce98d4eacd5e4d13116"}),
+    13: frozenset({"8420a9b39d04aa83549d9c0daa51cb40ef8c1bce3d4cb21392aebb4d7058351a"}),
+    19: frozenset({"06f14b2f2daaf3045b9fad98b4d16b5220a0b3814f3b84febb844825e1dcce04"}),
+    20: frozenset({"36c4f1e9b111ebfef9e468a9e7a8c4512d96bd57aaf8553d38059c92a8ab155c"}),
+    23: frozenset({"3de3f9d8fb48b9e7d25b549a81fd7ffc396a0c18a3b8c507baf22795f66e901f"}),
+}
+_NON_WHITESPACE_RUN_RE = re.compile(r"\S+")
+
+
+def _instance_fact_digests_in(text: str, table=None) -> set[str]:
+    """Return the digest of every listed instance fact found in text."""
+    table = _INSTANCE_FACT_DIGESTS_BY_LENGTH if table is None else table
+    found = set()
+    for run in _NON_WHITESPACE_RUN_RE.findall(text.lower()):
+        for length, digests in table.items():
+            for start in range(len(run) - length + 1):
+                window = run[start : start + length].encode("utf-8")
+                digest = hashlib.sha256(window).hexdigest()
+                if digest in digests:
+                    found.add(digest)
+    return found
+
+
+def test_instance_fact_matcher_finds_a_value_anywhere_in_any_case():
+    """The digest matcher finds a listed value inside a longer token, next
+    to punctuation and in other letter cases, and nothing else. A synthetic
+    value stands in for the real ones, whose digests alone are in source."""
+    value = "example-instance.invalid"
+    digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
+    table = {len(value): frozenset({digest})}
+    for text in (
+        value,
+        f"see {value}.",
+        f"x{value}y",
+        f"https://{value.upper()}/path",
+        f"('{value.title()}')",
+    ):
+        assert _instance_fact_digests_in(text, table) == {digest}, text
+    for text in ("", "example-instance", "example instance.invalid"):
+        assert _instance_fact_digests_in(text, table) == set(), text
 
 
 def test_no_instance_fact_patterns_anywhere():
@@ -373,7 +412,6 @@ def test_no_instance_fact_patterns_anywhere():
             hits.append(f"{rel_path}: GC-ticket pattern")
         if rel_path != "CHANGELOG.md" and _JAS_TICKET_RE.search(text):
             hits.append(f"{rel_path}: JAS-ticket pattern")
-        for pattern in _INSTANCE_FACT_LITERAL_PATTERNS:
-            if pattern in text:
-                hits.append(f"{rel_path}: {pattern!r}")
+        for digest in sorted(_instance_fact_digests_in(text)):
+            hits.append(f"{rel_path}: instance fact with sha256 {digest[:12]}")
     assert not hits, "instance-fact patterns found:\n" + "\n".join(hits)
