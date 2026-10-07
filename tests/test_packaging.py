@@ -13,12 +13,16 @@ from tests.release_checks import (
     CORE_SHA256,
     ROOT,
     HTTPSRedirectHandler,
+    archive_summary,
     build_archive,
     fetch_wheel,
+    release_notes,
     verify_core,
     verify_versions,
     verify_wheel,
 )
+
+RUFF_VERSION = "0.16.10"
 
 
 def _wheel(tmp_path, name="confluence-as", version="2.0.0"):
@@ -208,3 +212,126 @@ def test_validation_pins_and_verifies_published_core(name):
     text = (ROOT / ".github/workflows" / name).read_text()
     assert 'pip install "$CORE_WHEEL" .artifacts/*.whl' in text
     assert "python tests/release_checks.py verify-core" in text
+
+
+def _grants_contents_write(permissions):
+    # A job without its own permissions inherits the workflow's; a workflow
+    # without permissions inherits the repository default, which may be write.
+    if permissions is None or permissions == "write-all":
+        return True
+    return isinstance(permissions, dict) and permissions.get("contents") == "write"
+
+
+def test_publish_release_is_the_only_contents_write_job():
+    writers = []
+    for path in sorted((ROOT / ".github/workflows").glob("*.yml")):
+        workflow = _workflow(path.name)
+        assert not _grants_contents_write(workflow.get("permissions")), path.name
+        for name, job in workflow["jobs"].items():
+            permissions = job.get("permissions", workflow["permissions"])
+            if _grants_contents_write(permissions):
+                writers.append((path.name, name))
+    assert writers == [("release.yml", "publish-release")]
+
+
+def test_release_publish_defaults_false_and_needs_the_environment():
+    workflow = _workflow("release.yml")
+    publish = workflow["on"]["workflow_dispatch"]["inputs"]["publish"]
+    assert publish["type"] == "boolean"
+    assert publish["default"] == "false"
+    assert workflow["permissions"] == {"contents": "read"}
+    job = workflow["jobs"]["publish-release"]
+    assert job["permissions"] == {"contents": "write"}
+    assert job["environment"] == "plugin-release"
+    assert job["needs"] == "test"
+    assert job["if"] == "github.ref == 'refs/heads/main' && inputs.publish"
+
+
+def _runs(job):
+    return "\n".join(step.get("run", "") for step in job["steps"])
+
+
+def test_release_notes_come_from_changelog_and_digests_reach_the_summary():
+    workflow = _workflow("release.yml")
+    text = (ROOT / ".github/workflows/release.yml").read_text()
+    test_runs = _runs(workflow["jobs"]["test"])
+    archive = "dist/confluence-assistant-skills-3.0.0.tar.gz"
+    assert (
+        f'python tests/release_checks.py summary {archive} >> "$GITHUB_STEP_SUMMARY"'
+        in test_runs
+    )
+    assert "python tests/release_checks.py notes notes/release-notes.md" in test_runs
+    create = _runs(workflow["jobs"]["publish-release"])
+    assert "--notes-file notes/release-notes.md" in create
+    assert "--notes " not in create
+    assert "Reviewed one-skill plugin release." not in text
+    assert "MARKETPLACE_PAT" not in text
+    # The identity guard and the notes check run before the tag exists.
+    order = [
+        'test "$EXPECTED_SHA" = "$GITHUB_SHA"',
+        "test -s notes/release-notes.md",
+        "-f ref=refs/tags/v3.0.0",
+        "gh release create v3.0.0",
+    ]
+    positions = [create.find(marker) for marker in order]
+    assert -1 not in positions
+    assert positions == sorted(positions)
+
+
+@pytest.mark.parametrize("name", ["ci.yml", "release.yml"])
+def test_validation_pins_ruff(name):
+    text = (ROOT / ".github/workflows" / name).read_text()
+    pins = [
+        token
+        for line in text.splitlines()
+        if "pip install" in line
+        for token in line.split()
+        if token.startswith("ruff")
+    ]
+    assert pins == [f"ruff=={RUFF_VERSION}"]
+
+
+def test_release_notes_are_the_changelog_300_section():
+    notes = release_notes()
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert notes.strip() in changelog
+    assert notes.startswith("### ")
+    assert "\n## [" not in notes
+    assert "confluence-as>=2,<3" in notes
+
+
+def test_release_notes_stop_at_the_next_section_and_refuse_bad_input(tmp_path):
+    changelog = tmp_path / "CHANGELOG.md"
+    changelog.write_text(
+        "# Changelog\n\n## [3.0.0] - d\n\n- new\n\n## [2.0.1] - d\n- old\n"
+    )
+    assert release_notes(tmp_path) == "- new\n"
+    for text, message in (
+        ("# Changelog\n\n## [2.0.1] - d\n- old\n", "exactly one"),
+        ("## [3.0.0] - d\n- a\n## [3.0.0] - d\n- b\n", "exactly one"),
+        ("## [3.0.0] - d\n\n## [2.0.1] - d\n- old\n", "empty"),
+    ):
+        changelog.write_text(text)
+        with pytest.raises(ValueError, match=message):
+            release_notes(tmp_path)
+
+
+def test_archive_summary_names_the_archive_and_every_member_digest(tmp_path):
+    archive = tmp_path / "confluence-assistant-skills-3.0.0.tar.gz"
+    build_archive(archive)
+    summary = archive_summary(archive)
+    assert hashlib.sha256(archive.read_bytes()).hexdigest() in summary
+    for name in ARCHIVE_FILES:
+        data = (ROOT / name).read_bytes()
+        row = f"| `{name}` | {len(data)} | `{hashlib.sha256(data).hexdigest()}` |"
+        assert row in summary.splitlines()
+
+
+def test_archive_summary_refuses_members_outside_the_allowlist(tmp_path):
+    archive = tmp_path / "other.tar.gz"
+    with tarfile.open(archive, "w:gz") as handle:
+        member = tarfile.TarInfo("tests/joint_evaluation.py")
+        member.size = 1
+        handle.addfile(member, io.BytesIO(b"x"))
+    with pytest.raises(ValueError, match="allowlist"):
+        archive_summary(archive)

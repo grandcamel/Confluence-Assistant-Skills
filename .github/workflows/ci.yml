@@ -41,7 +41,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install ruff
-        run: pip install ruff
+        run: pip install ruff==0.16.10
 
       - name: Run ruff linter
         run: ruff check . --output-format=github
@@ -178,7 +178,10 @@ jobs:
         run: python -m pytest --collect-only -q skills/confluence/tests/test_routing.py tests/e2e/test_plugin_e2e.py
 
       - name: Inspect release packaging
-        run: python tests/release_checks.py archive dist/confluence-assistant-skills-3.0.0.tar.gz
+        run: |
+          python tests/release_checks.py archive dist/confluence-assistant-skills-3.0.0.tar.gz
+          python tests/release_checks.py summary dist/confluence-assistant-skills-3.0.0.tar.gz >> "$GITHUB_STEP_SUMMARY"
+          python tests/release_checks.py notes notes/release-notes.md
 
       - name: Run unit tests
         run: |

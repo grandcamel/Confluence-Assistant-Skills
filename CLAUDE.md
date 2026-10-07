@@ -26,8 +26,9 @@ tests/
   floor_eval/                 # Pointer to the shared floor-eval job (see below)
 VERSION, .release-please-manifest.json, pyproject.toml,
 .claude-plugin/plugin.json, .claude-plugin/marketplace.json
-                                # Five version sites; a consistency test
-                                # asserts they all agree
+                                # Version sites; with the skill's
+                                # frontmatter they hold seven version
+                                # fields, which the tests assert agree
 CHANGELOG.md                    # Release history (the only file where a
                                  # ticket key from this organization's
                                  # tracker may appear)
@@ -78,6 +79,10 @@ ruff check .
 ruff format --check .
 ```
 
+Lint and release validation pin ruff 0.16.10, and the test jobs install the
+pinned Anthropic SDK (`anthropic==1.11.0`) that the offline
+evaluation-controller tests import.
+
 The remaining CI jobs retain their existing advisory role. `ci-success`
 requires successful lint and test jobs, including refusing skipped jobs.
 No workflow invokes the `claude` binary.
@@ -106,6 +111,10 @@ Its default `publish=false` validates only. Explicit `publish=true` and the
 released as `v3.0.0`; an existing tag or release must not be replaced.
 `tests/release_checks.py` creates a reproducible archive containing only the
 manifests, adopted skill, README, VERSION and license, never the harnesses.
+The validation job writes the archive SHA-256 and every member's SHA-256 to
+its job summary. Compare the members with the reviewed values before
+approving `plugin-release`; the gzip container bytes can differ between zlib
+builds. The release notes are the `CHANGELOG.md` 3.0.0 section.
 
 Dispatch `sync-marketplace.yml` separately with the full reviewed
 `candidate_sha` and approve the `marketplace-review` environment. It creates

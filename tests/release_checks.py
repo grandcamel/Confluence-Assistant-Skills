@@ -146,20 +146,78 @@ def build_archive(output: Path, root: Path = ROOT) -> None:
             archive.addfile(member, io.BytesIO(data))
 
 
+CHANGELOG_HEADING_RE = re.compile(r"^## \[(?P<version>[^\]]+)\][^\n]*$", re.M)
+
+
+def release_notes(root: Path = ROOT) -> str:
+    """Return the CHANGELOG.md section for VERSION, without its heading."""
+    text = (root / "CHANGELOG.md").read_text(encoding="utf-8")
+    headings = list(CHANGELOG_HEADING_RE.finditer(text))
+    matches = [i for i, h in enumerate(headings) if h["version"] == VERSION]
+    if len(matches) != 1:
+        raise ValueError("CHANGELOG.md must have exactly one 3.0.0 section")
+    index = matches[0]
+    end = headings[index + 1].start() if index + 1 < len(headings) else len(text)
+    body = text[headings[index].end() : end].strip()
+    if not body:
+        raise ValueError("CHANGELOG.md 3.0.0 section is empty")
+    return body + "\n"
+
+
+def archive_summary(archive: Path) -> str:
+    """Markdown naming the archive digest and every member's digest."""
+    data = archive.read_bytes()
+    lines = [
+        f"### {archive.name}",
+        "",
+        f"Archive SHA-256: `{hashlib.sha256(data).hexdigest()}` ({len(data)} bytes)",
+        "",
+        "Compare the member digests with the reviewed values before approving "
+        "`plugin-release`. Matching members decide: the gzip container bytes "
+        "can differ between zlib builds.",
+        "",
+        "| Member | Bytes | SHA-256 |",
+        "|---|---|---|",
+    ]
+    with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as handle:
+        members = handle.getmembers()
+        if [m.name for m in members] != list(ARCHIVE_FILES) or not all(
+            m.isfile() for m in members
+        ):
+            raise ValueError("Archive members must equal the release allowlist")
+        for member in members:
+            digest = hashlib.sha256(handle.extractfile(member).read()).hexdigest()
+            lines.append(f"| `{member.name}` | {member.size} | `{digest}` |")
+    return "\n".join(lines) + "\n"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("operation", choices=("fetch-wheel", "archive", "verify-core"))
-    parser.add_argument("output", type=Path, nargs="?")
+    parser.add_argument(
+        "operation",
+        choices=("fetch-wheel", "archive", "verify-core", "notes", "summary"),
+    )
+    parser.add_argument(
+        "path",
+        type=Path,
+        nargs="?",
+        help="wheel directory, archive or notes output, or the archive to summarize",
+    )
     args = parser.parse_args()
     if args.operation == "verify-core":
         verify_core()
         return
-    if args.output is None:
-        parser.error("output is required for fetch-wheel and archive")
+    if args.path is None:
+        parser.error("a path is required for this operation")
     if args.operation == "fetch-wheel":
-        fetch_wheel(args.output)
+        fetch_wheel(args.path)
+    elif args.operation == "archive":
+        build_archive(args.path)
+    elif args.operation == "notes":
+        args.path.parent.mkdir(parents=True, exist_ok=True)
+        args.path.write_text(release_notes(), encoding="utf-8")
     else:
-        build_archive(args.output)
+        print(archive_summary(args.path), end="")
 
 
 if __name__ == "__main__":

@@ -55,7 +55,7 @@ Issues = "https://github.com/grandcamel/Confluence-Assistant-Skills/issues"
 target-version = "py310"
 line-length = 88
 # ruff >=0.16 format-checks Python code blocks inside Markdown; keep the gate
-# scoped to real Python files (CI installs unpinned latest ruff).
+# scoped to real Python files (CI and release validation pin ruff 0.16.10).
 extend-exclude = ["*.md"]
 
 [tool.ruff.lint]

@@ -52,7 +52,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest pytest-asyncio pytest-cov pyyaml ruff
+          pip install pytest pytest-asyncio pytest-cov pyyaml ruff==0.16.10
           pip install anthropic==1.11.0 docstring-parser==0.18.0 jiter==0.17.0 sniffio==1.3.1
           python tests/release_checks.py fetch-wheel .artifacts
           pip install "$CORE_WHEEL" .artifacts/*.whl
@@ -74,11 +74,25 @@ jobs:
       - name: Create inspected release archive
         run: python tests/release_checks.py archive dist/confluence-assistant-skills-3.0.0.tar.gz
 
+      # The plugin-release approver compares these digests with the reviewed ones.
+      - name: Summarize archive digests
+        run: python tests/release_checks.py summary dist/confluence-assistant-skills-3.0.0.tar.gz >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Extract release notes from CHANGELOG
+        run: python tests/release_checks.py notes notes/release-notes.md
+
       - name: Preserve validated archive
         uses: actions/upload-artifact@v4
         with:
           name: plugin-release-archive
           path: dist/confluence-assistant-skills-3.0.0.tar.gz
+          if-no-files-found: error
+
+      - name: Preserve release notes
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-release-notes
+          path: notes/release-notes.md
           if-no-files-found: error
 
   publish-release:
@@ -95,6 +109,12 @@ jobs:
           name: plugin-release-archive
           path: dist
 
+      - name: Retrieve release notes
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-release-notes
+          path: notes
+
       - name: Create release once
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -103,10 +123,11 @@ jobs:
         run: |
           [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
           test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          test -s notes/release-notes.md
           # Atomic ref creation refuses existing tags and every API failure.
           # A failed release upload retains the tag for manual reconciliation.
           gh api "repos/$GH_REPO/git/refs" \
             -f ref=refs/tags/v3.0.0 -f sha="$EXPECTED_SHA"
           gh release create v3.0.0 dist/confluence-assistant-skills-3.0.0.tar.gz \
             --repo "$GH_REPO" --verify-tag \
-            --title "3.0.0" --notes "Reviewed one-skill plugin release."
+            --title "3.0.0" --notes-file notes/release-notes.md
